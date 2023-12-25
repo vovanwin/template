@@ -1,0 +1,21 @@
+---
+debug: true
+contextTimeout: 5
+log:
+  level: 'debug'
+
+server:
+  address: ":8080"
+
+database:
+  host: "localhost"
+  port: 5432
+  username: "default"
+  password: "secret"
+  name: "rcomv"
+  scheme: "public"
+  max_pool_size: 20
+
+jwt:
+  token_ttl: 120m
+...
