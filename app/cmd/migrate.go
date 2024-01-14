@@ -1,4 +1,4 @@
-package app
+package cmd
 
 import (
 	"context"
@@ -43,7 +43,6 @@ var (
 )
 
 func migrate(config config.Config) {
-
 	connStr := fmt.Sprintf(
 		"postgres://%s:%s@%s:%d/%s?search_path=%s",
 		config.Database.Username,
@@ -72,16 +71,19 @@ func migrate(config config.Config) {
 	flags.Parse(os.Args[1:])
 	args := flags.Args()
 
-	if len(args) < 1 {
+	if len(args) < 2 {
 		flags.Usage()
+		slog.Info("Недостаточно аргументов")
+		os.Exit(0)
 		return
 	}
 
 	command := args[1]
 	arguments := []string{}
-	if len(args) > 3 {
-		arguments = append(arguments, args[3:]...)
+	if len(args) > 1 {
+		arguments = append(arguments, args[1:]...)
 	}
+	fmt.Println(arguments)
 	slog.Info("goose %v: %v", command, err)
 	if err := goose.RunContext(context.Background(), command, db, "migrations", arguments...); err != nil {
 		slog.Error("goose %v: %v", command, err)

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"template/cmd/app"
+	"template/app/cmd"
 )
 
 // @title go-starter restful API
@@ -24,5 +24,5 @@ import (
 // @name Authorization
 
 func main() {
-	app.Execute()
+	cmd.Execute()
 }
