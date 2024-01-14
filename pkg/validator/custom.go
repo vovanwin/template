@@ -91,18 +91,6 @@ func (cv *CustomValidator) passwordValidate(fl validator.FieldLevel) bool {
 	if ok := lengthRegexp.MatchString(fieldValue); !ok {
 		cv.passwdErr = fmt.Errorf("field %s must be between %d and %d characters", fl.FieldName(), passwordMinLength, passwordMaxLength)
 		return false
-	} else if ok = lowerCaseRegexp.MatchString(fieldValue); !ok {
-		cv.passwdErr = fmt.Errorf("field %s must contain at least %d lowercase letter(s)", fl.FieldName(), passwordMinLower)
-		return false
-	} else if ok = upperCaseRegexp.MatchString(fieldValue); !ok {
-		cv.passwdErr = fmt.Errorf("field %s must contain at least %d uppercase letter(s)", fl.FieldName(), passwordMinUpper)
-		return false
-	} else if ok = digitRegexp.MatchString(fieldValue); !ok {
-		cv.passwdErr = fmt.Errorf("field %s must contain at least %d digit(s)", fl.FieldName(), passwordMinDigit)
-		return false
-	} else if ok = symbolRegexp.MatchString(fieldValue); !ok {
-		cv.passwdErr = fmt.Errorf("field %s must contain at least %d special character(s)", fl.FieldName(), passwordMinSymbol)
-		return false
 	}
 
 	return true

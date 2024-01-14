@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/spf13/viper"
+	"time"
 )
 
 var (
@@ -19,10 +20,17 @@ type (
 		Env            string   `mapstructure:"env"`
 		Greylog        Greylog  `mapstructure:"greyLog"`
 		Version        string   `mapstructure:"version"`
+		JWT            JWT      `mapstructure:"jwt"`
 	}
 
 	Server struct {
 		Address string `mapstructure:"address"`
+	}
+
+	JWT struct {
+		AccessTtl  time.Duration `mapstructure:"access_ttl"`
+		RefreshTtl time.Duration `mapstructure:"refresh_ttl"`
+		SighKey    string        `mapstructure:"signKey"`
 	}
 
 	Database struct {

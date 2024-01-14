@@ -1,18 +1,17 @@
-package cmd
+package app
 
 import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"go.uber.org/fx"
-	"go.uber.org/fx/fxevent"
 	"log/slog"
 	"os"
 	"template/config"
 	"template/internal/controller"
-	"template/internal/repository"
-	"template/internal/service"
+	"template/internal/domain/user"
 	"template/pkg/fxslog"
 	"template/pkg/httpserver"
+
 	"template/pkg/postgres"
 	"template/pkg/utils"
 )
@@ -37,12 +36,12 @@ func inject() fx.Option {
 			utils.NewTimeoutContext,
 			fxslog.SetupLogger(),
 		),
-		fx.WithLogger(func(logger *slog.Logger) fxevent.Logger {
-			return fxslog.New(logger)
-		}),
+
 		postgres.Module,
-		repository.Module,
-		service.Module,
+
+		//DOMAIN - тут происходит подключение доменов
+		user.Module,
+
 		controller.Module,
 		httpserver.Module,
 
