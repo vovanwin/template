@@ -7,13 +7,14 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"log"
+	"github.com/jackc/pgx/v5/tracelog"
+	"log/slog"
 	"template/config"
 	"time"
 )
 
 const (
-	defaultMaxPoolSize  = 1
+	defaultMaxPoolSize  = 5
 	defaultConnAttempts = 10
 	defaultConnTimeout  = time.Second
 )
@@ -40,7 +41,7 @@ type Postgres struct {
 	Pool    PgxPool
 }
 
-func New(config config.Config) (*Postgres, error) {
+func New(config config.Config, log *slog.Logger) (*Postgres, error) {
 
 	url := fmt.Sprintf(
 		"postgres://%s:%s@%s:%d/%s?search_path=%s",
@@ -67,13 +68,22 @@ func New(config config.Config) (*Postgres, error) {
 
 	poolConfig.MaxConns = int32(pg.maxPoolSize)
 
+	//Включает логирование запросов в БД при дебаг режиме
+	if config.LogLevel == "debug" {
+		tracer := &tracelog.TraceLog{
+			Logger:   NewLoggerTracer(log),
+			LogLevel: tracelog.LogLevelTrace,
+		}
+		poolConfig.ConnConfig.Tracer = tracer
+	}
+
 	for pg.connAttempts > 0 {
 		pg.Pool, err = pgxpool.NewWithConfig(context.Background(), poolConfig)
 		if err == nil {
 			break
 		}
 
-		log.Printf("Postgres is trying to connect, attempts left: %d", pg.connAttempts)
+		slog.Info("Postgres is trying to connect, attempts left: %d", pg.connAttempts)
 		time.Sleep(pg.connTimeout)
 		pg.connAttempts--
 	}

@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"log/slog"
 	"template/internal/domain/user/entity"
-	"template/pkg/postgres"
+	"template/pkg/slorage/postgres"
 	"time"
 )
 

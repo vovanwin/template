@@ -4,25 +4,7 @@ import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"reflect"
-	"regexp"
 	"strings"
-)
-
-const (
-	passwordMinLength = 8
-	passwordMaxLength = 32
-	passwordMinLower  = 1
-	passwordMinUpper  = 1
-	passwordMinDigit  = 1
-	passwordMinSymbol = 1
-)
-
-var (
-	lengthRegexp    = regexp.MustCompile(fmt.Sprintf(`^.{%d,%d}$`, passwordMinLength, passwordMaxLength))
-	lowerCaseRegexp = regexp.MustCompile(fmt.Sprintf(`[a-z]{%d,}`, passwordMinLower))
-	upperCaseRegexp = regexp.MustCompile(fmt.Sprintf(`[A-Z]{%d,}`, passwordMinUpper))
-	digitRegexp     = regexp.MustCompile(fmt.Sprintf(`[0-9]{%d,}`, passwordMinDigit))
-	symbolRegexp    = regexp.MustCompile(fmt.Sprintf(`[!@#$%%^&*]{%d,}`, passwordMinSymbol))
 )
 
 type CustomValidator struct {
@@ -47,6 +29,11 @@ func NewCustomValidator() *CustomValidator {
 		panic(err)
 	}
 
+	err = v.RegisterValidation("IsISO8601Date", cv.iso8601Validate)
+	if err != nil {
+		panic(err)
+	}
+
 	return cv
 }
 
@@ -63,35 +50,18 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 func (cv *CustomValidator) newValidationError(field string, value interface{}, tag string, param string) error {
 	switch tag {
 	case "required":
-		return fmt.Errorf("field %s is required", field)
+		return fmt.Errorf("поле %s является обязательным", field)
 	case "email":
-		return fmt.Errorf("field %s must be a valid email address", field)
+		return fmt.Errorf("поле %s должно быть валидным Емейл адресом", field)
 	case "password":
 		return cv.passwdErr
 	case "min":
-		return fmt.Errorf("field %s must be at least %s characters", field, param)
+		return fmt.Errorf("поле %s должно быть не меньше чем %s символов", field, param)
 	case "max":
-		return fmt.Errorf("field %s must be at most %s characters", field, param)
+		return fmt.Errorf("поле %s должно быть не больше чем %s символов", field, param)
+	case "IsISO8601Date":
+		return cv.passwdErr
 	default:
-		return fmt.Errorf("field %s is invalid", field)
+		return fmt.Errorf("поле %s невалидно", field)
 	}
-}
-
-func (cv *CustomValidator) passwordValidate(fl validator.FieldLevel) bool {
-	// check if the field is a string
-	if fl.Field().Kind() != reflect.String {
-		cv.passwdErr = fmt.Errorf("field %s must be a string", fl.FieldName())
-		return false
-	}
-
-	// get the value of the field
-	fieldValue := fl.Field().String()
-
-	// check regexp matching
-	if ok := lengthRegexp.MatchString(fieldValue); !ok {
-		cv.passwdErr = fmt.Errorf("field %s must be between %d and %d characters", fl.FieldName(), passwordMinLength, passwordMaxLength)
-		return false
-	}
-
-	return true
 }

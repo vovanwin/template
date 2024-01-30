@@ -5,21 +5,23 @@ go 1.21.5
 require (
 	github.com/Graylog2/go-gelf v0.0.0-20170811154226-7ebf4f536d8f
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/fatih/color v1.14.1
+	github.com/fatih/color v1.16.0
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/go-chi/render v1.0.3
-	github.com/go-playground/validator/v10 v10.16.0
+	github.com/go-playground/validator/v10 v10.17.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/jackc/pgx/v5 v5.5.1
+	github.com/jackc/pgx/v5 v5.5.2
 	github.com/labstack/gommon v0.4.2
 	github.com/pressly/goose/v3 v3.17.0
 	github.com/prometheus/client_golang v1.18.0
-	github.com/samber/slog-graylog/v2 v2.1.0
+	github.com/samber/slog-graylog/v2 v2.2.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.8.4
+	go.opentelemetry.io/otel/trace v1.22.0
 	go.uber.org/fx v1.20.1
-	golang.org/x/crypto v0.17.0
+	golang.org/x/crypto v0.18.0
+	golang.org/x/mod v0.14.0
 )
 
 require (
@@ -28,7 +30,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
@@ -52,7 +54,7 @@ require (
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/samber/lo v1.38.1 // indirect
-	github.com/samber/slog-common v0.11.0 // indirect
+	github.com/samber/slog-common v0.14.0 // indirect
 	github.com/sethvargo/go-retry v0.2.4 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
@@ -61,6 +63,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
+	go.opentelemetry.io/otel v1.22.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/dig v1.17.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
@@ -68,7 +71,7 @@ require (
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

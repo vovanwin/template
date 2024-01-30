@@ -18,13 +18,16 @@ type (
 		Server         Server   `mapstructure:"server"`
 		Database       Database `mapstructure:"database"`
 		Env            string   `mapstructure:"env"`
-		Greylog        Greylog  `mapstructure:"greyLog"`
+		Graylog        Greylog  `mapstructure:"greyLog"`
 		Version        string   `mapstructure:"version"`
 		JWT            JWT      `mapstructure:"jwt"`
+		LogLevel       string   `mapstructure:"logLevel"`
 	}
 
 	Server struct {
-		Address string `mapstructure:"address"`
+		Address           string        `mapstructure:"address"`
+		ReadHeaderTimeout time.Duration `mapstructure:"read_header_timeout" default:"60s"`
+		GracefulTimeout   time.Duration `mapstructure:"grace_full_timeout" default:"8s"`
 	}
 
 	JWT struct {
@@ -55,6 +58,7 @@ type (
 
 func NewConfig() Config {
 	conf := &Config{}
+
 	err := viper.Unmarshal(conf)
 	if err != nil {
 		fmt.Printf("unable decode into config struct, %v", err)

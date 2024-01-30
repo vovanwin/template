@@ -7,7 +7,8 @@ import (
 	"github.com/spf13/viper"
 	"log/slog"
 	"os"
-	slogpretty "template/pkg/fxslog/slogPretty"
+	"template/config"
+	"template/pkg/fxslog/devslog"
 )
 
 const (
@@ -16,44 +17,44 @@ const (
 	envProd  = "prod"
 )
 
-func SetupLogger() func() *slog.Logger {
-
+func NewLogger(c config.Config) *slog.Logger {
 	var log *slog.Logger
-
-	env := viper.GetString("env")
+	level := checkLevel(c)
+	env := c.Env
 
 	switch env {
 	case envLocal:
-		log = setupPrettySlog()
+		// new logger with options
+		opts := &devslog.Options{
+			HandlerOptions:    &slog.HandlerOptions{AddSource: true, Level: level},
+			MaxSlicePrintSize: 4,
+			SortKeys:          true,
+			TimeFormat:        "[04:05]",
+			NewLineAfterLog:   true,
+			DebugColor:        devslog.Magenta,
+		}
+		log = slog.New(devslog.NewHandler(os.Stdout, opts))
 	case envDev:
-		log = slog.New(
-			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
-		)
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
 	case envProd:
-		graylogHost := viper.GetString("greyLog.host")
-		graylogPort := viper.GetString("greyLog.port")
+		graylogHost := viper.GetString("GRAYLOG_HOST")
+		graylogPort := viper.GetString("GRAYLOG_PORT")
 		gelfWriter, err := gelf.NewWriter(fmt.Sprintf("%s:%s", graylogHost, graylogPort))
 		if err != nil {
 			panic("Не может подключится к грейлогу")
 		}
-		log = slog.New(sloggraylog.Option{Level: slog.LevelInfo, Writer: gelfWriter}.NewGraylogHandler())
+		log = slog.New(sloggraylog.Option{Level: level, Writer: gelfWriter}.NewGraylogHandler())
 	}
+
 	slog.SetDefault(log)
 
-	return func() *slog.Logger {
-		return log
-	}
+	return log
 
 }
 
-func setupPrettySlog() *slog.Logger {
-	opts := slogpretty.PrettyHandlerOptions{
-		SlogOpts: &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		},
+func checkLevel(c config.Config) slog.Level {
+	if c.LogLevel == "debug" {
+		return slog.LevelDebug
 	}
-
-	handler := opts.NewPrettyHandler(os.Stdout)
-
-	return slog.New(handler)
+	return slog.LevelInfo
 }
