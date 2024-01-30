@@ -10,20 +10,22 @@ import (
 	"log/slog"
 	"os"
 	"template/config"
+	_ "template/database/seed" // Импорт нужен так как миграции с расширением .go должны входить в бинарник при сборке
 )
 
 // @see https://github.com/pressly/goose/blob/master/examples/go-migrations/main.go
-var testCmd = &cobra.Command{
-	Use:   "migrate",
+var seedCmd = &cobra.Command{
+	Use:   "seed",
 	Short: "Управление миграциями",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		config := config.NewConfig
-		migrate(config(), args)
+		seed(config(), args)
 	},
 }
 
-func migrate(config config.Config, args []string) {
+func seed(config config.Config, args []string) {
+	fmt.Println(args)
 	connStr := fmt.Sprintf(
 		"postgres://%s:%s@%s:%d/%s?search_path=%s",
 		config.Database.Username,
@@ -33,7 +35,6 @@ func migrate(config config.Config, args []string) {
 		config.Database.Name,
 		config.Database.Scheme,
 	)
-
 	var db *sql.DB
 	// setup database
 	db, err := sql.Open("pgx", connStr)
@@ -49,8 +50,8 @@ func migrate(config config.Config, args []string) {
 		panic(err)
 	}
 
-	if err := goose.RunContext(context.Background(), args[0], db, "database/migrations", args[1:]...); err != nil {
-		slog.Error("goose %v: %v", "command up: ", err)
+	if err := goose.RunContext(context.Background(), "up-to", db, "database/seed", args...); err != nil {
+		slog.Error("goose %v: %v", "command up-to : ", err)
 	}
 
 	slog.Info("Команда выполнена")

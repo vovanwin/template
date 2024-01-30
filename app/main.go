@@ -4,25 +4,25 @@ import (
 	"template/app/cmd"
 )
 
-// @title go-starter restful API
-// @version 1.0.0
-// @description go-starter
-// @termsOfService http://swagger.io/terms/
+//	@title			API Service
+//	@version		1.0
+//	@description	API service Backend.
+//	@termsOfService	http://swagger.io/terms/
 
-// @contact.name API Support
-// @contact.url http://localhost:8080
-// @contact.email support@swagger.io
-
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-
-// @host localhost:8080
-// @BasePath /
-
-// @securityDefinitions.apikey ApiKeyAuth
+// @securityDefinitions.apikey Bearer
 // @in header
 // @name Authorization
 
+// @contact.name   API Serivce
+// @contact.url    https://vovanwin.ru
+// @contact.email  iot@megafon.ru
+
+//	@license.name	Apache 2.0
+//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @Schemes		http https
+// @host		localhost:8080
+// @BasePath	/api/
 func main() {
 	cmd.Execute()
 }

@@ -7,12 +7,11 @@ import (
 	"log/slog"
 	"os"
 	"template/config"
-	"template/internal/controller"
 	"template/internal/domain/user"
 	"template/pkg/fxslog"
 	"template/pkg/httpserver"
+	"template/pkg/slorage/postgres"
 
-	"template/pkg/postgres"
 	"template/pkg/utils"
 )
 
@@ -34,7 +33,7 @@ func inject() fx.Option {
 		fx.Provide(
 			config.NewConfig,
 			utils.NewTimeoutContext,
-			fxslog.SetupLogger(),
+			fxslog.NewLogger,
 		),
 
 		postgres.Module,
@@ -42,7 +41,6 @@ func inject() fx.Option {
 		//DOMAIN - тут происходит подключение доменов
 		user.Module,
 
-		controller.Module,
 		httpserver.Module,
 
 		fx.Decorate(func(logger *slog.Logger, config config.Config) *slog.Logger {
@@ -63,4 +61,5 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(config.InitConfig)
 	rootCmd.AddCommand(testCmd)
+	rootCmd.AddCommand(seedCmd)
 }
