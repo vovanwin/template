@@ -3,8 +3,7 @@ debug: true
 # возможные варианты local dev prod
 env: "dev"
 contextTimeout: 5
-log:
-  level: 'debug'
+logLevel: "debug"
 
 jwt:
   access_ttl: 2m
@@ -12,7 +11,9 @@ jwt:
   signKey: "secret"
 
 server:
-  address: ":8080"
+  address: "localhost:8080"
+  read_header_timeout: 60s
+  grace_full_timeout: 8s
 
 database:
   host: "localhost"
