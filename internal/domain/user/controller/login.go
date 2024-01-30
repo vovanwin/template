@@ -14,6 +14,13 @@ type login struct {
 	Password string `json:"password" validate:"required,password"`
 }
 
+// @Summary Получить токен
+// @Tags Auth
+// @Param request body login true "query params"
+// @Success 200 {object} user.Tokens
+// @Success 400 {object} response.Error
+// @Success 422 {object} response.Error
+// @Router /v1/auth/login [post]
 func (i *UserController) login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var input login

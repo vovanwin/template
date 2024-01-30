@@ -1,0 +1,75 @@
+basePath: /api/
+definitions:
+  controller.login:
+    properties:
+      password:
+        type: string
+      username:
+        maxLength: 32
+        minLength: 4
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  response.Error:
+    properties:
+      data: {}
+      status:
+        type: string
+    type: object
+  user.Tokens:
+    properties:
+      access:
+        type: string
+      refresh:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: iot@megafon.ru
+    name: API Serivce
+    url: https://vovanwin.ru
+  description: API service Backend.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: API Service
+  version: "1.0"
+paths:
+  /v1/auth/login:
+    post:
+      parameters:
+      - description: query params
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.login'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.Tokens'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Error'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/response.Error'
+      summary: Получить токен
+      tags:
+      - Auth
+schemes:
+- http
+- https
+securityDefinitions:
+  Bearer:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
