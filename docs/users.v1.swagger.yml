@@ -1,0 +1,122 @@
+openapi: 3.0.3
+info:
+  title: Запросы на аутентификацию и работа с авторизованым пользователем
+  version: v1
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Для локальной разработки
+  - url: https://omv-dev.demo.megafon.ru/api/v1
+    description: Development server
+paths:
+  /auth/me:
+    get:
+      description: Информация о текущем пользователе
+      summary: текущий пользователь
+      parameters:
+        - $ref: "#/components/parameters/XRequestIDHeader"
+      responses:
+        "200":
+          description: успешный запрос
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserMe"
+        "401":
+          description: Пользователь неавторизован пользователя
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+security:
+  - bearerAuth: [ ]
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    XRequestIDHeader:
+      description: уникальный для каждого запроса uuid отправляемый с фронтенда чтобы интентифициаровать запрос и залогировать какие логи относятся к какому запросу
+      in: header
+      name: X-Request-ID
+      schema:
+        type: string
+        format: uuid
+        x-go-type: types.RequestID
+        x-go-type-import:
+          path: "github.com/vovanwin/template/internal/types"
+      required: true
+
+  schemas:
+    Error:
+      required: [ data, status ]
+      properties:
+        data:
+          type: string
+        status:
+          type: string
+
+    AuthToken:
+      required: [ access, refresh ]
+      properties:
+        access:
+          description: токен для авторизации
+          type: integer
+        refresh:
+          description: токен для получения нового access токена
+          type: integer
+
+    UserMe:
+      required: [ id,
+                  email,
+                  role,
+                  tenant,
+                  created_at,
+                  settings,
+                  components ]
+      properties:
+        id:
+          description: токен для авторизации
+          type: string
+          format: uuid
+        email:
+          description: email пользователя, а также его логин. Может не быть почтовым адресом.
+          type: string
+        role:
+          description: Роль текущего пользователя
+          type: string
+        tenant:
+          description: Тенант текущего пользователя
+          type: string
+        created_at:
+          description: Время создания пользователя
+          type: string
+          format: date-time
+        settings:
+          description: Тут хранятся все настройки пользователя для фронтенда, фильтры, таймзона и тд
+        components:
+          description: разделы меню доступные пользователю (сейчас захардкожено)
+          type: array
+          items:
+            type: string
+            example: /monitoringmap
+
+    LoginRequest:
+      required: [ username, password ]
+      properties:
+        username:
+          description: Логин пользователя. Может быть как email так и логином.
+          type: string
+        password:
+          description: пароль
+          type: string
+    RefreshRequest:
+      required: [ access, refresh ]
+      properties:
+        refresh:
+          description: рефреш токен, чтобы получить новый токен и рефреш токены
+          type: string
