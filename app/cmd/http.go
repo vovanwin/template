@@ -1,18 +1,19 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	"github.com/spf13/cobra"
+	"github.com/vovanwin/template/config"
+	"github.com/vovanwin/template/internal/module/healthcheck"
+	"github.com/vovanwin/template/pkg/fxslog"
+	"github.com/vovanwin/template/pkg/httpserver"
 	"go.uber.org/fx"
+	"log"
 	"log/slog"
 	"os"
-	"template/config"
-	"template/internal/domain/user"
-	"template/pkg/fxslog"
-	"template/pkg/httpserver"
-	"template/pkg/slorage/postgres"
-
-	"template/pkg/utils"
+	"time"
 )
 
 var (
@@ -32,18 +33,14 @@ func inject() fx.Option {
 	return fx.Options(
 		fx.Provide(
 			config.NewConfig,
-			utils.NewTimeoutContext,
-			fxslog.NewLogger,
+			provideLogger,
+			provideServer, // TODO: из -за особенностей fx нужно вызвать какой либо контроллер например fx.Invoke(healthcheck.Controller) чтобы выполнилнилась иницыализация сервера
 		),
 
-		postgres.Module,
+		//  healthcheck
+		fx.Invoke(healthcheck.Controller),
 
-		//DOMAIN - тут происходит подключение доменов
-		user.Module,
-
-		httpserver.Module,
-
-		fx.Decorate(func(logger *slog.Logger, config config.Config) *slog.Logger {
+		fx.Decorate(func(logger *slog.Logger, config *config.Config) *slog.Logger {
 			return logger.
 				With("environment", config.Env).
 				With("release", Version)
@@ -58,8 +55,49 @@ func Execute() {
 	}
 }
 
-func init() {
-	cobra.OnInitialize(config.InitConfig)
-	rootCmd.AddCommand(testCmd)
-	rootCmd.AddCommand(seedCmd)
+func provideLogger(config *config.Config) (*slog.Logger, error) {
+	opt := fxslog.NewOptions(fxslog.WithEnv(config.Env), fxslog.WithLevel(config.Level))
+	return fxslog.NewLogger(opt)
+}
+
+func provideServer(lifecycle fx.Lifecycle, logger *slog.Logger, config *config.Config) (*chi.Mux, error) {
+	opt := httpserver.NewOptions(logger, config.IsProduction(), config.Address(), config.ReadHeaderTimeout)
+	router, server, err := httpserver.NewServer(opt)
+	if err != nil {
+		return nil, fmt.Errorf("create http server: %v", err)
+	}
+	lifecycle.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+
+			if !config.IsProduction() {
+				// 👇 выводит все роуты в консоль🚶‍♂️
+				httpserver.PrintAllRegisteredRoutes(router)
+			}
+
+			go func() {
+				log.Printf("Сервер запущен на %s\n", config.Address())
+				err := server.ListenAndServe()
+				if err != nil {
+					log.Fatal(err)
+				}
+			}()
+
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			log.Println("Выключение...")
+
+			ctx, shutdown := context.WithTimeout(ctx, config.GracefulTimeout*time.Second)
+			defer shutdown()
+
+			err := server.Shutdown(ctx)
+			if err != nil {
+				log.Println(err)
+			}
+
+			return nil
+		},
+	})
+
+	return router, nil
 }

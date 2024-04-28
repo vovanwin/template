@@ -131,14 +131,10 @@ tasks:
     vars:
       TYPES: |-
         UserID
-        DeviceID
-        UspdID
         RequestID
-        GroupID
-        ReportID
         TenantID
       TYPES_PKG: types
-      TYPES_DST: ./internal/types/types.gen.go
+      TYPES_DST: ./internal/shared/types/types.gen.go
     cmds:
       - echo "Generate types..."
       - ' cd app && go run ./cmd/gen-types {{.TYPES_PKG}} {{.TYPES | splitLines | join "," }} {{.TYPES_DST}}'
