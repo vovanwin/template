@@ -1,2 +1,5 @@
-config.yml
 .idea
+
+app/config/config.yml
+tools/
+deployments/local/.env
