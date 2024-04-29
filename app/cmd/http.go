@@ -31,6 +31,8 @@ var (
 
 func inject() fx.Option {
 	return fx.Options(
+		fx.NopLogger,
+
 		fx.Provide(
 			config.NewConfig,
 			provideLogger,
@@ -53,6 +55,10 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func init() {
+	rootCmd.AddCommand(MigrationsCmd)
 }
 
 func provideLogger(config *config.Config) (*slog.Logger, error) {

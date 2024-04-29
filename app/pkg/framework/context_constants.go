@@ -8,15 +8,6 @@ const (
 	// File uploaded file from file upload middleware
 	File = "@uploaded_file"
 
-	// Limit for get all api
-	Limit = "Limit"
-
-	// Limit for get all api
-	Sorts = "Sorts"
-
-	// Page
-	Page = "Page"
-
 	// Rate Limit
 	RateLimit = "RateLimit"
 
