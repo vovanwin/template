@@ -6,6 +6,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/spf13/cobra"
 	"github.com/vovanwin/template/config"
+	"github.com/vovanwin/template/internal/middleware"
+	"github.com/vovanwin/template/internal/module/auth"
 	"github.com/vovanwin/template/internal/module/healthcheck"
 	"github.com/vovanwin/template/pkg/fxslog"
 	"github.com/vovanwin/template/pkg/httpserver"
@@ -39,8 +41,12 @@ func inject() fx.Option {
 			provideServer, // TODO: из -за особенностей fx нужно вызвать какой либо контроллер например fx.Invoke(healthcheck.Controller) чтобы выполнилнилась иницыализация сервера
 		),
 
+		auth.Module,
+
 		//  healthcheck
 		fx.Invoke(healthcheck.Controller),
+		// загружаю мидлваре в приложение
+		fx.Provide(middleware.NewMiddleware),
 
 		fx.Decorate(func(logger *slog.Logger, config *config.Config) *slog.Logger {
 			return logger.

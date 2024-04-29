@@ -16,7 +16,7 @@ func NewOptions(
 	o := Options{}
 
 	// Setting defaults from field tag (if present)
-	o.level = "false"
+	o.level = "INFO"
 	o.env = "prod"
 
 	for _, opt := range options {
