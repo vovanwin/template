@@ -15,6 +15,6 @@ var Module = fx.Module("authModule",
 		//service
 		service.NewAuthServiceImpl,
 		// repository
-		repository.NewBobAuthRepo,
+		repository.NewEntAuthRepo,
 	),
 )

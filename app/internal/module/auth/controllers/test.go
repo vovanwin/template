@@ -6,12 +6,10 @@ import (
 )
 
 func (i *Implementation) TEST(w http.ResponseWriter, r *http.Request) {
-	//i.service.GetLogin(r.Context())
-
-	type name struct {
-		Name string
+	login, err := i.service.GetLogin(r.Context())
+	if err != nil {
+		return
 	}
-	response.OkResponse(w, r, name{
-		Name: "asdas",
-	})
+
+	response.OkResponse(w, r, login)
 }

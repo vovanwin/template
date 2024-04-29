@@ -2,23 +2,28 @@ package repository
 
 import (
 	"context"
+	"github.com/vovanwin/template/internal/shared/store/gen"
 )
 
-var _ AuthRepo = (*BobAuthRepo)(nil)
+var _ AuthRepo = (*EntAuthRepo)(nil)
 
 type (
 	AuthRepo interface {
-		GetLogin(ctx context.Context) error
+		GetLogin(ctx context.Context) ([]*gen.User, error)
 	}
-	BobAuthRepo struct {
+	EntAuthRepo struct {
+		ent *gen.Client
 	}
 )
 
-func (r BobAuthRepo) GetLogin(ctx context.Context) error {
-	return nil
+func (r EntAuthRepo) GetLogin(ctx context.Context) ([]*gen.User, error) {
+	users := r.ent.User.Query().AllX(ctx)
+
+	return users, nil
 }
 
-func NewBobAuthRepo() AuthRepo {
-
-	return &BobAuthRepo{}
+func NewEntAuthRepo(store *gen.Client) AuthRepo {
+	return &EntAuthRepo{
+		ent: store,
+	}
 }

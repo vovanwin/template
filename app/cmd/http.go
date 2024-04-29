@@ -9,6 +9,8 @@ import (
 	"github.com/vovanwin/template/internal/middleware"
 	"github.com/vovanwin/template/internal/module/auth"
 	"github.com/vovanwin/template/internal/module/healthcheck"
+	"github.com/vovanwin/template/internal/shared/store"
+	"github.com/vovanwin/template/internal/shared/store/gen"
 	"github.com/vovanwin/template/pkg/fxslog"
 	"github.com/vovanwin/template/pkg/httpserver"
 	"go.uber.org/fx"
@@ -33,11 +35,12 @@ var (
 
 func inject() fx.Option {
 	return fx.Options(
-		fx.NopLogger,
+		//fx.NopLogger,
 
 		fx.Provide(
 			config.NewConfig,
 			provideLogger,
+			provideEntOrm,
 			provideServer, // TODO: из -за особенностей fx нужно вызвать какой либо контроллер например fx.Invoke(healthcheck.Controller) чтобы выполнилнилась иницыализация сервера
 		),
 
@@ -112,4 +115,25 @@ func provideServer(lifecycle fx.Lifecycle, logger *slog.Logger, config *config.C
 	})
 
 	return router, nil
+}
+
+func provideEntOrm(config *config.Config) (*gen.Client, error) {
+	fmt.Println("lol", config.PG.Host)
+	ctx := context.Background()
+	client, err := store.NewPSQLClient(store.NewPSQLOptions(
+		config.PG.Host+":"+config.PG.Port,
+		config.PG.User,
+		config.PG.Password,
+		config.PG.Db,
+		store.WithDebug(!config.IsProduction()),
+	))
+	if err != nil {
+		return nil, fmt.Errorf("create psql client: %v", err)
+	}
+
+	if err = client.Schema.Create(ctx); err != nil {
+		return nil, fmt.Errorf("create schema: %v", err)
+	}
+
+	return client, nil
 }
