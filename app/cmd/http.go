@@ -10,6 +10,7 @@ import (
 	"github.com/vovanwin/template/internal/middleware"
 	"github.com/vovanwin/template/internal/module/auth"
 	"github.com/vovanwin/template/internal/module/healthcheck"
+	"github.com/vovanwin/template/internal/module/users"
 	"github.com/vovanwin/template/internal/shared/store"
 	"github.com/vovanwin/template/internal/shared/store/gen"
 	"github.com/vovanwin/template/pkg/fxslog"
@@ -46,6 +47,7 @@ func inject() fx.Option {
 		),
 
 		auth.Module,
+		users.Module,
 
 		//  healthcheck
 		fx.Invoke(healthcheck.Controller),

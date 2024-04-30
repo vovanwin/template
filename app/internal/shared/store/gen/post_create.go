@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/vovanwin/template/internal/shared/store/gen/post"
@@ -20,6 +22,7 @@ type PostCreate struct {
 	config
 	mutation *PostMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetTest sets the "test" field.
@@ -226,6 +229,7 @@ func (pc *PostCreate) createSpec() (*Post, *sqlgraph.CreateSpec) {
 		_node = &Post{config: pc.config}
 		_spec = sqlgraph.NewCreateSpec(post.Table, sqlgraph.NewFieldSpec(post.FieldID, field.TypeUUID))
 	)
+	_spec.OnConflict = pc.conflict
 	if id, ok := pc.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = &id
@@ -278,11 +282,358 @@ func (pc *PostCreate) createSpec() (*Post, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Post.Create().
+//		SetTest(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.PostUpsert) {
+//			SetTest(v+v).
+//		}).
+//		Exec(ctx)
+func (pc *PostCreate) OnConflict(opts ...sql.ConflictOption) *PostUpsertOne {
+	pc.conflict = opts
+	return &PostUpsertOne{
+		create: pc,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Post.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (pc *PostCreate) OnConflictColumns(columns ...string) *PostUpsertOne {
+	pc.conflict = append(pc.conflict, sql.ConflictColumns(columns...))
+	return &PostUpsertOne{
+		create: pc,
+	}
+}
+
+type (
+	// PostUpsertOne is the builder for "upsert"-ing
+	//  one Post node.
+	PostUpsertOne struct {
+		create *PostCreate
+	}
+
+	// PostUpsert is the "OnConflict" setter.
+	PostUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetTest sets the "test" field.
+func (u *PostUpsert) SetTest(v string) *PostUpsert {
+	u.Set(post.FieldTest, v)
+	return u
+}
+
+// UpdateTest sets the "test" field to the value that was provided on create.
+func (u *PostUpsert) UpdateTest() *PostUpsert {
+	u.SetExcluded(post.FieldTest)
+	return u
+}
+
+// SetTitle sets the "title" field.
+func (u *PostUpsert) SetTitle(v string) *PostUpsert {
+	u.Set(post.FieldTitle, v)
+	return u
+}
+
+// UpdateTitle sets the "title" field to the value that was provided on create.
+func (u *PostUpsert) UpdateTitle() *PostUpsert {
+	u.SetExcluded(post.FieldTitle)
+	return u
+}
+
+// SetTitle1 sets the "title1" field.
+func (u *PostUpsert) SetTitle1(v string) *PostUpsert {
+	u.Set(post.FieldTitle1, v)
+	return u
+}
+
+// UpdateTitle1 sets the "title1" field to the value that was provided on create.
+func (u *PostUpsert) UpdateTitle1() *PostUpsert {
+	u.SetExcluded(post.FieldTitle1)
+	return u
+}
+
+// SetTitle3 sets the "title3" field.
+func (u *PostUpsert) SetTitle3(v string) *PostUpsert {
+	u.Set(post.FieldTitle3, v)
+	return u
+}
+
+// UpdateTitle3 sets the "title3" field to the value that was provided on create.
+func (u *PostUpsert) UpdateTitle3() *PostUpsert {
+	u.SetExcluded(post.FieldTitle3)
+	return u
+}
+
+// SetUserID sets the "user_id" field.
+func (u *PostUpsert) SetUserID(v types.UserID) *PostUpsert {
+	u.Set(post.FieldUserID, v)
+	return u
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *PostUpsert) UpdateUserID() *PostUpsert {
+	u.SetExcluded(post.FieldUserID)
+	return u
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *PostUpsert) SetDeletedAt(v time.Time) *PostUpsert {
+	u.Set(post.FieldDeletedAt, v)
+	return u
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *PostUpsert) UpdateDeletedAt() *PostUpsert {
+	u.SetExcluded(post.FieldDeletedAt)
+	return u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *PostUpsert) ClearDeletedAt() *PostUpsert {
+	u.SetNull(post.FieldDeletedAt)
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *PostUpsert) SetUpdatedAt(v time.Time) *PostUpsert {
+	u.Set(post.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *PostUpsert) UpdateUpdatedAt() *PostUpsert {
+	u.SetExcluded(post.FieldUpdatedAt)
+	return u
+}
+
+// ClearUpdatedAt clears the value of the "updated_at" field.
+func (u *PostUpsert) ClearUpdatedAt() *PostUpsert {
+	u.SetNull(post.FieldUpdatedAt)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
+// Using this option is equivalent to using:
+//
+//	client.Post.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(post.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+func (u *PostUpsertOne) UpdateNewValues() *PostUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(post.FieldID)
+		}
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(post.FieldCreatedAt)
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Post.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *PostUpsertOne) Ignore() *PostUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *PostUpsertOne) DoNothing() *PostUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the PostCreate.OnConflict
+// documentation for more info.
+func (u *PostUpsertOne) Update(set func(*PostUpsert)) *PostUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&PostUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetTest sets the "test" field.
+func (u *PostUpsertOne) SetTest(v string) *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.SetTest(v)
+	})
+}
+
+// UpdateTest sets the "test" field to the value that was provided on create.
+func (u *PostUpsertOne) UpdateTest() *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.UpdateTest()
+	})
+}
+
+// SetTitle sets the "title" field.
+func (u *PostUpsertOne) SetTitle(v string) *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.SetTitle(v)
+	})
+}
+
+// UpdateTitle sets the "title" field to the value that was provided on create.
+func (u *PostUpsertOne) UpdateTitle() *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.UpdateTitle()
+	})
+}
+
+// SetTitle1 sets the "title1" field.
+func (u *PostUpsertOne) SetTitle1(v string) *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.SetTitle1(v)
+	})
+}
+
+// UpdateTitle1 sets the "title1" field to the value that was provided on create.
+func (u *PostUpsertOne) UpdateTitle1() *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.UpdateTitle1()
+	})
+}
+
+// SetTitle3 sets the "title3" field.
+func (u *PostUpsertOne) SetTitle3(v string) *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.SetTitle3(v)
+	})
+}
+
+// UpdateTitle3 sets the "title3" field to the value that was provided on create.
+func (u *PostUpsertOne) UpdateTitle3() *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.UpdateTitle3()
+	})
+}
+
+// SetUserID sets the "user_id" field.
+func (u *PostUpsertOne) SetUserID(v types.UserID) *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.SetUserID(v)
+	})
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *PostUpsertOne) UpdateUserID() *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.UpdateUserID()
+	})
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *PostUpsertOne) SetDeletedAt(v time.Time) *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.SetDeletedAt(v)
+	})
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *PostUpsertOne) UpdateDeletedAt() *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.UpdateDeletedAt()
+	})
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *PostUpsertOne) ClearDeletedAt() *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.ClearDeletedAt()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *PostUpsertOne) SetUpdatedAt(v time.Time) *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *PostUpsertOne) UpdateUpdatedAt() *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// ClearUpdatedAt clears the value of the "updated_at" field.
+func (u *PostUpsertOne) ClearUpdatedAt() *PostUpsertOne {
+	return u.Update(func(s *PostUpsert) {
+		s.ClearUpdatedAt()
+	})
+}
+
+// Exec executes the query.
+func (u *PostUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("gen: missing options for PostCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *PostUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *PostUpsertOne) ID(ctx context.Context) (id types.UserID, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("gen: PostUpsertOne.ID is not supported by MySQL driver. Use PostUpsertOne.Exec instead")
+	}
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *PostUpsertOne) IDX(ctx context.Context) types.UserID {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // PostCreateBulk is the builder for creating many Post entities in bulk.
 type PostCreateBulk struct {
 	config
 	err      error
 	builders []*PostCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the Post entities in the database.
@@ -312,6 +663,7 @@ func (pcb *PostCreateBulk) Save(ctx context.Context) ([]*Post, error) {
 					_, err = mutators[i+1].Mutate(root, pcb.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = pcb.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, pcb.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -358,6 +710,235 @@ func (pcb *PostCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (pcb *PostCreateBulk) ExecX(ctx context.Context) {
 	if err := pcb.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Post.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.PostUpsert) {
+//			SetTest(v+v).
+//		}).
+//		Exec(ctx)
+func (pcb *PostCreateBulk) OnConflict(opts ...sql.ConflictOption) *PostUpsertBulk {
+	pcb.conflict = opts
+	return &PostUpsertBulk{
+		create: pcb,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Post.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (pcb *PostCreateBulk) OnConflictColumns(columns ...string) *PostUpsertBulk {
+	pcb.conflict = append(pcb.conflict, sql.ConflictColumns(columns...))
+	return &PostUpsertBulk{
+		create: pcb,
+	}
+}
+
+// PostUpsertBulk is the builder for "upsert"-ing
+// a bulk of Post nodes.
+type PostUpsertBulk struct {
+	create *PostCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.Post.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(post.FieldID)
+//			}),
+//		).
+//		Exec(ctx)
+func (u *PostUpsertBulk) UpdateNewValues() *PostUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(post.FieldID)
+			}
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(post.FieldCreatedAt)
+			}
+		}
+	}))
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Post.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *PostUpsertBulk) Ignore() *PostUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *PostUpsertBulk) DoNothing() *PostUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the PostCreateBulk.OnConflict
+// documentation for more info.
+func (u *PostUpsertBulk) Update(set func(*PostUpsert)) *PostUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&PostUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetTest sets the "test" field.
+func (u *PostUpsertBulk) SetTest(v string) *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.SetTest(v)
+	})
+}
+
+// UpdateTest sets the "test" field to the value that was provided on create.
+func (u *PostUpsertBulk) UpdateTest() *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.UpdateTest()
+	})
+}
+
+// SetTitle sets the "title" field.
+func (u *PostUpsertBulk) SetTitle(v string) *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.SetTitle(v)
+	})
+}
+
+// UpdateTitle sets the "title" field to the value that was provided on create.
+func (u *PostUpsertBulk) UpdateTitle() *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.UpdateTitle()
+	})
+}
+
+// SetTitle1 sets the "title1" field.
+func (u *PostUpsertBulk) SetTitle1(v string) *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.SetTitle1(v)
+	})
+}
+
+// UpdateTitle1 sets the "title1" field to the value that was provided on create.
+func (u *PostUpsertBulk) UpdateTitle1() *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.UpdateTitle1()
+	})
+}
+
+// SetTitle3 sets the "title3" field.
+func (u *PostUpsertBulk) SetTitle3(v string) *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.SetTitle3(v)
+	})
+}
+
+// UpdateTitle3 sets the "title3" field to the value that was provided on create.
+func (u *PostUpsertBulk) UpdateTitle3() *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.UpdateTitle3()
+	})
+}
+
+// SetUserID sets the "user_id" field.
+func (u *PostUpsertBulk) SetUserID(v types.UserID) *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.SetUserID(v)
+	})
+}
+
+// UpdateUserID sets the "user_id" field to the value that was provided on create.
+func (u *PostUpsertBulk) UpdateUserID() *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.UpdateUserID()
+	})
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *PostUpsertBulk) SetDeletedAt(v time.Time) *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.SetDeletedAt(v)
+	})
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *PostUpsertBulk) UpdateDeletedAt() *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.UpdateDeletedAt()
+	})
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *PostUpsertBulk) ClearDeletedAt() *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.ClearDeletedAt()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *PostUpsertBulk) SetUpdatedAt(v time.Time) *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *PostUpsertBulk) UpdateUpdatedAt() *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// ClearUpdatedAt clears the value of the "updated_at" field.
+func (u *PostUpsertBulk) ClearUpdatedAt() *PostUpsertBulk {
+	return u.Update(func(s *PostUpsert) {
+		s.ClearUpdatedAt()
+	})
+}
+
+// Exec executes the query.
+func (u *PostUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("gen: OnConflict was set for builder %d. Set it on the PostCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("gen: missing options for PostCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *PostUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

@@ -22,7 +22,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserMe"
-        "401":
+        default:
           description: Пользователь неавторизован пользователя
           content:
             application/json:
@@ -42,23 +42,25 @@ components:
     XRequestIDHeader:
       description: уникальный для каждого запроса uuid отправляемый с фронтенда чтобы интентифициаровать запрос и залогировать какие логи относятся к какому запросу
       in: header
-      name: X-Request-ID
+      name: X-Request-Id
       schema:
         type: string
         format: uuid
-        x-go-type: types.RequestID
-        x-go-type-import:
-          path: "github.com/vovanwin/template/internal/types"
       required: true
 
   schemas:
     Error:
-      required: [ data, status ]
+      description: Represents error object
+      type: object
       properties:
-        data:
+        code:
+          type: integer
+          format: int64
+        message:
           type: string
-        status:
-          type: string
+      required:
+        - code
+        - message
 
     AuthToken:
       required: [ access, refresh ]
@@ -71,6 +73,7 @@ components:
           type: integer
 
     UserMe:
+      type: object
       required: [ id,
                   email,
                   role,
@@ -97,6 +100,7 @@ components:
           type: string
           format: date-time
         settings:
+          type: string
           description: Тут хранятся все настройки пользователя для фронтенда, фильтры, таймзона и тд
         components:
           description: разделы меню доступные пользователю (сейчас захардкожено)
