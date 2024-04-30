@@ -4,20 +4,21 @@
 
 ## roadmap
 
-- [X] Custom Slog [logrus](https://github.com/sirupsen/logrus)
+- [X] logger Slog
 - [X] CLI Command [cobra](https://github.com/spf13/cobra)
-- [X] Configuration [viper](https://github.com/spf13/viper)
+- [X] Configuration [cleanEnv](https://github.com/ilyakaznacheev/cleanenv)
 - [X] Web [chi](https://github.com/go-chi/chi/)
 - [X] DI/IOC [fx](https://github.com/uber-go/fx)
 - [X] Database postgres
-- [X] Query builder [squerel](https://github.com/Masterminds/squirrel)
-- [X] Swagger generator [swag](https://github.com/swaggo/swag)
-- [X] Migrate [goose](https://github.com/pressly/goose)
-- [x] Seed [Реализовано по подобию этого](https://pressly.github.io/goose/blog/2021/no-version-migrations/#final-thoughts)
+- [X] ent ORM [ent](https://entgo.io/)
+- [ ] Swagger codegen [oapi-codegen](https://github.com/deepmap/oapi-codegen)
+- [X] Migrate [atlas](https://atlasgo.io/integrations/go-sdk)
+- [ ] Seed  
 - [ ] Redis
 - [ ] Temporal
 - [ ] RabbitMQ
-- [ ] docker compose файлы для деплоя и локлаьной разработки
+- [x] docker compose файлы для локлаьной разработки
+- [ ] docker compose файлы для прода
 - [ ] ......
 
 ## слои приложения
@@ -25,23 +26,25 @@
 ```shell
    - app        # application main
      - cmd
-     - ... 
-   - config              # config
-   - deploy              # ci/cd
-     - pgsql             # pgsql docker-compose
-     - ...               # other     
-   - docs                # swag gen swagger2.0 doc
-   - internal            # core 
-     - controller        # http handler（controller）
-     - domain            # domain 
-       - user            # домен пользователя 
-          - entity       # модели пользователя 
+     - config            # config
+     - database
+      - migrations          # миграции
+     - internal          # core 
+      - module            # domain 
+       - shared          # общие файлы
+        - types          # типы данных используемых по всему приложению, сейчас тут uuid сгенерирование из cmd/gen-types
+        - store          # ent ORM сгенерирование файлы и настройки, будут использоваться во всех репозиториях
+       - user            # Модуль пользователя 
+          - controller   # папка с контроллерами. 
           - repository   # репозитории пользователя 
           - service      # сервисы пользователя 
-          - ...          # другие файлы по домену пользователя 
+          - ...          # другие файлы по модулю пользователя 
         - ...            # другой домен
-   - pkg                 # переиспользуемые пакеты
-   - migrations          # миграции
+     - pkg                 # переиспользуемые пакеты     - ... 
+   - deployments              # ci/cd
+     - local             # docker-compose
+     - ...               # other     
+   - docs                # openapi для кодогенерации контроллеров
      - ... 
    - ...
 ```
@@ -53,24 +56,24 @@
    Для запуска приложения запусти или сбилди main.go
    ```
    go run app/main.go - запуск приложения
-   go run app/main.go migrate up - запуск миграций goose аргументы в пункте 2
-   go run app/main.go migrate up-to [номер миграции] - запуск seed, эти миграции не проставляют версии в БД
-   ```
+   go run app/main.go migration  - запуск миграций atlas
+    ```
+      
+
 2. как пользоватся миграциями
 
+Миграции основаны на инструенте Atlas https://atlasgo.io/integrations/go-sdk
+
+В task добавлены необходимые команды
 ```
-Commands:
-    up                   Выполнить все миграциии
-    up-by-one            Выполнить 1 миграцию
-    up-to VERSION        Выполнить миграции до определенной версии VERSION
-    down                 Roll back the version by 1
-    down-to VERSION      Roll back to a specific VERSION
-    redo                 Повторно запустите последнюю миграцию
-    reset                Отктить все миграции (опасная операция, лучше не трогать)
-    status               Статус миграций
-    version              Распечатайте текущую версию базы данных
-    create NAME [sql|go] Creates new migration file with the current timestamp
-    fix                  Переименовывает миграции согласно порядку
+task migrate:lint - запускает линтер миграций, проверяет что миграции накатятся без проблем, если такие есть то выведет предупреждения
+
+task migrate:orm - генерирует из ent scheme (Модели) миграции сравнивая разницу между существующими миграциями и текущими моделями
+   
+task migrate:create - создать новый файл миграции
+ 
+task migrate:hash - перехешировать хеш сумму миграций если что либо поменял
+   
 ```
 
 3. Swagger документация - В ПРОЦЕССЕ

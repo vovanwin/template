@@ -19,6 +19,7 @@ vars:
     github.com/kazhuravlev/options-gen/cmd/options-gen@v0.32.0
     github.com/swaggo/swag/cmd/swag@latest
     github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.1.0
+    github.com/ariga/atlas@latest
 
 
   GO_MODULE: app
@@ -168,15 +169,15 @@ tasks:
       DEV_URL: 'docker://postgres/15/tracker?search_path=public'  # FIX тут хардкод БД для линтера, подумать куда можно вынести
       DIR: 'file://app/database/migrations'
     cmds:
-      - "atlas migrate lint  --dev-url={{.DEV_URL}} --dir={{.DIR}} --latest=1"
+      - "docker run --rm --net=host  -v $(pwd)/app/database/migrations:/migrations  arigaio/atlas  migrate lint  --dev-url={{.DEV_URL}} --dir={{.DIR}} --latest=1"
+#      - "atlas migrate lint  --dev-url={{.DEV_URL}} --dir={{.DIR}} --latest=1"
   migrate:orm:
     cmds:
-      - "cd app && go run main.go ormMigration new_migration_rename_it"
+      - "cd app && go run main.go ormMigration new_migration_rename_it" # после переименования надо обновить хеш сумму командой migrate:hash
       - task: migrate:lint
   migrate:create:
     cmds:
-      - "cd app && go run main.go migration:orm new_migration_rename_it" # после переименования надо обновить хеш сумму командой migrate:hash
-      - task: migrate:lint
+      - "cd app && go run main.go migration:orm new_migration_rename_it"
   migrate:hash:
     vars:
       DIR: 'file://app/database/migrations'
