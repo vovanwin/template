@@ -11,7 +11,7 @@
 - [X] DI/IOC [fx](https://github.com/uber-go/fx)
 - [X] Database postgres
 - [X] ent ORM [ent](https://entgo.io/)
-- [ ] Swagger codegen [oapi-codegen](https://github.com/deepmap/oapi-codegen)
+- [x] codegen [ogen](https://github.com/ogen-go/ogen)
 - [X] Migrate [atlas](https://atlasgo.io/integrations/go-sdk)
 - [ ] Seed  
 - [ ] Redis
