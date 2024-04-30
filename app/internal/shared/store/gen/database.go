@@ -93,6 +93,11 @@ func (db *Database) Query(ctx context.Context, query string, args ...any) (*sql.
 	return &rows, nil
 }
 
+// Post is the client for interacting with the Post builders.
+func (db *Database) Post(ctx context.Context) *PostClient {
+	return db.loadClient(ctx).Post
+}
+
 // User is the client for interacting with the User builders.
 func (db *Database) User(ctx context.Context) *UserClient {
 	return db.loadClient(ctx).User

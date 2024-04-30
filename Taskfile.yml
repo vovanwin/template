@@ -116,6 +116,7 @@ tasks:
     cmds:
       - task: gen:go
       - task: gen:types
+      - task: migrate:orm
 
   gen:go:
     cmds:
@@ -162,3 +163,22 @@ tasks:
     cmds:
       - "mkdir -p {{.DIR_OUTPUT}}"
       - "{{.TOOLS_DIR}}/oapi-codegen  -generate types,server,spec -package {{.PACKEGE}} -o {{.DIR_OUTPUT}}/{{.FILE_NAME}} {{.FILE}} "
+  migrate:lint:
+    vars:
+      DEV_URL: 'docker://postgres/15/tracker?search_path=public'  # FIX тут хардкод БД для линтера, подумать куда можно вынести
+      DIR: 'file://app/database/migrations'
+    cmds:
+      - "atlas migrate lint  --dev-url={{.DEV_URL}} --dir={{.DIR}} --latest=1"
+  migrate:orm:
+    cmds:
+      - "cd app && go run main.go ormMigration new_migration_rename_it"
+      - task: migrate:lint
+  migrate:create:
+    cmds:
+      - "cd app && go run main.go migration:orm new_migration_rename_it" # после переименования надо обновить хеш сумму командой migrate:hash
+      - task: migrate:lint
+  migrate:hash:
+    vars:
+      DIR: 'file://app/database/migrations'
+    cmds:
+      - "atlas migrate hash --dir {{.DIR}}"

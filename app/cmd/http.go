@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/spf13/cobra"
+	"github.com/vovanwin/template/cmd/migrateCmd"
 	"github.com/vovanwin/template/config"
 	"github.com/vovanwin/template/internal/middleware"
 	"github.com/vovanwin/template/internal/module/auth"
@@ -67,7 +68,8 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.AddCommand(MigrationsCmd)
+	rootCmd.AddCommand(migrateCmd.MigrationsCmd)
+	rootCmd.AddCommand(migrateCmd.CreateMigrationCmd)
 }
 
 func provideLogger(config *config.Config) (*slog.Logger, error) {
@@ -118,8 +120,6 @@ func provideServer(lifecycle fx.Lifecycle, logger *slog.Logger, config *config.C
 }
 
 func provideEntOrm(config *config.Config) (*gen.Client, error) {
-	fmt.Println("lol", config.PG.Host)
-	ctx := context.Background()
 	client, err := store.NewPSQLClient(store.NewPSQLOptions(
 		config.PG.Host+":"+config.PG.Port,
 		config.PG.User,
@@ -129,10 +129,6 @@ func provideEntOrm(config *config.Config) (*gen.Client, error) {
 	))
 	if err != nil {
 		return nil, fmt.Errorf("create psql client: %v", err)
-	}
-
-	if err = client.Schema.Create(ctx); err != nil {
-		return nil, fmt.Errorf("create schema: %v", err)
 	}
 
 	return client, nil
