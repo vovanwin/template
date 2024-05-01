@@ -46,7 +46,7 @@ func (i *Implementation) swaggerNew(w http.ResponseWriter, r *http.Request) {
 		baseUrl = "http://localhost:8080/api/v1/swagger/newFile"
 	}
 	if i.config.Env == "dev" {
-		baseUrl = "https://omv-dev.demo.megafon.ru/api/v1/swagger/newFile"
+		baseUrl = "http://localhost:8080/api/v1/swagger/newFile"
 	}
 	if req.Link == "" {
 		req.Link = baseUrl
