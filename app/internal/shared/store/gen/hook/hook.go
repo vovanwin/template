@@ -9,28 +9,16 @@ import (
 	"github.com/vovanwin/template/internal/shared/store/gen"
 )
 
-// The PostFunc type is an adapter to allow the use of ordinary
-// function as Post mutator.
-type PostFunc func(context.Context, *gen.PostMutation) (gen.Value, error)
+// The UsersFunc type is an adapter to allow the use of ordinary
+// function as Users mutator.
+type UsersFunc func(context.Context, *gen.UsersMutation) (gen.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f PostFunc) Mutate(ctx context.Context, m gen.Mutation) (gen.Value, error) {
-	if mv, ok := m.(*gen.PostMutation); ok {
+func (f UsersFunc) Mutate(ctx context.Context, m gen.Mutation) (gen.Value, error) {
+	if mv, ok := m.(*gen.UsersMutation); ok {
 		return f(ctx, mv)
 	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *gen.PostMutation", m)
-}
-
-// The UserFunc type is an adapter to allow the use of ordinary
-// function as User mutator.
-type UserFunc func(context.Context, *gen.UserMutation) (gen.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f UserFunc) Mutate(ctx context.Context, m gen.Mutation) (gen.Value, error) {
-	if mv, ok := m.(*gen.UserMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *gen.UserMutation", m)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *gen.UsersMutation", m)
 }
 
 // Condition is a hook condition function.

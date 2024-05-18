@@ -8,7 +8,6 @@ import (
 	"github.com/vovanwin/template/cmd/migrateCmd"
 	"github.com/vovanwin/template/config"
 	"github.com/vovanwin/template/internal/middleware"
-	"github.com/vovanwin/template/internal/module/auth"
 	"github.com/vovanwin/template/internal/module/healthcheck"
 	"github.com/vovanwin/template/internal/module/users"
 	"github.com/vovanwin/template/internal/shared/store"
@@ -46,7 +45,6 @@ func inject() fx.Option {
 			provideServer, // TODO: из -за особенностей fx нужно вызвать какой либо контроллер например fx.Invoke(healthcheck.Controller) чтобы выполнилнилась иницыализация сервера
 		),
 
-		auth.Module,
 		users.Module,
 
 		//  healthcheck

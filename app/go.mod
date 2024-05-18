@@ -12,7 +12,9 @@ require (
 	github.com/go-faster/errors v0.7.1
 	github.com/go-faster/jx v1.1.0
 	github.com/go-playground/validator/v10 v10.20.0
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.6.0
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/kazhuravlev/options-gen v0.32.0
@@ -25,6 +27,8 @@ require (
 	go.opentelemetry.io/otel/metric v1.26.0
 	go.opentelemetry.io/otel/trace v1.26.0
 	go.uber.org/fx v1.21.1
+	go.uber.org/mock v0.4.0
+	go.uber.org/multierr v1.11.0
 	golang.org/x/crypto v0.22.0
 	golang.org/x/mod v0.17.0
 )
@@ -47,6 +51,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.20.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -65,7 +70,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/zclconf/go-cty v1.14.4 // indirect
 	go.uber.org/dig v1.17.1 // indirect
-	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20230725093048-515e97ebf090 // indirect
 	golang.org/x/net v0.24.0 // indirect

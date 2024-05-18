@@ -1,23 +1,29 @@
 package usersv1
 
 import (
-	"context"
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
+	"github.com/vovanwin/template/config"
 	api "github.com/vovanwin/template/internal/module/users/controller/gen"
+	service "github.com/vovanwin/template/internal/module/users/services"
 	"net/http"
-	"time"
 )
 
 // Compile-time check for Handler.
 var _ api.Handler = (*Implementation)(nil)
 
 type Implementation struct {
+	usersService service.UsersService
+	config       *config.Config
 }
 
-func Controller(r *chi.Mux) {
-	controller := &Implementation{}
-	security := &SecurityHandler{}
+func Controller(r *chi.Mux, usersService service.UsersService, config *config.Config) {
+	controller := &Implementation{
+		usersService: usersService,
+		config:       config,
+	}
+	security := &SecurityHandler{
+		UsersService: usersService,
+	}
 
 	srv, err := api.NewServer(
 		controller,
@@ -30,16 +36,4 @@ func Controller(r *chi.Mux) {
 	}
 
 	r.Mount("/api/v1/", http.StripPrefix("/api/v1", srv))
-}
-
-func (i Implementation) AuthMeGet(ctx context.Context, params api.AuthMeGetParams) (*api.UserMe, error) {
-	return &api.UserMe{
-		ID:         uuid.UUID{},
-		Email:      "",
-		Role:       "",
-		Tenant:     "",
-		CreatedAt:  time.Time{},
-		Settings:   "",
-		Components: nil,
-	}, nil
 }

@@ -8,40 +8,14 @@ import (
 )
 
 var (
-	// PostsColumns holds the columns for the "posts" table.
-	PostsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "test", Type: field.TypeString},
-		{Name: "title", Type: field.TypeString},
-		{Name: "title1", Type: field.TypeString},
-		{Name: "title3", Type: field.TypeString},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "updated_at", Type: field.TypeTime, Nullable: true},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "user_id", Type: field.TypeUUID},
-	}
-	// PostsTable holds the schema information for the "posts" table.
-	PostsTable = &schema.Table{
-		Name:       "posts",
-		Columns:    PostsColumns,
-		PrimaryKey: []*schema.Column{PostsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "posts_users_posts",
-				Columns:    []*schema.Column{PostsColumns[8]},
-				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-		},
-	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
-		{Name: "email", Type: field.TypeString, Unique: true},
-		{Name: "age", Type: field.TypeInt, Nullable: true},
+		{Name: "login", Type: field.TypeString},
+		{Name: "password", Type: field.TypeString, Size: 255},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "updated_at", Type: field.TypeTime, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
@@ -51,11 +25,9 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
-		PostsTable,
 		UsersTable,
 	}
 )
 
 func init() {
-	PostsTable.ForeignKeys[0].RefTable = UsersTable
 }

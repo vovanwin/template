@@ -14,6 +14,64 @@ import (
 	"github.com/ogen-go/ogen/validate"
 )
 
+// AuthLoginPostParams is parameters of POST /auth/login operation.
+type AuthLoginPostParams struct {
+	// Уникальный для каждого запроса uuid отправляемый с
+	// фронтенда чтобы интентифициаровать запрос и
+	// залогировать какие логи относятся к какому запросу.
+	XRequestID uuid.UUID
+}
+
+func unpackAuthLoginPostParams(packed middleware.Parameters) (params AuthLoginPostParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "X-Request-Id",
+			In:   "header",
+		}
+		params.XRequestID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeAuthLoginPostParams(args [0]string, argsEscaped bool, r *http.Request) (params AuthLoginPostParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: X-Request-Id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "X-Request-Id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XRequestID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "X-Request-Id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // AuthMeGetParams is parameters of GET /auth/me operation.
 type AuthMeGetParams struct {
 	// Уникальный для каждого запроса uuid отправляемый с

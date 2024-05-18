@@ -13,6 +13,34 @@ func (s *ErrorStatusCode) Error() string {
 	return fmt.Sprintf("code %d: %+v", s.StatusCode, s.Response)
 }
 
+// Ref: #/components/schemas/AuthToken
+type AuthToken struct {
+	// Токен для авторизации.
+	Access string `json:"access"`
+	// Токен для получения нового access токена.
+	Refresh string `json:"refresh"`
+}
+
+// GetAccess returns the value of Access.
+func (s *AuthToken) GetAccess() string {
+	return s.Access
+}
+
+// GetRefresh returns the value of Refresh.
+func (s *AuthToken) GetRefresh() string {
+	return s.Refresh
+}
+
+// SetAccess sets the value of Access.
+func (s *AuthToken) SetAccess(val string) {
+	s.Access = val
+}
+
+// SetRefresh sets the value of Refresh.
+func (s *AuthToken) SetRefresh(val string) {
+	s.Refresh = val
+}
+
 type BearerAuth struct {
 	Token string
 }
@@ -78,6 +106,34 @@ func (s *ErrorStatusCode) SetStatusCode(val int) {
 // SetResponse sets the value of Response.
 func (s *ErrorStatusCode) SetResponse(val Error) {
 	s.Response = val
+}
+
+// Ref: #/components/schemas/LoginRequest
+type LoginRequest struct {
+	// Логин пользователя. Может быть как email так и логином.
+	Username string `json:"username"`
+	// Пароль.
+	Password string `json:"password"`
+}
+
+// GetUsername returns the value of Username.
+func (s *LoginRequest) GetUsername() string {
+	return s.Username
+}
+
+// GetPassword returns the value of Password.
+func (s *LoginRequest) GetPassword() string {
+	return s.Password
+}
+
+// SetUsername sets the value of Username.
+func (s *LoginRequest) SetUsername(val string) {
+	s.Username = val
+}
+
+// SetPassword sets the value of Password.
+func (s *LoginRequest) SetPassword(val string) {
+	s.Password = val
 }
 
 // Ref: #/components/schemas/UserMe

@@ -1,34 +1,33 @@
 package schema
 
 import (
-	"entgo.io/ent/schema/edge"
-	"github.com/vovanwin/template/internal/shared/types"
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/schema/field"
+	"github.com/vovanwin/template/internal/shared/types"
+	"time"
 )
 
-// Problem holds the schema definition for the Problem entity.
-type User struct {
+// Users holds the schema definition for the Users entity.
+type Users struct {
 	ent.Schema
 }
 
-// Fields of the Problem.
-func (User) Fields() []ent.Field {
+// Fields of the Users.
+func (Users) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", types.UserID{}).Default(types.NewUserID).Unique().Immutable(),
-		field.String("email").Unique(),
-		field.Int("age").Optional(),
+		field.String("login"),
+		field.String("password").MaxLen(255),
+
 		field.Time("deleted_at").Optional(),
-		field.Time("updated_at").Optional().Default(time.Now),
-		field.Time("created_at").Default(time.Now).Immutable(),
+		field.Time("created_at").Default(time.Now),
+		field.Time("updated_at").Default(time.Now).UpdateDefault(time.Now),
 	}
 }
 
-// Edges of the Problem.
-func (User) Edges() []ent.Edge {
+// Edges of the Users.
+func (Users) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("posts", Post.Type),
+		//edge.From("user", User.Type).Ref("posts").Field("user_id").Unique().Required(),
 	}
 }

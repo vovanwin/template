@@ -8,9 +8,8 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/vovanwin/template/internal/shared/store/gen"
-	"github.com/vovanwin/template/internal/shared/store/gen/post"
 	"github.com/vovanwin/template/internal/shared/store/gen/predicate"
-	"github.com/vovanwin/template/internal/shared/store/gen/user"
+	"github.com/vovanwin/template/internal/shared/store/gen/users"
 )
 
 // The Query interface represents an operation that queries a graph.
@@ -69,67 +68,38 @@ func (f TraverseFunc) Traverse(ctx context.Context, q gen.Query) error {
 	return f(ctx, query)
 }
 
-// The PostFunc type is an adapter to allow the use of ordinary function as a Querier.
-type PostFunc func(context.Context, *gen.PostQuery) (gen.Value, error)
+// The UsersFunc type is an adapter to allow the use of ordinary function as a Querier.
+type UsersFunc func(context.Context, *gen.UsersQuery) (gen.Value, error)
 
 // Query calls f(ctx, q).
-func (f PostFunc) Query(ctx context.Context, q gen.Query) (gen.Value, error) {
-	if q, ok := q.(*gen.PostQuery); ok {
+func (f UsersFunc) Query(ctx context.Context, q gen.Query) (gen.Value, error) {
+	if q, ok := q.(*gen.UsersQuery); ok {
 		return f(ctx, q)
 	}
-	return nil, fmt.Errorf("unexpected query type %T. expect *gen.PostQuery", q)
+	return nil, fmt.Errorf("unexpected query type %T. expect *gen.UsersQuery", q)
 }
 
-// The TraversePost type is an adapter to allow the use of ordinary function as Traverser.
-type TraversePost func(context.Context, *gen.PostQuery) error
+// The TraverseUsers type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseUsers func(context.Context, *gen.UsersQuery) error
 
 // Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
-func (f TraversePost) Intercept(next gen.Querier) gen.Querier {
+func (f TraverseUsers) Intercept(next gen.Querier) gen.Querier {
 	return next
 }
 
 // Traverse calls f(ctx, q).
-func (f TraversePost) Traverse(ctx context.Context, q gen.Query) error {
-	if q, ok := q.(*gen.PostQuery); ok {
+func (f TraverseUsers) Traverse(ctx context.Context, q gen.Query) error {
+	if q, ok := q.(*gen.UsersQuery); ok {
 		return f(ctx, q)
 	}
-	return fmt.Errorf("unexpected query type %T. expect *gen.PostQuery", q)
-}
-
-// The UserFunc type is an adapter to allow the use of ordinary function as a Querier.
-type UserFunc func(context.Context, *gen.UserQuery) (gen.Value, error)
-
-// Query calls f(ctx, q).
-func (f UserFunc) Query(ctx context.Context, q gen.Query) (gen.Value, error) {
-	if q, ok := q.(*gen.UserQuery); ok {
-		return f(ctx, q)
-	}
-	return nil, fmt.Errorf("unexpected query type %T. expect *gen.UserQuery", q)
-}
-
-// The TraverseUser type is an adapter to allow the use of ordinary function as Traverser.
-type TraverseUser func(context.Context, *gen.UserQuery) error
-
-// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
-func (f TraverseUser) Intercept(next gen.Querier) gen.Querier {
-	return next
-}
-
-// Traverse calls f(ctx, q).
-func (f TraverseUser) Traverse(ctx context.Context, q gen.Query) error {
-	if q, ok := q.(*gen.UserQuery); ok {
-		return f(ctx, q)
-	}
-	return fmt.Errorf("unexpected query type %T. expect *gen.UserQuery", q)
+	return fmt.Errorf("unexpected query type %T. expect *gen.UsersQuery", q)
 }
 
 // NewQuery returns the generic Query interface for the given typed query.
 func NewQuery(q gen.Query) (Query, error) {
 	switch q := q.(type) {
-	case *gen.PostQuery:
-		return &query[*gen.PostQuery, predicate.Post, post.OrderOption]{typ: gen.TypePost, tq: q}, nil
-	case *gen.UserQuery:
-		return &query[*gen.UserQuery, predicate.User, user.OrderOption]{typ: gen.TypeUser, tq: q}, nil
+	case *gen.UsersQuery:
+		return &query[*gen.UsersQuery, predicate.Users, users.OrderOption]{typ: gen.TypeUsers, tq: q}, nil
 	default:
 		return nil, fmt.Errorf("unknown query type %T", q)
 	}

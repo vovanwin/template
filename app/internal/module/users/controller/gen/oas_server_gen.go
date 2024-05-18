@@ -8,6 +8,12 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	// AuthLoginPost implements POST /auth/login operation.
+	//
+	// Информация о текущем пользователе.
+	//
+	// POST /auth/login
+	AuthLoginPost(ctx context.Context, req *LoginRequest, params AuthLoginPostParams) (*AuthToken, error)
 	// AuthMeGet implements GET /auth/me operation.
 	//
 	// Информация о текущем пользователе.

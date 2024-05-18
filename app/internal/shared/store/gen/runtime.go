@@ -5,8 +5,7 @@ package gen
 import (
 	"time"
 
-	"github.com/vovanwin/template/internal/shared/store/gen/post"
-	"github.com/vovanwin/template/internal/shared/store/gen/user"
+	"github.com/vovanwin/template/internal/shared/store/gen/users"
 	"github.com/vovanwin/template/internal/shared/store/schema"
 	"github.com/vovanwin/template/internal/shared/types"
 )
@@ -15,32 +14,24 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
-	postFields := schema.Post{}.Fields()
-	_ = postFields
-	// postDescUpdatedAt is the schema descriptor for updated_at field.
-	postDescUpdatedAt := postFields[7].Descriptor()
-	// post.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	post.DefaultUpdatedAt = postDescUpdatedAt.Default.(func() time.Time)
-	// postDescCreatedAt is the schema descriptor for created_at field.
-	postDescCreatedAt := postFields[8].Descriptor()
-	// post.DefaultCreatedAt holds the default value on creation for the created_at field.
-	post.DefaultCreatedAt = postDescCreatedAt.Default.(func() time.Time)
-	// postDescID is the schema descriptor for id field.
-	postDescID := postFields[0].Descriptor()
-	// post.DefaultID holds the default value on creation for the id field.
-	post.DefaultID = postDescID.Default.(func() types.UserID)
-	userFields := schema.User{}.Fields()
-	_ = userFields
-	// userDescUpdatedAt is the schema descriptor for updated_at field.
-	userDescUpdatedAt := userFields[4].Descriptor()
-	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
-	// userDescCreatedAt is the schema descriptor for created_at field.
-	userDescCreatedAt := userFields[5].Descriptor()
-	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
-	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
-	// userDescID is the schema descriptor for id field.
-	userDescID := userFields[0].Descriptor()
-	// user.DefaultID holds the default value on creation for the id field.
-	user.DefaultID = userDescID.Default.(func() types.UserID)
+	usersFields := schema.Users{}.Fields()
+	_ = usersFields
+	// usersDescPassword is the schema descriptor for password field.
+	usersDescPassword := usersFields[2].Descriptor()
+	// users.PasswordValidator is a validator for the "password" field. It is called by the builders before save.
+	users.PasswordValidator = usersDescPassword.Validators[0].(func(string) error)
+	// usersDescCreatedAt is the schema descriptor for created_at field.
+	usersDescCreatedAt := usersFields[4].Descriptor()
+	// users.DefaultCreatedAt holds the default value on creation for the created_at field.
+	users.DefaultCreatedAt = usersDescCreatedAt.Default.(func() time.Time)
+	// usersDescUpdatedAt is the schema descriptor for updated_at field.
+	usersDescUpdatedAt := usersFields[5].Descriptor()
+	// users.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	users.DefaultUpdatedAt = usersDescUpdatedAt.Default.(func() time.Time)
+	// users.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	users.UpdateDefaultUpdatedAt = usersDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// usersDescID is the schema descriptor for id field.
+	usersDescID := usersFields[0].Descriptor()
+	// users.DefaultID holds the default value on creation for the id field.
+	users.DefaultID = usersDescID.Default.(func() types.UserID)
 }

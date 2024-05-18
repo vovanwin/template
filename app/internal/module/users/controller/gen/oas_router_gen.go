@@ -48,24 +48,60 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		switch elem[0] {
-		case '/': // Prefix: "/auth/me"
+		case '/': // Prefix: "/auth/"
 			origElem := elem
-			if l := len("/auth/me"); len(elem) >= l && elem[0:l] == "/auth/me" {
+			if l := len("/auth/"); len(elem) >= l && elem[0:l] == "/auth/" {
 				elem = elem[l:]
 			} else {
 				break
 			}
 
 			if len(elem) == 0 {
-				// Leaf node.
-				switch r.Method {
-				case "GET":
-					s.handleAuthMeGetRequest([0]string{}, elemIsEscaped, w, r)
-				default:
-					s.notAllowed(w, r, "GET")
+				break
+			}
+			switch elem[0] {
+			case 'l': // Prefix: "login"
+				origElem := elem
+				if l := len("login"); len(elem) >= l && elem[0:l] == "login" {
+					elem = elem[l:]
+				} else {
+					break
 				}
 
-				return
+				if len(elem) == 0 {
+					// Leaf node.
+					switch r.Method {
+					case "POST":
+						s.handleAuthLoginPostRequest([0]string{}, elemIsEscaped, w, r)
+					default:
+						s.notAllowed(w, r, "POST")
+					}
+
+					return
+				}
+
+				elem = origElem
+			case 'm': // Prefix: "me"
+				origElem := elem
+				if l := len("me"); len(elem) >= l && elem[0:l] == "me" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					// Leaf node.
+					switch r.Method {
+					case "GET":
+						s.handleAuthMeGetRequest([0]string{}, elemIsEscaped, w, r)
+					default:
+						s.notAllowed(w, r, "GET")
+					}
+
+					return
+				}
+
+				elem = origElem
 			}
 
 			elem = origElem
@@ -149,28 +185,68 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 			break
 		}
 		switch elem[0] {
-		case '/': // Prefix: "/auth/me"
+		case '/': // Prefix: "/auth/"
 			origElem := elem
-			if l := len("/auth/me"); len(elem) >= l && elem[0:l] == "/auth/me" {
+			if l := len("/auth/"); len(elem) >= l && elem[0:l] == "/auth/" {
 				elem = elem[l:]
 			} else {
 				break
 			}
 
 			if len(elem) == 0 {
-				switch method {
-				case "GET":
-					// Leaf: AuthMeGet
-					r.name = "AuthMeGet"
-					r.summary = "текущий пользователь"
-					r.operationID = ""
-					r.pathPattern = "/auth/me"
-					r.args = args
-					r.count = 0
-					return r, true
-				default:
-					return
+				break
+			}
+			switch elem[0] {
+			case 'l': // Prefix: "login"
+				origElem := elem
+				if l := len("login"); len(elem) >= l && elem[0:l] == "login" {
+					elem = elem[l:]
+				} else {
+					break
 				}
+
+				if len(elem) == 0 {
+					switch method {
+					case "POST":
+						// Leaf: AuthLoginPost
+						r.name = "AuthLoginPost"
+						r.summary = "текущий пользователь"
+						r.operationID = ""
+						r.pathPattern = "/auth/login"
+						r.args = args
+						r.count = 0
+						return r, true
+					default:
+						return
+					}
+				}
+
+				elem = origElem
+			case 'm': // Prefix: "me"
+				origElem := elem
+				if l := len("me"); len(elem) >= l && elem[0:l] == "me" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					switch method {
+					case "GET":
+						// Leaf: AuthMeGet
+						r.name = "AuthMeGet"
+						r.summary = "текущий пользователь"
+						r.operationID = ""
+						r.pathPattern = "/auth/me"
+						r.args = args
+						r.count = 0
+						return r, true
+					default:
+						return
+					}
+				}
+
+				elem = origElem
 			}
 
 			elem = origElem
