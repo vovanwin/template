@@ -22,13 +22,15 @@ services:
     networks:
       - backend
 
-#  rabbitmq:
-#    image: rabbitmq:3.12.12-management
-#    ports:
-#      - 15672:15672
-#      - 5672:5672
-#    networks:
-#      - backend
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    environment:
+      - LOG_LEVEL=debug
+    ports:
+      - 14268:14268 # for serving jaeger front-end
+      - 16686:16686  # for receiving OTLP data
+    logging:
+      driver: none # intentionally turnoff the logging so it doesn't clutter the terminal
 
 networks:
   backend:

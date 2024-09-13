@@ -11,6 +11,8 @@ servers:
 paths:
   /auth/me:
     get:
+      security:
+        - bearerAuth: [ ]
       description: Информация о текущем пользователе
       summary: текущий пользователь
       parameters:
