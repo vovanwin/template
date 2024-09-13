@@ -206,9 +206,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 				}
 
 				if len(elem) == 0 {
+					// Leaf node.
 					switch method {
 					case "POST":
-						// Leaf: AuthLoginPost
 						r.name = "AuthLoginPost"
 						r.summary = "текущий пользователь"
 						r.operationID = ""
@@ -231,9 +231,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 				}
 
 				if len(elem) == 0 {
+					// Leaf node.
 					switch method {
 					case "GET":
-						// Leaf: AuthMeGet
 						r.name = "AuthMeGet"
 						r.summary = "текущий пользователь"
 						r.operationID = ""

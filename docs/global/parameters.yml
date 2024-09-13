@@ -11,7 +11,8 @@ parameters:
   XRequestIDHeader:
     description: Уникальный идентификатор запроса (UUID) отправляется с фронтенда для идентификации каждого запроса и логирования соответствующих логов, относящихся к данному запросу.
     in: header
-    name: X-Request-ID
+    required: false
+    name: X-Request-Id
     schema:
       type: string
       format: uuid

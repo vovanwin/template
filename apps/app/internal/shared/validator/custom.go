@@ -102,9 +102,6 @@ func New(pgx *postgres.Postgres) *CustomValidator {
 	if err := v.RegisterValidationCtx("exists", cv.existsValidate); err != nil {
 		panic(err)
 	}
-	if err := v.RegisterValidationCtx("isAllowDevicesValidate", cv.isAllowDevicesValidate); err != nil {
-		panic(err)
-	}
 	if err := v.RegisterValidationCtx("json_size", cv.ValidateJSONSize); err != nil {
 		panic(err)
 	}

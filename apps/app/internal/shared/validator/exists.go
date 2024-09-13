@@ -1,15 +1,11 @@
 package validator
 
 import (
-	"app/internal/domain/auth/tokenDTO"
-	"app/internal/shared/validator/dbsqlc"
-	"app/internal/types"
 	"context"
 	"database/sql"
 	"fmt"
 	"github.com/Masterminds/squirrel"
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"strings"
 )
@@ -103,36 +99,4 @@ func (cv *CustomValidator) uniqueValidate(ctx context.Context, fl validator.Fiel
 
 	// Если запись найдена, то поле не уникально
 	return !exists
-}
-
-// existsValidate проверяет, существует ли такой девайс в БД и проверяет права пользователя
-func (cv *CustomValidator) isAllowDevicesValidate(ctx context.Context, fl validator.FieldLevel) bool {
-	claims := tokenDTO.GetCurrentClaims(ctx)
-	deviceUUIDs := fl.Field().Interface().([]types.DeviceID)
-	if len(deviceUUIDs) == 0 {
-		return false
-	}
-
-	// Преобразование []types.DeviceID в []string для использования в запросе
-	var uuidStrings []uuid.UUID
-	for _, deviceID := range deviceUUIDs {
-		if deviceID.IsZero() {
-			return false
-		}
-		uuidStrings = append(uuidStrings, uuid.UUID(deviceID))
-	}
-
-	// Выполнение SQL-запроса, сгенерированного с помощью sqlc
-	count, err := cv.sqlc.CountUserDevicesWithPermissions(context.Background(), dbsqlc.CountUserDevicesWithPermissionsParams{
-		Uuiddevices: uuidStrings,
-		TenantID:    claims.TenantId,
-		UserID:      claims.UserId,
-	})
-
-	if err != nil {
-		// Обработка ошибки, например, логирование или возврат false
-		return false
-	}
-
-	return count == int64(len(deviceUUIDs))
 }

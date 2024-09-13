@@ -28,5 +28,5 @@ func (i *Implementation) healthcheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *Implementation) version(w http.ResponseWriter, r *http.Request) {
-	response.OkResponse(w, r, buildinfo.BuildInfo)
+	response.SuccessResponse(w, r, http.StatusOK, buildinfo.BuildInfo)
 }

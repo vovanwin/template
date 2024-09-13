@@ -11,15 +11,15 @@ import (
 	"github.com/ogen-go/ogen/middleware"
 	"github.com/ogen-go/ogen/ogenerrors"
 	"github.com/ogen-go/ogen/uri"
-	"github.com/ogen-go/ogen/validate"
 )
 
 // AuthLoginPostParams is parameters of POST /auth/login operation.
 type AuthLoginPostParams struct {
-	// Уникальный для каждого запроса uuid отправляемый с
-	// фронтенда чтобы интентифициаровать запрос и
-	// залогировать какие логи относятся к какому запросу.
-	XRequestID uuid.UUID
+	// Уникальный идентификатор запроса (UUID) отправляется с
+	// фронтенда для идентификации каждого запроса и
+	// логирования соответствующих логов, относящихся к
+	// данному запросу.
+	XRequestID OptUUID
 }
 
 func unpackAuthLoginPostParams(packed middleware.Parameters) (params AuthLoginPostParams) {
@@ -28,7 +28,9 @@ func unpackAuthLoginPostParams(packed middleware.Parameters) (params AuthLoginPo
 			Name: "X-Request-Id",
 			In:   "header",
 		}
-		params.XRequestID = packed[key].(uuid.UUID)
+		if v, ok := packed[key]; ok {
+			params.XRequestID = v.(OptUUID)
+		}
 	}
 	return params
 }
@@ -43,23 +45,28 @@ func decodeAuthLoginPostParams(args [0]string, argsEscaped bool, r *http.Request
 		}
 		if err := h.HasParam(cfg); err == nil {
 			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
-				val, err := d.DecodeValue()
-				if err != nil {
+				var paramsDotXRequestIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXRequestIDVal = c
+					return nil
+				}(); err != nil {
 					return err
 				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.XRequestID = c
+				params.XRequestID.SetTo(paramsDotXRequestIDVal)
 				return nil
 			}); err != nil {
 				return err
 			}
-		} else {
-			return validate.ErrFieldRequired
 		}
 		return nil
 	}(); err != nil {
@@ -74,10 +81,11 @@ func decodeAuthLoginPostParams(args [0]string, argsEscaped bool, r *http.Request
 
 // AuthMeGetParams is parameters of GET /auth/me operation.
 type AuthMeGetParams struct {
-	// Уникальный для каждого запроса uuid отправляемый с
-	// фронтенда чтобы интентифициаровать запрос и
-	// залогировать какие логи относятся к какому запросу.
-	XRequestID uuid.UUID
+	// Уникальный идентификатор запроса (UUID) отправляется с
+	// фронтенда для идентификации каждого запроса и
+	// логирования соответствующих логов, относящихся к
+	// данному запросу.
+	XRequestID OptUUID
 }
 
 func unpackAuthMeGetParams(packed middleware.Parameters) (params AuthMeGetParams) {
@@ -86,7 +94,9 @@ func unpackAuthMeGetParams(packed middleware.Parameters) (params AuthMeGetParams
 			Name: "X-Request-Id",
 			In:   "header",
 		}
-		params.XRequestID = packed[key].(uuid.UUID)
+		if v, ok := packed[key]; ok {
+			params.XRequestID = v.(OptUUID)
+		}
 	}
 	return params
 }
@@ -101,23 +111,28 @@ func decodeAuthMeGetParams(args [0]string, argsEscaped bool, r *http.Request) (p
 		}
 		if err := h.HasParam(cfg); err == nil {
 			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
-				val, err := d.DecodeValue()
-				if err != nil {
+				var paramsDotXRequestIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXRequestIDVal = c
+					return nil
+				}(); err != nil {
 					return err
 				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.XRequestID = c
+				params.XRequestID.SetTo(paramsDotXRequestIDVal)
 				return nil
 			}); err != nil {
 				return err
 			}
-		} else {
-			return validate.ErrFieldRequired
 		}
 		return nil
 	}(); err != nil {

@@ -12,7 +12,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.19.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ogen-go/ogen/conv"
@@ -103,7 +103,7 @@ func (c *Client) AuthLoginPost(ctx context.Context, request *LoginRequest, param
 
 func (c *Client) sendAuthLoginPost(ctx context.Context, request *LoginRequest, params AuthLoginPostParams) (res *AuthToken, err error) {
 	otelAttrs := []attribute.KeyValue{
-		semconv.HTTPMethodKey.String("POST"),
+		semconv.HTTPRequestMethodKey.String("POST"),
 		semconv.HTTPRouteKey.String("/auth/login"),
 	}
 
@@ -157,7 +157,10 @@ func (c *Client) sendAuthLoginPost(ctx context.Context, request *LoginRequest, p
 			Explode: false,
 		}
 		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.UUIDToString(params.XRequestID))
+			if val, ok := params.XRequestID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode header")
 		}
@@ -224,7 +227,7 @@ func (c *Client) AuthMeGet(ctx context.Context, params AuthMeGetParams) (*UserMe
 
 func (c *Client) sendAuthMeGet(ctx context.Context, params AuthMeGetParams) (res *UserMe, err error) {
 	otelAttrs := []attribute.KeyValue{
-		semconv.HTTPMethodKey.String("GET"),
+		semconv.HTTPRequestMethodKey.String("GET"),
 		semconv.HTTPRouteKey.String("/auth/me"),
 	}
 
@@ -275,7 +278,10 @@ func (c *Client) sendAuthMeGet(ctx context.Context, params AuthMeGetParams) (res
 			Explode: false,
 		}
 		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.UUIDToString(params.XRequestID))
+			if val, ok := params.XRequestID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode header")
 		}

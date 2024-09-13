@@ -16,7 +16,7 @@ paths:
       description: Информация о текущем пользователе
       summary: текущий пользователь
       parameters:
-        - $ref: "#/components/parameters/XRequestIDHeader"
+        - $ref: "global/parameters.yml#/parameters/XRequestIDHeader"
       responses:
         "200":
           description: успешный запрос
@@ -35,7 +35,7 @@ paths:
       description: Информация о текущем пользователе
       summary: текущий пользователь
       parameters:
-        - $ref: "#/components/parameters/XRequestIDHeader"
+        - $ref: "global/parameters.yml#/parameters/XRequestIDHeader"
       requestBody:
         required: true
         content:
@@ -64,17 +64,6 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-
-  parameters:
-    XRequestIDHeader:
-      description: уникальный для каждого запроса uuid отправляемый с фронтенда чтобы интентифициаровать запрос и залогировать какие логи относятся к какому запросу
-      in: header
-      name: X-Request-Id
-      schema:
-        type: string
-        format: uuid
-      required: true
-
   schemas:
     Error:
       description: Represents error object

@@ -8,7 +8,7 @@ package dbsqlc
 import (
 	"context"
 
-	"app/internal/types"
+	"app/internal/shared/types"
 	"github.com/google/uuid"
 )
 

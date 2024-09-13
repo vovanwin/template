@@ -5,7 +5,7 @@
 package dbsqlc
 
 import (
-	"app/internal/types"
+	"app/internal/shared/types"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 

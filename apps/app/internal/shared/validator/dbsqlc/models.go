@@ -8,7 +8,7 @@ import (
 	"net/netip"
 	"time"
 
-	"app/internal/types"
+	"app/internal/shared/types"
 	"github.com/google/uuid"
 )
 

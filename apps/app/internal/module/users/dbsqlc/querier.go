@@ -7,7 +7,7 @@ package dbsqlc
 import (
 	"context"
 
-	"app/internal/types"
+	"app/internal/shared/types"
 )
 
 type Querier interface {

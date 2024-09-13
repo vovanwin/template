@@ -158,5 +158,4 @@ tasks:
 
   ogen:api:
     cmds:
-      - "{{.TOOLS_DIR}}/ogen  --target app/internal/module/users/controller/gen -package usersGenv1 --clean docs/users.v1.swagger.yml"
-      - "{{.TOOLS_DIR}}/ogen  --target app/internal/module/devices/controller/gen -package devicesGenv1 --config docs/config.yml --clean docs/devices.v1.swagger.yml   "
+      - "{{.TOOLS_DIR}}/ogen  --target apps/app/internal/module/users/controller/gen -package usersGenv1  --config docs/config.yml  --clean docs/users.v1.swagger.yml"
