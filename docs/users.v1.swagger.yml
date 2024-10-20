@@ -11,10 +11,12 @@ servers:
 paths:
   /auth/me:
     get:
+      security:
+        - bearerAuth: [ ]
       description: Информация о текущем пользователе
       summary: текущий пользователь
       parameters:
-        - $ref: "#/components/parameters/XRequestIDHeader"
+        - $ref: "global/parameters.yml#/parameters/XRequestIDHeader"
       responses:
         "200":
           description: успешный запрос
@@ -28,6 +30,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /auth/login:
+    post:
+      description: Информация о текущем пользователе
+      summary: текущий пользователь
+      parameters:
+        - $ref: "global/parameters.yml#/parameters/XRequestIDHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: успешно
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthToken"
+        default:
+          description: Ошибка
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 security:
   - bearerAuth: [ ]
 
@@ -37,17 +64,6 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-
-  parameters:
-    XRequestIDHeader:
-      description: уникальный для каждого запроса uuid отправляемый с фронтенда чтобы интентифициаровать запрос и залогировать какие логи относятся к какому запросу
-      in: header
-      name: X-Request-Id
-      schema:
-        type: string
-        format: uuid
-      required: true
-
   schemas:
     Error:
       description: Represents error object
@@ -63,20 +79,20 @@ components:
         - message
 
     AuthToken:
+      type: object
       required: [ access, refresh ]
       properties:
         access:
           description: токен для авторизации
-          type: integer
+          type: string
         refresh:
           description: токен для получения нового access токена
-          type: integer
+          type: string
 
     UserMe:
       type: object
       required: [ id,
                   email,
-                  role,
                   tenant,
                   created_at,
                   settings,
@@ -110,6 +126,7 @@ components:
             example: /monitoringmap
 
     LoginRequest:
+      type: object
       required: [ username, password ]
       properties:
         username:
@@ -119,6 +136,7 @@ components:
           description: пароль
           type: string
     RefreshRequest:
+      type: object
       required: [ access, refresh ]
       properties:
         refresh:

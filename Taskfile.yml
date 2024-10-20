@@ -16,11 +16,11 @@ vars:
   DEV_TOOLS: |
     github.com/daixiang0/gci@v0.13.0
     mvdan.cc/gofumpt@v0.6.0
-    github.com/kazhuravlev/options-gen/cmd/options-gen@v0.32.0
+    github.com/kazhuravlev/options-gen/cmd/options-gen@latest
     github.com/swaggo/swag/cmd/swag@latest
-    github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.1.0
-    github.com/ogen-go/ogen/cmd/ogen@v1.1.0
-
+    github.com/ogen-go/ogen/cmd/ogen@latest
+    go.uber.org/mock/mockgen@latest
+    github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 
   GO_MODULE: app
   GO_FILES:
@@ -50,6 +50,9 @@ tasks:
     - echo "- Tidy"
     - go mod tidy
 
+  sql:
+    - echo "SQLC"
+    - "cd apps/app && {{.TOOLS_DIR}}/sqlc generate"
   deps:
     desc: контейнеры - запустить
     cmds:
@@ -120,26 +123,23 @@ tasks:
       - task: migrate:orm
 
   gen:go:
+    vars:
+#      PATH: {{.TOOLS_DIR}}:$PATH
+      PATH: $PATH:{{.TOOLS_DIR}}
     cmds:
       - echo "Run go generate ./..."
       - 'PATH="{{.TOOLS_DIR}}:$PATH" cd app && go generate ./...'
 
-  gen:swagger:
-    desc: сгенерировать сваггер документацию
-    cmds:
-      - '{{.TOOLS_DIR}}/swag init -d ./app -o ./app/internal/swagger/docs --ot json'
     
   gen:types:
     vars:
       TYPES: |-
         UserID
-        RequestID
-        TenantID
       TYPES_PKG: types
       TYPES_DST: ./internal/shared/types/types.gen.go
     cmds:
       - echo "Generate types..."
-      - ' cd app && go run ./cmd/gen-types {{.TYPES_PKG}} {{.TYPES | splitLines | join "," }} {{.TYPES_DST}}'
+      - ' cd apps/app && go run ./cmd/gen-types {{.TYPES_PKG}} {{.TYPES | splitLines | join "," }} {{.TYPES_DST}}'
 
   tests:
     desc: запустить тесты
@@ -155,35 +155,7 @@ tasks:
       - for: { var: DEV_TOOLS }
         cmd: GOBIN="{{.TOOLS_DIR}}"  go install "{{ .ITEM }}"  # У
 
-  gen:api:
-    vars:
-      DIR_OUTPUT: './app/internal/domain/{{.CLI_ARGS}}/controllers/{{.CLI_ARGS}}Genv1'
-      FILE_NAME: 'server.gen.go'
-      FILE: './docs/{{.CLI_ARGS}}.v1.swagger.yml'
-      PACKEGE: '{{.CLI_ARGS}}Genv1'
-    cmds:
-      - "mkdir -p {{.DIR_OUTPUT}}"
-      - "{{.TOOLS_DIR}}/oapi-codegen  -generate types,server,spec -package {{.PACKEGE}} -o {{.DIR_OUTPUT}}/{{.FILE_NAME}} {{.FILE}} "
-  migrate:lint:
-    vars:
-      DEV_URL: 'docker://postgres/15/tracker?search_path=public'  # FIX тут хардкод БД для линтера, подумать куда можно вынести
-      DIR: 'file://app/database/migrations'
-    cmds:
-#      - "docker run --rm --net=host  -v $(pwd)/app/database/migrations:/migrations  arigaio/atlas  migrate lint  --dev-url={{.DEV_URL}} --dir={{.DIR}} --latest=1"
-      - "atlas migrate lint  --dev-url={{.DEV_URL}} --dir={{.DIR}} --latest=1"
-  migrate:orm:
-    cmds:
-      - "cd app && go run main.go migration:orm new_migration_rename_it" # после переименования надо обновить хеш сумму командой migrate:hash
-      - task: migrate:lint
-  migrate:create:
-    cmds:
-      - "cd app && go run main.go migration:orm new_migration_rename_it"
-  migrate:hash:
-    vars:
-      DIR: 'file://app/database/migrations'
-    cmds:
-      - "atlas migrate hash --dir {{.DIR}}"
 
   ogen:api:
     cmds:
-      - "{{.TOOLS_DIR}}/ogen  --target app/internal/module/users/controller/gen -package usersGenv1 --clean docs/users.v1.swagger.yml"
+      - "{{.TOOLS_DIR}}/ogen  --target apps/app/internal/module/users/controller/gen -package usersGenv1  --config docs/config.yml  --clean docs/users.v1.swagger.yml"
