@@ -93,7 +93,6 @@ components:
       type: object
       required: [ id,
                   email,
-                  role,
                   tenant,
                   created_at,
                   settings,

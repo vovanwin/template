@@ -136,6 +136,52 @@ func (s *LoginRequest) SetPassword(val string) {
 	s.Password = val
 }
 
+// NewOptString returns new OptString with value set to v.
+func NewOptString(v string) OptString {
+	return OptString{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptString is optional string.
+type OptString struct {
+	Value string
+	Set   bool
+}
+
+// IsSet returns true if OptString was set.
+func (o OptString) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptString) Reset() {
+	var v string
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptString) SetTo(v string) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptString) Get() (v string, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptString) Or(d string) string {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptUUID returns new OptUUID with value set to v.
 func NewOptUUID(v uuid.UUID) OptUUID {
 	return OptUUID{
@@ -190,7 +236,7 @@ type UserMe struct {
 	// почтовым адресом.
 	Email string `json:"email"`
 	// Роль текущего пользователя.
-	Role string `json:"role"`
+	Role OptString `json:"role"`
 	// Тенант текущего пользователя.
 	Tenant string `json:"tenant"`
 	// Время создания пользователя.
@@ -214,7 +260,7 @@ func (s *UserMe) GetEmail() string {
 }
 
 // GetRole returns the value of Role.
-func (s *UserMe) GetRole() string {
+func (s *UserMe) GetRole() OptString {
 	return s.Role
 }
 
@@ -249,7 +295,7 @@ func (s *UserMe) SetEmail(val string) {
 }
 
 // SetRole sets the value of Role.
-func (s *UserMe) SetRole(val string) {
+func (s *UserMe) SetRole(val OptString) {
 	s.Role = val
 }
 
