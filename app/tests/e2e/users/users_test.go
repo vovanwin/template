@@ -1,6 +1,7 @@
 package usersGenv1_test
 
 import (
+	usersGenv1 "app/internal/module/users/controller/gen"
 	"context"
 	"net/http"
 	"net/http/httptest"
