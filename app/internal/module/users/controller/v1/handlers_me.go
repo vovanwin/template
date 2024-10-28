@@ -10,9 +10,12 @@ import (
 func (i Implementation) AuthMeGet(ctx context.Context, params api.AuthMeGetParams) (*api.UserMe, error) {
 
 	return &api.UserMe{
-		ID:         uuid.UUID{},
-		Email:      "ssssssssss",
-		Role:       "",
+		ID:    uuid.UUID{},
+		Email: "ssssssssss",
+		Role: api.OptString{
+			Value: "",
+			Set:   true,
+		},
 		Tenant:     "",
 		CreatedAt:  time.Time{},
 		Settings:   "",
