@@ -1,11 +1,13 @@
 package usersv1
 
 import (
-	"app/config"
-	api "app/internal/module/users/controller/gen"
-	service "app/internal/module/users/services"
-	"github.com/go-chi/chi/v5"
 	"net/http"
+
+	"app/config"
+	service "app/internal/module/users/services"
+
+	"github.com/go-chi/chi/v5"
+	api "github.com/vovanwin/template/shared/pkg/openapi/app/v1"
 )
 
 // Compile-time check for Handler.
@@ -35,5 +37,5 @@ func Controller(r *chi.Mux, usersService service.UsersService, config *config.Co
 		panic(err)
 	}
 
-	r.Mount("/api/v1/", http.StripPrefix("/api/v1", srv))
+	r.Mount("/", http.StripPrefix("", srv))
 }

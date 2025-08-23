@@ -1,0 +1,117 @@
+parameters:
+  Limit:
+    description: Количество элементов на странице
+    in: query
+    name: limit
+    schema:
+      type: integer
+      maximum: 250
+      minimum: 1
+
+  XRequestIDHeader:
+    description: Уникальный идентификатор запроса (UUID) отправляется с фронтенда для идентификации каждого запроса и логирования соответствующих логов, относящихся к данному запросу.
+    in: header
+    required: false
+    name: X-Request-Id
+    schema:
+      type: string
+      format: uuid
+
+  ContentType:
+    description:
+    in: header
+    required: true
+    name: Content-Type
+    schema:
+      type: string
+
+  BuildingsFilter:
+    description: Здания
+    in: query
+    name: buildings[]
+    schema:
+      type: array
+      items:
+        type: integer
+    
+  DeviceModelQuery:
+    description: Идентификатор модели
+    in: query
+    name: modelId
+    schema:
+      type: integer
+
+  DeviceId:
+    description: Идентификатор устройства
+    in: path
+    name: deviceId
+    required: true
+    schema:
+      type: string
+      format: uuid
+      x-go-type: types.DeviceID
+      x-go-type-import:
+        path: "app/internal/types"
+
+  DateStart:
+    in: query
+    name: dateStart
+    schema:
+      type: string
+      format: date-time
+      x-order: 1
+      x-oapi-codegen-extra-tags:
+        validate: omitempty,IsISO8601Date
+      example: "2024-08-05T12:34:56Z"
+      description: "Начальная дата и время в формате ISO 8601 (например, 2024-08-05T12:34:56Z)"
+
+  DateEnd:
+    in: query
+    name: dateEnd
+    schema:
+      type: string
+      format: date-time
+      x-order: 2
+      x-oapi-codegen-extra-tags:
+        validate: omitempty,IsISO8601Date
+      example: "2005-12-05T12:34:56Z"
+    description: "Конечная дата и время в формате ISO 8601 (например, 2024-08-06T12:34:56Z)"
+
+  EntranceFilter:
+    description: Для фильтрации по дереву адресов используйте строки, содержащие значения entrance, разделенные запятыми.
+    in: query
+    name: entrances
+    schema:
+      type: string
+    example: 1,2,3,4
+
+  Group:
+    description: Группы устройств, привязанные к тенантам
+    in: query
+    name: group[]
+    schema:
+      type: array
+      items:
+        type: string
+
+  Page:
+    description: Страница пагинации
+    in: query
+    name: page
+    schema:
+      type: integer
+
+  Search:
+    description: Поля для поиска
+    in: query
+    name: search
+    schema:
+      type: string
+
+  Sorts:
+    description: Сортировка по умолчанию производится по id в порядке возрастания (asc). В каждом конкретном эндпоинте указаны поля, по которым можно производить сортировку. Если сортировка не работает, это указывает на проблему на серверной стороне, и необходимо сообщить об этом. Пример использования &sort=-name,id. Знак "-" указывает на сортировку в порядке убывания (desc).
+    in: query
+    name: sorts
+    example: "-name,id"
+    schema:
+      type: string

@@ -1,9 +1,10 @@
 package usersv1
 
 import (
-	api "app/internal/module/users/controller/gen"
 	"context"
 	"net/http"
+
+	api "github.com/vovanwin/template/shared/pkg/openapi/app/v1"
 )
 
 func (i Implementation) NewError(ctx context.Context, err error) *api.ErrorStatusCode {

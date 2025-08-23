@@ -1,10 +1,11 @@
 package usersv1
 
 import (
-	api "app/internal/module/users/controller/gen"
 	"context"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
+	api "github.com/vovanwin/template/shared/pkg/openapi/app/v1"
 )
 
 func (i Implementation) AuthMeGet(ctx context.Context, params api.AuthMeGetParams) (*api.UserMe, error) {

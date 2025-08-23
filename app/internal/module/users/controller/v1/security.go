@@ -1,9 +1,11 @@
 package usersv1
 
 import (
-	api "app/internal/module/users/controller/gen"
-	service "app/internal/module/users/services"
 	"context"
+
+	service "app/internal/module/users/services"
+
+	api "github.com/vovanwin/template/shared/pkg/openapi/app/v1"
 )
 
 var _ api.SecurityHandler = (*SecurityHandler)(nil)
@@ -13,7 +15,6 @@ type SecurityHandler struct {
 }
 
 func (s SecurityHandler) HandleBearerAuth(ctx context.Context, operationName string, t api.BearerAuth) (context.Context, error) {
-
 	if operationName == "AuthLoginPost" {
 		return ctx, nil
 	}

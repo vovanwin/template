@@ -1,0 +1,157 @@
+# https://taskfile.dev
+version: '3'
+
+silent: true
+
+vars:
+  DOCKER_COMPOSE_PATHS: |
+    -f ./deployments/local/docker-compose.yml
+#    -f ./deployments/local/docker-compose.jasper.yml
+#    -f ./deployments/local/docker-compose.metrics.yml
+#    -f ./deployments/local/docker-compose.temporal.yml
+  DOCKER_COMPOSE_CMD: docker compose  {{range $line := .DOCKER_COMPOSE_PATHS | splitLines -}}
+    {{$line}}
+    {{end}}
+
+  DEV_TOOLS: |
+    github.com/daixiang0/gci@v0.13.6
+    mvdan.cc/gofumpt@v0.8.0
+    github.com/kazhuravlev/options-gen/cmd/options-gen@latest
+    github.com/ogen-go/ogen/cmd/ogen@v1.16.0
+    go.uber.org/mock/mockgen@v2.53.3
+    github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+  GO_MODULES: app
+  GO_FILES:
+    sh: find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./internal/store/*" -not -path "*.gen.go" | tr "\n" " "
+
+  GOLANGCI_LINT_VERSION: 'v2.3.0'
+
+  BIN_DIR: '{{.ROOT_DIR}}/bin'
+
+tasks:
+  default:
+    cmds:
+      - task: tidy
+      - task: fmt
+      - task: lint
+      - task: tests
+      - task: build
+  list:
+    desc: Вывести список команд
+    cmds:
+      - task -l
+
+  tidy:
+    - echo "- Tidy"
+    - go mod tidy
+
+  sql:
+    - echo "SQLC"
+    - "cd app && {{.TOOLS_DIR}}/sqlc generate"
+  deps:
+    desc: контейнеры - запустить
+    cmds:
+      - "{{.DOCKER_COMPOSE_CMD}} up -d {{.CLI_ARGS}}"
+
+  deps:cmd:
+    desc: контейнеры - выполнить cli комнду с аргументами
+    cmds:
+      - "{{.DOCKER_COMPOSE_CMD}} {{.CLI_ARGS}}"   # пример: task deps:cmd -- exec postgres bash
+
+  deps:status:
+    cmds:
+      - "{{.DOCKER_COMPOSE_CMD}} ps -a"
+
+  deps:logs:
+    cmds:
+      - "{{.DOCKER_COMPOSE_CMD}} logs {{.CLI_ARGS}}"
+
+  deps:stop:
+    desc: контейнеры - остановить
+    cmds:
+      - "{{.DOCKER_COMPOSE_CMD}} stop"
+
+  deps:reset-psql:
+    cmds:
+      - task: deps:reset
+        vars:
+          SERVICES: postgres
+
+  deps:reset:
+    cmds:
+      - for: { var: SERVICES }
+        cmd: "{{.DOCKER_COMPOSE_CMD}} rm -fsv {{.ITEM}}"
+      - for: { var: SERVICES }
+        cmd: "{{.DOCKER_COMPOSE_CMD}} up -d {{.ITEM}}"
+
+
+  fmt:
+    - echo "- Format"
+    - "{{.TOOLS_DIR}}/gofumpt -w {{.GO_FILES}}"
+    - "{{.TOOLS_DIR}}/gci write {{.GO_FILES}} --custom-order -s standard -s default -s Prefix\\({{.GO_MODULE}}\\)"
+
+  lint:
+    cmds:
+      - echo "- Lint"
+      - task: lint:cmd
+        vars: { CLI_ARGS: "run -v --fix --timeout=5m ./..." }
+
+  lint:cmd:
+    cmds:
+      - |
+        docker run --rm \
+          -v "$(pwd):/app" -w /app \
+          -v "{{.GOLANGCI_LINT_CACHE}}:/root/.cache" \
+          golangci/golangci-lint:{{.GOLANGCI_LINT_VERSION}} \
+          golangci-lint {{.CLI_ARGS}}
+
+  build:
+    cmds:
+      - echo "- Build"
+      - cd app && go build app
+
+  generate:
+    aliases: [ "gen" ]
+    cmds:
+      - task: gen:go
+      - task: gen:types
+      - task: migrate:orm
+
+  gen:go:
+    vars:
+#      PATH: {{.TOOLS_DIR}}:$PATH
+      PATH: $PATH:{{.TOOLS_DIR}}
+    cmds:
+      - echo "Run go generate ./..."
+      - 'PATH="{{.TOOLS_DIR}}:$PATH" cd app && go generate ./...'
+
+    
+  gen:types:
+    vars:
+      TYPES: |-
+        UserID
+      TYPES_PKG: types
+      TYPES_DST: ./internal/shared/types/types.gen.go
+    cmds:
+      - echo "Generate types..."
+      - ' cd apps/app && go run ./cmd/gen-types {{.TYPES_PKG}} {{.TYPES | splitLines | join "," }} {{.TYPES_DST}}'
+
+  tests:
+    desc: запустить тесты
+    aliases: [ "tests:unit" ]
+    cmds:
+      - echo "- Tests"
+      - cd app && go test -race ./... | grep -v '\[no test files\]'
+
+  dev-tools:install:
+    desc: установить tools инструменты для проекта
+    cmds:
+      - echo "- Install dev tools"
+      - for: { var: DEV_TOOLS }
+        cmd: GOBIN="{{.BIN_DIR}}"  go install "{{ .ITEM }}"  # У
+
+
+  ogen:api:
+    cmds:
+      - "{{.TOOLS_DIR}}/ogen  --target apps/app/internal/module/users/controller/gen -package usersGenv1  --config docs/config.yml  --clean docs/users.v1.swagger.yml"

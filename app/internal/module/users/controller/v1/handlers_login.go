@@ -1,8 +1,9 @@
 package usersv1
 
 import (
-	api "app/internal/module/users/controller/gen"
 	"context"
+
+	api "github.com/vovanwin/template/shared/pkg/openapi/app/v1"
 )
 
 func (i Implementation) AuthLoginPost(ctx context.Context, req *api.LoginRequest, params api.AuthLoginPostParams) (*api.AuthToken, error) {

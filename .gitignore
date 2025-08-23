@@ -1,5 +1,5 @@
 .idea
 
 app/config/config.yml
-tools/
+bin/
 deployments/local/.env
