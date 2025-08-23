@@ -1,17 +1,17 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
 	"app/cmd/dependency"
 	"app/cmd/migrateCmd"
-	"app/config"
 	"app/internal/module/healthcheck"
 	"app/internal/module/users"
 	"app/internal/shared/middleware"
-	"fmt"
+
 	"github.com/spf13/cobra"
 	"go.uber.org/fx"
-	"log/slog"
-	"os"
 )
 
 var (
@@ -30,10 +30,12 @@ var (
 func inject() fx.Option {
 	return fx.Options(
 		//fx.NopLogger,
-
 		fx.Provide(
 			dependency.ProvideConfig,
-			dependency.ProvideLogger,
+		),
+		fx.Invoke(dependency.ProvideLogger),
+
+		fx.Provide(
 			dependency.ProvideServer,
 		),
 
@@ -43,12 +45,6 @@ func inject() fx.Option {
 		fx.Invoke(healthcheck.Controller),
 		// загружаю мидлваре в приложение
 		fx.Provide(middleware.NewMiddleware),
-
-		fx.Decorate(func(logger *slog.Logger, config *config.Config) *slog.Logger {
-			return logger.
-				With("environment", config.Env).
-				With("release", Version)
-		}),
 	)
 }
 
