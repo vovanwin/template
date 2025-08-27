@@ -21,6 +21,7 @@ import (
 	"github.com/vovanwin/platform/pkg/logger"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func ProvideConfig() (*config.Config, error) {
@@ -234,6 +235,7 @@ func ProvideGRPCServer(lifecycle fx.Lifecycle, config *config.Config) error {
 	}
 	s := grpc.NewServer()
 	healthsvc.RegisterService(s)
+	reflection.Register(s)
 
 	lifecycle.Append(
 		fx.Hook{
