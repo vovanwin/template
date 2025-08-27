@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -22,7 +23,21 @@ var (
 		Version: Version,
 		Short:   "Запуск Http REST API",
 		Run: func(cmd *cobra.Command, args []string) {
-			fx.New(inject()).Run()
+			app := fx.New(inject())
+
+			err := app.Start(cmd.Context())
+			if err != nil {
+				return
+			}
+
+			defer func(app *fx.App, ctx context.Context) {
+				err := app.Stop(ctx)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}(app, cmd.Context())
+
+			<-app.Done()
 		},
 	}
 )
