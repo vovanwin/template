@@ -2,8 +2,9 @@ package dependency
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"log"
+	"net/http"
 	"time"
 
 	"app/config"
@@ -31,15 +32,40 @@ func ProvideLogger(config *config.Config) error {
 
 func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, error) {
 	// Объявляю нужные мне милдвары для сервера
-	middlewareCustom := func(chi *chi.Mux) {
-		chi.Use(middleware.RequestID)
+	middlewareCustom := func(r *chi.Mux) {
+		r.Use(middleware.RequestID)
 		// r.Use(customMiddleware.LoggerWithLevel("device"))
 
-		chi.Use(middleware.Recoverer)
-		chi.Use(middleware.URLFormat)
+		r.Use(middleware.Recoverer)
+		r.Use(middleware.URLFormat)
 
-		chi.Use(customMiddleware.MetricsMiddleware)
-		chi.Use(customMiddleware.TracingMiddleware)
+		r.Use(customMiddleware.MetricsMiddleware)
+		r.Use(customMiddleware.TracingMiddleware)
+
+		// Admin endpoints for runtime log level management
+		r.Route(
+			"/admin/log", func(r chi.Router) {
+				r.Get(
+					"/level", func(w http.ResponseWriter, r *http.Request) {
+						_ = json.NewEncoder(w).Encode(map[string]string{"level": logger.Level()})
+					},
+				)
+				r.Post(
+					"/level", func(w http.ResponseWriter, r *http.Request) {
+						var req struct {
+							Level string `json:"level"`
+						}
+						if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Level == "" {
+							w.WriteHeader(http.StatusBadRequest)
+							_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid level payload"})
+							return
+						}
+						logger.SetLevel(req.Level)
+						_ = json.NewEncoder(w).Encode(map[string]string{"level": logger.Level()})
+					},
+				)
+			},
+		)
 
 		//chi.Mount("/debug", middleware.Profiler()) // для дебага
 	}
@@ -62,20 +88,22 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, err
 				}
 
 				go func() {
-					log.Printf("Сервер запущен на %s\n", config.Address())
-					if err := server.ListenAndServe(); err != nil {
-						log.Fatal(err)
+					lg := logger.Named("http-server")
+					lg.Info(context.Background(), "Сервер запущен")
+					if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+						lg.Error(context.Background(), "Ошибка запуска сервера")
 					}
 				}()
 
 				return nil
 			},
 			OnStop: func(ctx context.Context) error {
-				log.Println("Выключение...")
+				lg := logger.Named("http-server")
+				lg.Info(ctx, "Выключение...")
 				shutdownCtx, cancel := context.WithTimeout(ctx, config.GracefulTimeout*time.Second)
 				defer cancel()
 				if err := server.Shutdown(shutdownCtx); err != nil {
-					log.Println(err)
+					lg.Error(ctx, "Ошибка при остановке сервера")
 				}
 				return nil
 			},

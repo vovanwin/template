@@ -106,6 +106,15 @@ func SetNopLogger() {
 	}
 }
 
+// Named возвращает новый логгер с указанным именем компонента.
+// Имя попадёт в поле "logger" (см. NameKey в encoder config).
+func Named(component string) *logger {
+	if globalLogger == nil {
+		return &logger{zapLogger: zap.NewNop()}
+	}
+	return &logger{zapLogger: globalLogger.zapLogger.Named(component)}
+}
+
 // Sync сбрасывает буферы логгера
 func Sync() error {
 	if globalLogger != nil {
@@ -160,6 +169,14 @@ func Error(ctx context.Context, msg string, fields ...zap.Field) {
 // Fatal enrich-aware fatal log
 func Fatal(ctx context.Context, msg string, fields ...zap.Field) {
 	globalLogger.Fatal(ctx, msg, fields...)
+}
+
+// Level возвращает текущий уровень логирования в строковом виде.
+func Level() string {
+	if dynamicLevel == (zap.AtomicLevel{}) {
+		return zapcore.InfoLevel.String()
+	}
+	return dynamicLevel.Level().String()
 }
 
 // Instance methods для enrich loggers (logger)

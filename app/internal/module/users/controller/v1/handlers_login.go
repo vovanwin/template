@@ -8,7 +8,8 @@ import (
 )
 
 func (i Implementation) AuthLoginPost(ctx context.Context, req *api.LoginRequest, params api.AuthLoginPostParams) (*api.AuthToken, error) {
-	logger.Info(ctx, "test message")
+	lg := logger.Named("users.login")
+	lg.Info(ctx, "login request")
 	return &api.AuthToken{
 		Access:  "111111111111",
 		Refresh: "",
