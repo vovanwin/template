@@ -54,6 +54,13 @@ func inject() fx.Option {
 			dependency.ProvideServer,
 		),
 
+		// start additional servers via lifecycle hooks
+		fx.Invoke(
+			dependency.ProvideDebugServer,
+			dependency.ProvideSwaggerServer,
+			dependency.ProvideGRPCServer,
+		),
+
 		users.Module,
 
 		//  healthcheck

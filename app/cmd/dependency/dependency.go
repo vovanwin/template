@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"app/config"
@@ -14,8 +17,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	healthsvc "github.com/vovanwin/platform/pkg/grpc/health"
 	"github.com/vovanwin/platform/pkg/logger"
 	"go.uber.org/fx"
+	"google.golang.org/grpc"
 )
 
 func ProvideConfig() (*config.Config, error) {
@@ -42,36 +47,11 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, err
 		r.Use(customMiddleware.MetricsMiddleware)
 		r.Use(customMiddleware.TracingMiddleware)
 
-		// Admin endpoints for runtime log level management
-		r.Route(
-			"/admin/log", func(r chi.Router) {
-				r.Get(
-					"/level", func(w http.ResponseWriter, r *http.Request) {
-						_ = json.NewEncoder(w).Encode(map[string]string{"level": logger.Level()})
-					},
-				)
-				r.Post(
-					"/level", func(w http.ResponseWriter, r *http.Request) {
-						var req struct {
-							Level string `json:"level"`
-						}
-						if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Level == "" {
-							w.WriteHeader(http.StatusBadRequest)
-							_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid level payload"})
-							return
-						}
-						logger.SetLevel(req.Level)
-						_ = json.NewEncoder(w).Encode(map[string]string{"level": logger.Level()})
-					},
-				)
-			},
-		)
-
 		//chi.Mount("/debug", middleware.Profiler()) // для дебага
 	}
 
 	opt := httpserver.NewOptions(
-		config.Address(),
+		net.JoinHostPort(config.Server.Host, "8080"),
 		config.ReadHeaderTimeout,
 		httpserver.WithMiddlewareSetup(middlewareCustom),
 	)
@@ -111,6 +91,152 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, err
 	)
 
 	return router, nil
+}
+
+// ProvideDebugServer запускает отдельный debug/admin HTTP сервер на 8082
+func ProvideDebugServer(lifecycle fx.Lifecycle, config *config.Config) error {
+	r := chi.NewRouter()
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.RequestID)
+
+	// Профилирование
+	r.Mount("/debug", middleware.Profiler())
+
+	// Admin endpoints for runtime log level management
+	r.Route("/admin/log", func(r chi.Router) {
+		r.Get("/level", func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]string{"level": logger.Level()})
+		})
+		r.Post("/level", func(w http.ResponseWriter, r *http.Request) {
+			var req struct {
+				Level string `json:"level"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Level == "" {
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid level payload"})
+				return
+			}
+			logger.SetLevel(req.Level)
+			_ = json.NewEncoder(w).Encode(map[string]string{"level": logger.Level()})
+		})
+	})
+
+	srv := &http.Server{
+		Addr:    net.JoinHostPort(config.Server.Host, "8082"),
+		Handler: r,
+	}
+
+	lifecycle.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			go func() {
+				lg := logger.Named("debug-server")
+				lg.Info(context.Background(), "Debug server started")
+				if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+					lg.Error(context.Background(), "Ошибка запуска debug сервера")
+				}
+			}()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			shutdownCtx, cancel := context.WithTimeout(ctx, config.GracefulTimeout*time.Second)
+			defer cancel()
+			return srv.Shutdown(shutdownCtx)
+		},
+	})
+
+	return nil
+}
+
+// ProvideSwaggerServer запускает сервер со Swagger UI на 8084
+func ProvideSwaggerServer(lifecycle fx.Lifecycle, config *config.Config) error {
+	r := chi.NewRouter()
+
+	// Отдаём спецификацию
+	r.Get("/openapi.yaml", func(w http.ResponseWriter, req *http.Request) {
+		// Путь к swagger файлу в репозитории
+		specPath := filepath.Join("..", "shared", "api", "app", "v1", "app.v1.swagger.yml")
+		data, err := os.ReadFile(specPath)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte("failed to read swagger spec"))
+			return
+		}
+		w.Header().Set("Content-Type", "application/yaml")
+		_, _ = w.Write(data)
+	})
+
+	// Простая страница Swagger UI с CDN
+	r.Get("/", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Swagger UI</title>
+<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+</head><body>
+<div id="swagger-ui"></div>
+<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js" crossorigin></script>
+<script>window.ui = SwaggerUIBundle({ url: '/openapi.yaml', dom_id: '#swagger-ui' });</script>
+</body></html>`))
+	})
+
+	srv := &http.Server{
+		Addr:    net.JoinHostPort(config.Server.Host, "8084"),
+		Handler: r,
+	}
+
+	lifecycle.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			go func() {
+				lg := logger.Named("swagger-server")
+				lg.Info(context.Background(), "Swagger server started")
+				if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+					lg.Error(context.Background(), "Ошибка запуска swagger сервера")
+				}
+			}()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			shutdownCtx, cancel := context.WithTimeout(ctx, config.GracefulTimeout*time.Second)
+			defer cancel()
+			return srv.Shutdown(shutdownCtx)
+		},
+	})
+
+	return nil
+}
+
+// ProvideGRPCServer запускает gRPC сервер на 8081
+func ProvideGRPCServer(lifecycle fx.Lifecycle, config *config.Config) error {
+	lis, err := net.Listen("tcp", net.JoinHostPort(config.Server.Host, "8081"))
+	if err != nil {
+		return fmt.Errorf("listen grpc: %w", err)
+	}
+	s := grpc.NewServer()
+	healthsvc.RegisterService(s)
+
+	lifecycle.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			go func() {
+				lg := logger.Named("grpc-server")
+				lg.Info(context.Background(), "gRPC server started")
+				if err := s.Serve(lis); err != nil {
+					lg.Error(context.Background(), "Ошибка запуска grpc сервера")
+				}
+			}()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			done := make(chan struct{})
+			go func() { s.GracefulStop(); close(done) }()
+			select {
+			case <-done:
+				return nil
+			case <-time.After(config.GracefulTimeout * time.Second):
+				s.Stop()
+				return nil
+			}
+		},
+	})
+
+	return nil
 }
 
 func ProvidePgx(config *config.Config) (*postgres.Postgres, error) {
