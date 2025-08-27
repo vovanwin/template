@@ -7,7 +7,6 @@ import (
 
 	"app/cmd/dependency"
 	"app/cmd/migrateCmd"
-	"app/internal/module/healthcheck"
 	"app/internal/module/users"
 	"app/internal/shared/middleware"
 
@@ -63,8 +62,6 @@ func inject() fx.Option {
 
 		users.Module,
 
-		//  healthcheck
-		fx.Invoke(healthcheck.Controller),
 		// загружаю мидлваре в приложение
 		fx.Provide(middleware.NewMiddleware),
 	)
