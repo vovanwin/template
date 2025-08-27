@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	healthsvc "github.com/vovanwin/platform/pkg/grpc/health"
 	"github.com/vovanwin/platform/pkg/logger"
 	"go.uber.org/fx"
@@ -41,13 +41,25 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, err
 		r.Use(middleware.RequestID)
 		// r.Use(customMiddleware.LoggerWithLevel("device"))
 
+		// CORS для Swagger UI и других клиентов
+		r.Use(
+			cors.Handler(
+				cors.Options{
+					AllowedOrigins:   []string{"*"},
+					AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+					AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+					ExposedHeaders:   []string{"Link"},
+					AllowCredentials: false,
+					MaxAge:           300, // 5 minutes
+				},
+			),
+		)
+
 		r.Use(middleware.Recoverer)
 		r.Use(middleware.URLFormat)
 
 		r.Use(customMiddleware.MetricsMiddleware)
 		r.Use(customMiddleware.TracingMiddleware)
-
-		//chi.Mount("/debug", middleware.Profiler()) // для дебага
 	}
 
 	opt := httpserver.NewOptions(
@@ -103,46 +115,54 @@ func ProvideDebugServer(lifecycle fx.Lifecycle, config *config.Config) error {
 	r.Mount("/debug", middleware.Profiler())
 
 	// Admin endpoints for runtime log level management
-	r.Route("/admin/log", func(r chi.Router) {
-		r.Get("/level", func(w http.ResponseWriter, r *http.Request) {
-			_ = json.NewEncoder(w).Encode(map[string]string{"level": logger.Level()})
-		})
-		r.Post("/level", func(w http.ResponseWriter, r *http.Request) {
-			var req struct {
-				Level string `json:"level"`
-			}
-			if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Level == "" {
-				w.WriteHeader(http.StatusBadRequest)
-				_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid level payload"})
-				return
-			}
-			logger.SetLevel(req.Level)
-			_ = json.NewEncoder(w).Encode(map[string]string{"level": logger.Level()})
-		})
-	})
+	r.Route(
+		"/admin/log", func(r chi.Router) {
+			r.Get(
+				"/level", func(w http.ResponseWriter, r *http.Request) {
+					_ = json.NewEncoder(w).Encode(map[string]string{"level": logger.Level()})
+				},
+			)
+			r.Post(
+				"/level", func(w http.ResponseWriter, r *http.Request) {
+					var req struct {
+						Level string `json:"level"`
+					}
+					if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Level == "" {
+						w.WriteHeader(http.StatusBadRequest)
+						_ = json.NewEncoder(w).Encode(map[string]string{"error": "invalid level payload"})
+						return
+					}
+					logger.SetLevel(req.Level)
+					_ = json.NewEncoder(w).Encode(map[string]string{"level": logger.Level()})
+				},
+			)
+		},
+	)
 
 	srv := &http.Server{
 		Addr:    net.JoinHostPort(config.Server.Host, "8082"),
 		Handler: r,
 	}
 
-	lifecycle.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			go func() {
-				lg := logger.Named("debug-server")
-				lg.Info(context.Background(), "Debug server started")
-				if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-					lg.Error(context.Background(), "Ошибка запуска debug сервера")
-				}
-			}()
-			return nil
+	lifecycle.Append(
+		fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				go func() {
+					lg := logger.Named("debug-server")
+					lg.Info(context.Background(), "Debug server started")
+					if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+						lg.Error(context.Background(), "Ошибка запуска debug сервера")
+					}
+				}()
+				return nil
+			},
+			OnStop: func(ctx context.Context) error {
+				shutdownCtx, cancel := context.WithTimeout(ctx, config.GracefulTimeout*time.Second)
+				defer cancel()
+				return srv.Shutdown(shutdownCtx)
+			},
 		},
-		OnStop: func(ctx context.Context) error {
-			shutdownCtx, cancel := context.WithTimeout(ctx, config.GracefulTimeout*time.Second)
-			defer cancel()
-			return srv.Shutdown(shutdownCtx)
-		},
-	})
+	)
 
 	return nil
 }
@@ -151,54 +171,51 @@ func ProvideDebugServer(lifecycle fx.Lifecycle, config *config.Config) error {
 func ProvideSwaggerServer(lifecycle fx.Lifecycle, config *config.Config) error {
 	r := chi.NewRouter()
 
-	// Отдаём спецификацию
-	r.Get("/openapi.yaml", func(w http.ResponseWriter, req *http.Request) {
-		// Путь к swagger файлу в репозитории
-		specPath := filepath.Join("..", "shared", "api", "app", "v1", "app.v1.swagger.yml")
-		data, err := os.ReadFile(specPath)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte("failed to read swagger spec"))
-			return
-		}
-		w.Header().Set("Content-Type", "application/yaml")
-		_, _ = w.Write(data)
-	})
+	// Раздаём всю директорию со спеками, чтобы $ref ссылки работали
+	specDir := filepath.Join("..", "shared", "api", "app", "v1")
+	fileServer := http.StripPrefix("/spec/", http.FileServer(http.Dir(specDir)))
+	r.Handle("/spec/*", fileServer)
 
-	// Простая страница Swagger UI с CDN
-	r.Get("/", func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write([]byte(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Swagger UI</title>
+	// Простая страница Swagger UI с CDN, указываем на главный файл в каталоге
+	r.Get(
+		"/", func(w http.ResponseWriter, req *http.Request) {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = w.Write(
+				[]byte(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Swagger UI</title>
 <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
 </head><body>
 <div id="swagger-ui"></div>
 <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js" crossorigin></script>
-<script>window.ui = SwaggerUIBundle({ url: '/openapi.yaml', dom_id: '#swagger-ui' });</script>
-</body></html>`))
-	})
+<script>window.ui = SwaggerUIBundle({ url: '/spec/app.v1.swagger.yml', dom_id: '#swagger-ui' });</script>
+</body></html>`),
+			)
+		},
+	)
 
 	srv := &http.Server{
 		Addr:    net.JoinHostPort(config.Server.Host, "8084"),
 		Handler: r,
 	}
 
-	lifecycle.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			go func() {
-				lg := logger.Named("swagger-server")
-				lg.Info(context.Background(), "Swagger server started")
-				if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-					lg.Error(context.Background(), "Ошибка запуска swagger сервера")
-				}
-			}()
-			return nil
+	lifecycle.Append(
+		fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				go func() {
+					lg := logger.Named("swagger-server")
+					lg.Info(context.Background(), "Swagger server started")
+					if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+						lg.Error(context.Background(), "Ошибка запуска swagger сервера")
+					}
+				}()
+				return nil
+			},
+			OnStop: func(ctx context.Context) error {
+				shutdownCtx, cancel := context.WithTimeout(ctx, config.GracefulTimeout*time.Second)
+				defer cancel()
+				return srv.Shutdown(shutdownCtx)
+			},
 		},
-		OnStop: func(ctx context.Context) error {
-			shutdownCtx, cancel := context.WithTimeout(ctx, config.GracefulTimeout*time.Second)
-			defer cancel()
-			return srv.Shutdown(shutdownCtx)
-		},
-	})
+	)
 
 	return nil
 }
@@ -212,29 +229,31 @@ func ProvideGRPCServer(lifecycle fx.Lifecycle, config *config.Config) error {
 	s := grpc.NewServer()
 	healthsvc.RegisterService(s)
 
-	lifecycle.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			go func() {
-				lg := logger.Named("grpc-server")
-				lg.Info(context.Background(), "gRPC server started")
-				if err := s.Serve(lis); err != nil {
-					lg.Error(context.Background(), "Ошибка запуска grpc сервера")
+	lifecycle.Append(
+		fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				go func() {
+					lg := logger.Named("grpc-server")
+					lg.Info(context.Background(), "gRPC server started")
+					if err := s.Serve(lis); err != nil {
+						lg.Error(context.Background(), "Ошибка запуска grpc сервера")
+					}
+				}()
+				return nil
+			},
+			OnStop: func(ctx context.Context) error {
+				done := make(chan struct{})
+				go func() { s.GracefulStop(); close(done) }()
+				select {
+				case <-done:
+					return nil
+				case <-time.After(config.GracefulTimeout * time.Second):
+					s.Stop()
+					return nil
 				}
-			}()
-			return nil
+			},
 		},
-		OnStop: func(ctx context.Context) error {
-			done := make(chan struct{})
-			go func() { s.GracefulStop(); close(done) }()
-			select {
-			case <-done:
-				return nil
-			case <-time.After(config.GracefulTimeout * time.Second):
-				s.Stop()
-				return nil
-			}
-		},
-	})
+	)
 
 	return nil
 }
