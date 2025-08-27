@@ -180,14 +180,20 @@ func ProvideSwaggerServer(lifecycle fx.Lifecycle, config *config.Config) error {
 	r.Get(
 		"/", func(w http.ResponseWriter, req *http.Request) {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
 			_, _ = w.Write(
-				[]byte(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Swagger UI</title>
-<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
-</head><body>
-<div id="swagger-ui"></div>
-<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js" crossorigin></script>
-<script>window.ui = SwaggerUIBundle({ url: '/spec/app.v1.swagger.yml', dom_id: '#swagger-ui' });</script>
-</body></html>`),
+				[]byte(`<!doctype html> <!-- Important: must specify -->
+<html>
+  <head>
+    <meta charset="utf-8"> <!-- Important: rapi-doc uses utf8 characters -->
+    <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
+  </head>
+  <body>
+    <rapi-doc
+      spec-url = "/spec/app.v1.swagger.yml"
+    > </rapi-doc>
+  </body>
+</html>`),
 			)
 		},
 	)
