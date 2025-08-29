@@ -2,6 +2,16 @@ version: '3'
 
 # Глобальные переменные проекта
 vars:
+  DOCKER_COMPOSE_PATHS: |
+    -f ./deployments/local/docker-compose.yml
+#    -f ./deployments/local/docker-compose.temporal.yml
+  #    -f ./deployments/local/docker-compose.jasper.yml
+  #    -f ./deployments/local/docker-compose.metrics.yml
+
+  DOCKER_COMPOSE_CMD: docker-compose  {{range $line := .DOCKER_COMPOSE_PATHS | splitLines -}}
+    {{$line}}
+    {{end}}
+
   GO_VERSION: '1.24'
   GOLANGCI_LINT_VERSION: 'v2.3.0'
   GCI_VERSION: 'v0.13.6'
@@ -217,3 +227,57 @@ tasks:
       - |
         echo '🧪 Генерация моков...'
         {{.MOCKERY}}
+        
+
+  deps:
+    dotenv: ['.env']
+    desc: контейнеры - запустить
+    cmds:
+      - "{{.DOCKER_COMPOSE_CMD}} up -d {{.CLI_ARGS}}"
+
+  deps:cmd:
+    dotenv: ['.env']
+    desc: контейнеры - выполнить cli комнду с аргументами
+    cmds:
+      - "{{.DOCKER_COMPOSE_CMD}} {{.CLI_ARGS}}"   # пример: task deps:cmd -- exec postgres bash
+
+  deps:status:
+    dotenv: ['.env']
+    cmds:
+      - "{{.DOCKER_COMPOSE_CMD}} ps -a"
+
+  deps:logs:
+    dotenv: ['.env']
+    cmds:
+      - "{{.DOCKER_COMPOSE_CMD}} logs {{.CLI_ARGS}}"
+
+  deps:stop:
+    dotenv: ['.env']
+    desc: контейнеры - остановить
+    cmds:
+      - "{{.DOCKER_COMPOSE_CMD}} stop"
+
+  deps:reset-psql:
+    dotenv: ['.env']
+    cmds:
+      - task: deps:reset
+        vars:
+          SERVICES: postgres
+
+  deps:reset:
+    dotenv: ['.env']
+    cmds:
+      - for: { var: SERVICES }
+        cmd: "{{.DOCKER_COMPOSE_CMD}} rm -fsv {{.ITEM}}"
+      - for: { var: SERVICES }
+        cmd: "{{.DOCKER_COMPOSE_CMD}} up -d {{.ITEM}}"
+
+  deps:app:
+    dotenv: [ '.env' ]
+    cmds:
+      - go run app/main.go
+
+  deps:temporal:
+    dotenv: [ '.env' ]
+    cmds:
+      - temporal server start-dev

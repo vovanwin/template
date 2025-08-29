@@ -49,41 +49,55 @@ tasks:
   sql:
     - echo "SQLC"
     - "cd app && {{.TOOLS_DIR}}/sqlc generate"
+
+
   deps:
+    dotenv: ['.env']
     desc: контейнеры - запустить
     cmds:
       - "{{.DOCKER_COMPOSE_CMD}} up -d {{.CLI_ARGS}}"
 
   deps:cmd:
+    dotenv: ['.env']
     desc: контейнеры - выполнить cli комнду с аргументами
     cmds:
       - "{{.DOCKER_COMPOSE_CMD}} {{.CLI_ARGS}}"   # пример: task deps:cmd -- exec postgres bash
 
   deps:status:
+    dotenv: ['.env']
     cmds:
       - "{{.DOCKER_COMPOSE_CMD}} ps -a"
 
   deps:logs:
+    dotenv: ['.env']
     cmds:
       - "{{.DOCKER_COMPOSE_CMD}} logs {{.CLI_ARGS}}"
 
   deps:stop:
+    dotenv: ['.env']
     desc: контейнеры - остановить
     cmds:
       - "{{.DOCKER_COMPOSE_CMD}} stop"
 
   deps:reset-psql:
+    dotenv: ['.env']
     cmds:
       - task: deps:reset
         vars:
           SERVICES: postgres
 
   deps:reset:
+    dotenv: ['.env']
     cmds:
       - for: { var: SERVICES }
         cmd: "{{.DOCKER_COMPOSE_CMD}} rm -fsv {{.ITEM}}"
       - for: { var: SERVICES }
         cmd: "{{.DOCKER_COMPOSE_CMD}} up -d {{.ITEM}}"
+
+  deps:app:
+    dotenv: ['.env']
+    cmds:
+      - go run app/cmd/app.go
 
 
   fmt:

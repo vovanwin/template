@@ -6,7 +6,7 @@ services:
       args:
         - POSTGRES_VERSION=${POSTGRES_VERSION}
     volumes:
-      - ${DATA_PATH_HOST}/postgres:/var/lib/postgresql/data
+      - ${DATA_PATH_HOST}/postgres:/home/postgresql/data
       - ${POSTGRES_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
     ports:
       - "${POSTGRES_PORT}:5432"
@@ -22,15 +22,15 @@ services:
     networks:
       - backend
 
-  jaeger:
-    image: jaegertracing/all-in-one:1.57
-    environment:
-      - LOG_LEVEL=debug
-    ports:
-      - 14268:14268 # for serving jaeger front-end
-      - 16686:16686  # for receiving OTLP data
-    logging:
-      driver: none # intentionally turnoff the logging so it doesn't clutter the terminal
+#  jaeger:
+#    image: jaegertracing/all-in-one:1.57
+#    environment:
+#      - LOG_LEVEL=debug
+#    ports:
+#      - 14268:14268 # for serving jaeger front-end
+#      - 16686:16686  # for receiving OTLP data
+#    logging:
+#      driver: none # intentionally turnoff the logging so it doesn't clutter the terminal
 
 networks:
   backend:
