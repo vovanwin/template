@@ -1,10 +1,11 @@
 package middleware
 
 import (
-	"app/pkg/framework"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/vovanwin/template/app/pkg/framework"
 )
 
 var (
@@ -13,9 +14,11 @@ var (
 
 // Мидлваре HTTP, устанавливающее значение в контексте запроса
 func (m Middleware) Authorization(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
 
-	})
+		},
+	)
 }
 
 func bearerToken(r *http.Request) (string, bool) {

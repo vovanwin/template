@@ -1,9 +1,10 @@
 package middleware
 
 import (
-	"app/internal/module/users/tokenDTO"
-	"app/pkg/framework"
 	"context"
+
+	"github.com/vovanwin/template/app/internal/module/users/tokenDTO"
+	"github.com/vovanwin/template/app/pkg/framework"
 )
 
 type Middleware struct {

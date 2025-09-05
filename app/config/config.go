@@ -1,14 +1,13 @@
 package config
 
 import (
-	"fmt"
 	"log/slog"
 	"net"
 	"os"
 	"path"
 	"time"
 
-	"app/pkg/validator"
+	"github.com/vovanwin/template/app/pkg/validator"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -25,11 +24,6 @@ func NewConfig() (*Config, error) {
 	err = cleanenv.ReadEnv(cfg)
 	if err != nil {
 		slog.Error("Ошибка формирования env из переменных окружения:", "err", err)
-	}
-
-	err = cleanenv.UpdateEnv(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("error updating env: %w", err)
 	}
 
 	if err := validator.NewCustomValidator().Validate(cfg); err != nil {

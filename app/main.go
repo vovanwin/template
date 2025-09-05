@@ -1,7 +1,7 @@
 package main
 
 import (
-	"app/cmd"
+	"github.com/vovanwin/template/app/cmd"
 )
 
 func main() {

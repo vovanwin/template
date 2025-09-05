@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"app/config"
-	customMiddleware "app/internal/shared/middleware"
-	"app/pkg/httpserver"
-	"app/pkg/storage/postgres"
+	"github.com/vovanwin/template/app/config"
+	customMiddleware "github.com/vovanwin/template/app/internal/shared/middleware"
+	"github.com/vovanwin/template/app/pkg/httpserver"
+	"github.com/vovanwin/template/app/pkg/storage/postgres"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

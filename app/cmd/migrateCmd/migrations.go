@@ -1,17 +1,19 @@
 package migrateCmd
 
 import (
-	embeded "app/db"
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/spf13/cobra"
 	"log/slog"
 	"net"
 	"os"
 	"strings"
 
-	"app/config"
+	"github.com/spf13/cobra"
+	embeded "github.com/vovanwin/template/app/db"
+
+	"github.com/vovanwin/template/app/config"
+
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 )
@@ -39,7 +41,8 @@ func migration(_ *cobra.Command, args []string) {
 
 	var db *sql.DB
 	con, _ := config.NewConfig()
-	connStr := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable&search_path=%s",
+	connStr := fmt.Sprintf(
+		"postgres://%s:%s@%s/%s?sslmode=disable&search_path=%s",
 		con.PG.UserPG, con.PG.PasswordPG,
 		net.JoinHostPort(con.PG.HostPG, con.PG.PortPG),
 		con.PG.DbNamePG, con.PG.SchemePG,

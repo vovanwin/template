@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"app/cmd/dependency"
-	"app/cmd/migrateCmd"
-	"app/internal/module/users"
-	"app/internal/shared/middleware"
+	"github.com/vovanwin/template/app/cmd/dependency"
+	"github.com/vovanwin/template/app/cmd/migrateCmd"
+	"github.com/vovanwin/template/app/internal/module/users"
+	"github.com/vovanwin/template/app/internal/shared/middleware"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/fx"

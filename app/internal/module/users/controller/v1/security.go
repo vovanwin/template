@@ -3,7 +3,7 @@ package usersv1
 import (
 	"context"
 
-	service "app/internal/module/users/services"
+	service "github.com/vovanwin/template/app/internal/module/users/services"
 
 	api "github.com/vovanwin/template/shared/pkg/openapi/app/v1"
 )

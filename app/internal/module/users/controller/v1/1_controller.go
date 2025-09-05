@@ -3,8 +3,8 @@ package usersv1
 import (
 	"net/http"
 
-	"app/config"
-	service "app/internal/module/users/services"
+	"github.com/vovanwin/template/app/config"
+	service "github.com/vovanwin/template/app/internal/module/users/services"
 
 	"github.com/go-chi/chi/v5"
 	api "github.com/vovanwin/template/shared/pkg/openapi/app/v1"
