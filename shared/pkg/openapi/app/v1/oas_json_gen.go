@@ -23,18 +23,23 @@ func (s *AuthToken) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *AuthToken) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("access")
-		e.Str(s.Access)
+		e.FieldStart("token")
+		e.Str(s.Token)
 	}
 	{
-		e.FieldStart("refresh")
-		e.Str(s.Refresh)
+		e.FieldStart("user_id")
+		json.EncodeUUID(e, s.UserID)
+	}
+	{
+		e.FieldStart("user_email")
+		e.Str(s.UserEmail)
 	}
 }
 
-var jsonFieldsNameOfAuthToken = [2]string{
-	0: "access",
-	1: "refresh",
+var jsonFieldsNameOfAuthToken = [3]string{
+	0: "token",
+	1: "user_id",
+	2: "user_email",
 }
 
 // Decode decodes AuthToken from json.
@@ -46,29 +51,41 @@ func (s *AuthToken) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "access":
+		case "token":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
-				s.Access = string(v)
+				s.Token = string(v)
 				if err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"access\"")
+				return errors.Wrap(err, "decode field \"token\"")
 			}
-		case "refresh":
+		case "user_id":
 			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
-				v, err := d.Str()
-				s.Refresh = string(v)
+				v, err := json.DecodeUUID(d)
+				s.UserID = v
 				if err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"refresh\"")
+				return errors.Wrap(err, "decode field \"user_id\"")
+			}
+		case "user_email":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.UserEmail = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"user_email\"")
 			}
 		default:
 			return d.Skip()
@@ -80,7 +97,7 @@ func (s *AuthToken) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -249,8 +266,8 @@ func (s *LoginRequest) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *LoginRequest) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("username")
-		e.Str(s.Username)
+		e.FieldStart("email")
+		e.Str(s.Email)
 	}
 	{
 		e.FieldStart("password")
@@ -259,7 +276,7 @@ func (s *LoginRequest) encodeFields(e *jx.Encoder) {
 }
 
 var jsonFieldsNameOfLoginRequest = [2]string{
-	0: "username",
+	0: "email",
 	1: "password",
 }
 
@@ -272,17 +289,17 @@ func (s *LoginRequest) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "username":
+		case "email":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
-				s.Username = string(v)
+				s.Email = string(v)
 				if err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"username\"")
+				return errors.Wrap(err, "decode field \"email\"")
 			}
 		case "password":
 			requiredBitSet[0] |= 1 << 1
@@ -348,6 +365,102 @@ func (s *LoginRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *LoginRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *LogoutResponse) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *LogoutResponse) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("message")
+		e.Str(s.Message)
+	}
+}
+
+var jsonFieldsNameOfLogoutResponse = [1]string{
+	0: "message",
+}
+
+// Decode decodes LogoutResponse from json.
+func (s *LogoutResponse) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode LogoutResponse to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "message":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Message = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"message\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode LogoutResponse")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfLogoutResponse) {
+					name = jsonFieldsNameOfLogoutResponse[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *LogoutResponse) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *LogoutResponse) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

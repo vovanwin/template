@@ -10,10 +10,16 @@ import (
 type Handler interface {
 	// AuthLoginPost implements POST /auth/login operation.
 	//
-	// Информация о текущем пользователе.
+	// Авторизация пользователя по email и паролю.
 	//
 	// POST /auth/login
 	AuthLoginPost(ctx context.Context, req *LoginRequest, params AuthLoginPostParams) (*AuthToken, error)
+	// AuthLogoutPost implements POST /auth/logout operation.
+	//
+	// Выход из системы (logout).
+	//
+	// POST /auth/logout
+	AuthLogoutPost(ctx context.Context, params AuthLogoutPostParams) (*LogoutResponse, error)
 	// AuthMeGet implements GET /auth/me operation.
 	//
 	// Информация о текущем пользователе.

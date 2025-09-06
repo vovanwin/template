@@ -34,8 +34,8 @@ func findAuthorization(h http.Header, prefix string) (string, bool) {
 }
 
 var operationRolesBearerAuth = map[string][]string{
-	AuthLoginPostOperation: []string{},
-	AuthMeGetOperation:     []string{},
+	AuthLogoutPostOperation: []string{},
+	AuthMeGetOperation:      []string{},
 }
 
 func (s *Server) securityBearerAuth(ctx context.Context, operationName OperationName, req *http.Request) (context.Context, bool, error) {

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -25,6 +26,8 @@ type User struct {
 	EmailVerified bool      `json:"email_verified"`
 	Settings      string    `json:"settings,omitempty"`
 	Components    string    `json:"components,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type UsersRepository interface {
@@ -162,6 +165,8 @@ func (r *PostgresUsersRepository) dbUserToUser(dbUser *dbsqlc.Users) *User {
 		TenantID:     dbUser.TenantID,
 		Settings:     string(dbUser.Settings),
 		Components:   string(dbUser.Components),
+		CreatedAt:    dbUser.CreatedAt.Time,
+		UpdatedAt:    dbUser.UpdatedAt.Time,
 	}
 
 	// Конвертируем UUID

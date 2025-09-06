@@ -35,53 +35,43 @@ func NewConfig() (*Config, error) {
 
 type (
 	Config struct {
-		Server   `yaml:"server"`
-		Log      `yaml:"log"`
-		PG       `yaml:"PG"`
-		Rabbit   `yaml:"rabbit"`
-		JWT      `yaml:"JWT"`
-		Sessions `yaml:"sessions"`
+		Server `yaml:"server"`
+		Log    `yaml:"log"`
+		PG     `yaml:"PG"`
+		Rabbit `yaml:"rabbit"`
+		JWT    `yaml:"JWT"`
 	}
 
 	Server struct {
-		Host string `env-required:"true" yaml:"host" env:"APP_HOST" validate:"required"`
-		Port string `env-required:"true" yaml:"port" env:"APP_PORT" validate:"required"`
-		Env  string `env-required:"true" yaml:"env" env:"APP_ENV" validate:"required,oneof=local dev prod"`
+		Host string `yaml:"host" env:"APP_HOST" validate:"required"`
+		Port string `yaml:"port" env:"APP_PORT" validate:"required"`
+		Env  string `yaml:"env" env:"APP_ENV" validate:"required,oneof=local dev prod"`
 
-		ContextTimeout    time.Duration `env-required:"true" yaml:"context_timeout" env:"APP_CONTEXT_TIMEOUT" validate:"required"`
-		ReadHeaderTimeout time.Duration `env-required:"true" yaml:"read_header_timeout" env:"APP_READ_HEADER_TIMEOUT" default:"60s"`
-		GracefulTimeout   time.Duration `env-required:"true" yaml:"grace_ful_timeout" env:"APP_GRACE_FUL_TIMEOUT" default:"8s"`
+		ContextTimeout    time.Duration `yaml:"context_timeout" env:"APP_CONTEXT_TIMEOUT" validate:"required"`
+		ReadHeaderTimeout time.Duration `yaml:"read_header_timeout" env:"APP_READ_HEADER_TIMEOUT" default:"60s"`
+		GracefulTimeout   time.Duration `yaml:"grace_ful_timeout" env:"APP_GRACE_FUL_TIMEOUT" default:"8s"`
 	}
 
 	Log struct {
-		Level string `env-required:"true" yaml:"level" env:"APP_LOG_LEVEL"  validate:"required,oneof=DEBUG INFO WARN ERROR"`
+		Level string `yaml:"level" env:"APP_LOG_LEVEL"  validate:"required,oneof=DEBUG INFO WARN ERROR"`
 	}
 
 	PG struct {
-		HostPG     string `env-required:"true" yaml:"host"          env:"APP_HOST_PG" validate:"required"`
-		PortPG     string `env-required:"true" yaml:"port"          env:"APP_PORT_PG" validate:"required"`
-		UserPG     string `env-required:"true" yaml:"user"          env:"APP_USER_PG" validate:"required"`
-		PasswordPG string `env-required:"true" yaml:"password"      env:"APP_PASSWORD_PG" validate:"required"`
-		SchemePG   string `env-required:"true" yaml:"scheme"        env:"APP_SCHEME_PG" validate:"required"`
-		DbNamePG   string `env-required:"true" yaml:"db"            env:"APP_DBNAME_PG" validate:"required"`
+		HostPG     string `yaml:"host" env:"APP_HOST_PG" validate:"required"`
+		PortPG     string `yaml:"port" env:"APP_PORT_PG" validate:"required"`
+		UserPG     string `yaml:"user" env:"APP_USER_PG" validate:"required"`
+		PasswordPG string `yaml:"password" env:"APP_PASSWORD_PG" validate:"required"`
+		SchemePG   string `yaml:"scheme" env:"APP_SCHEME_PG" validate:"required"`
+		DbNamePG   string `yaml:"db" env:"APP_DBNAME_PG" validate:"required"`
 	}
 	Rabbit struct {
-		URI string `env-required:"true" yaml:"amqp_url" env:"APP_AMQP_URI" validate:"required"`
+		URI string `yaml:"amqp_url" env:"APP_AMQP_URI" validate:"required"`
 	}
 
 	JWT struct {
-		SignKey    string        `env-required:"true" yaml:"sign_key" env:"APP_SIGN_KEY" validate:"required"`
-		TokenTTL   time.Duration `env-required:"true" yaml:"token_ttl" env:"APP_TOKEN_TTL" validate:"required"`
-		RefreshTTL time.Duration `env-required:"true" yaml:"refresh_token_ttl" env:"APP_REFRESH_TOKEN_TTL" validate:"required"`
-	}
-
-	Sessions struct {
-		Store    string        `yaml:"store" env:"APP_SESSION_STORE" default:"postgres" validate:"oneof=memory postgres redis"`
-		Lifetime time.Duration `yaml:"lifetime" env:"APP_SESSION_LIFETIME" default:"24h"`
-		// Redis настройки (опционально)
-		RedisAddr     string `yaml:"redis_addr" env:"APP_REDIS_ADDR"`
-		RedisPassword string `yaml:"redis_password" env:"APP_REDIS_PASSWORD"`
-		RedisDB       int    `yaml:"redis_db" env:"APP_REDIS_DB" default:"0"`
+		SignKey    string        `yaml:"sign_key" env:"APP_SIGN_KEY" validate:"required"`
+		TokenTTL   time.Duration `yaml:"token_ttl" env:"APP_TOKEN_TTL" validate:"required"`
+		RefreshTTL time.Duration `yaml:"refresh_token_ttl" env:"APP_REFRESH_TOKEN_TTL" validate:"required"`
 	}
 )
 

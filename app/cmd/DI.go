@@ -8,7 +8,6 @@ import (
 	"github.com/vovanwin/template/app/cmd/dependency"
 	"github.com/vovanwin/template/app/cmd/migrateCmd"
 	"github.com/vovanwin/template/app/internal/module/users"
-	"github.com/vovanwin/template/app/internal/module/web"
 	"github.com/vovanwin/template/app/internal/shared/middleware"
 
 	"github.com/spf13/cobra"
@@ -49,7 +48,7 @@ func inject() fx.Option {
 			dependency.ProvideConfig,
 			dependency.ProvidePgx,
 			dependency.ProvidePool,
-			dependency.ProvideSessionManager,
+			dependency.ProvideJWTService,
 		),
 		fx.Invoke(dependency.ProvideLogger),
 
@@ -65,7 +64,6 @@ func inject() fx.Option {
 		),
 
 		users.Module,
-		web.Module,
 
 		// загружаю мидлваре в приложение
 		fx.Provide(middleware.NewMiddleware),

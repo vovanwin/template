@@ -33,8 +33,9 @@ paths:
                 $ref: "#/components/schemas/Error"
   /auth/login:
     post:
-      description: Информация о текущем пользователе
-      summary: текущий пользователь
+      security: []  # Отключаем авторизацию для login
+      description: Авторизация пользователя по email и паролю
+      summary: Вход в систему
       parameters:
         - $ref: "global/parameters.yml#/parameters/XRequestIDHeader"
       requestBody:
@@ -56,8 +57,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-security:
-  - bearerAuth: [ ]
+  /auth/logout:
+    post:
+      security:
+        - bearerAuth: [ ]
+      description: Выход из системы (logout)
+      summary: Выход из системы
+      parameters:
+        - $ref: "global/parameters.yml#/parameters/XRequestIDHeader"
+      responses:
+        "200":
+          description: Успешный выход
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogoutResponse"
+        default:
+          description: Ошибка
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
 components:
   securitySchemes:
@@ -81,13 +101,17 @@ components:
 
     AuthToken:
       type: object
-      required: [ access, refresh ]
+      required: [ token, user_id, user_email ]
       properties:
-        access:
-          description: токен для авторизации
+        token:
+          description: JWT токен для авторизации
           type: string
-        refresh:
-          description: токен для получения нового access токена
+        user_id:
+          description: ID пользователя
+          type: string
+          format: uuid
+        user_email:
+          description: Email пользователя
           type: string
 
     UserMe:
@@ -128,14 +152,26 @@ components:
 
     LoginRequest:
       type: object
-      required: [ username, password ]
+      required: [ email, password ]
       properties:
-        username:
-          description: Логин пользователя. Может быть как email так и логином.
+        email:
+          description: Email пользователя для входа
           type: string
+          format: email
         password:
-          description: пароль
+          description: Пароль пользователя
           type: string
+          minLength: 6
+
+    LogoutResponse:
+      type: object
+      required: [ message ]
+      properties:
+        message:
+          description: Сообщение об успешном выходе
+          type: string
+          example: "Successfully logged out"
+
     RefreshRequest:
       type: object
       required: [ access, refresh ]

@@ -2,10 +2,36 @@ package middleware
 
 import (
 	"fmt"
+	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
+
+// getClientIP извлекает IP адрес клиента из запроса
+func getClientIP(r *http.Request) string {
+	// Проверяем заголовок X-Forwarded-For
+	forwarded := r.Header.Get("X-Forwarded-For")
+	if forwarded != "" {
+		// Берем первый IP из списка
+		ips := strings.Split(forwarded, ",")
+		return strings.TrimSpace(ips[0])
+	}
+
+	// Проверяем X-Real-IP
+	realIP := r.Header.Get("X-Real-IP")
+	if realIP != "" {
+		return realIP
+	}
+
+	// Если заголовки не найдены, используем RemoteAddr
+	ip := r.RemoteAddr
+	if strings.Contains(ip, ":") {
+		ip, _, _ = net.SplitHostPort(ip)
+	}
+	return ip
+}
 
 // RateLimitRule определяет правило лимитирования
 type RateLimitRule struct {
@@ -35,17 +61,21 @@ func NewRateLimiter() *RateLimiter {
 	}
 
 	// Добавляем правила по умолчанию
-	rl.AddRule("/web/login", RateLimitRule{
-		Requests: 5,                // 5 попыток входа
-		Window:   15 * time.Minute, // за 15 минут
-		Path:     "/web/login",
-	})
+	rl.AddRule(
+		"/web/login", RateLimitRule{
+			Requests: 30,              // 5 попыток входа
+			Window:   1 * time.Minute, // за 5 минут
+			Path:     "/web/login",
+		},
+	)
 
-	rl.AddRule("default", RateLimitRule{
-		Requests: 100,             // 100 запросов
-		Window:   1 * time.Minute, // за минуту
-		Path:     "",              // для всех путей
-	})
+	rl.AddRule(
+		"default", RateLimitRule{
+			Requests: 300,             // 300 запросов
+			Window:   1 * time.Minute, // за минуту
+			Path:     "",              // для всех путей
+		},
+	)
 
 	// Запускаем cleanup горутину
 	go rl.cleanup()
@@ -63,21 +93,23 @@ func (rl *RateLimiter) AddRule(name string, rule RateLimitRule) {
 // RateLimitMiddleware возвращает middleware для ограничения запросов
 func (rl *RateLimiter) RateLimitMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			clientIP := getClientIP(r)
+		return http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				clientIP := getClientIP(r)
 
-			// Находим подходящее правило
-			rule := rl.findRule(r.URL.Path)
+				// Находим подходящее правило
+				rule := rl.findRule(r.URL.Path)
 
-			// Проверяем лимит
-			if !rl.isAllowed(clientIP, r.URL.Path, rule) {
-				w.Header().Set("Retry-After", fmt.Sprintf("%.0f", rule.Window.Seconds()))
-				http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
-				return
-			}
+				// Проверяем лимит
+				if !rl.isAllowed(clientIP, r.URL.Path, rule) {
+					w.Header().Set("Retry-After", fmt.Sprintf("%.0f", rule.Window.Seconds()))
+					http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+					return
+				}
 
-			next.ServeHTTP(w, r)
-		})
+				next.ServeHTTP(w, r)
+			},
+		)
 	}
 }
 

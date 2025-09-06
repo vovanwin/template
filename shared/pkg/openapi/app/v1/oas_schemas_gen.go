@@ -15,30 +15,42 @@ func (s *ErrorStatusCode) Error() string {
 
 // Ref: #/components/schemas/AuthToken
 type AuthToken struct {
-	// Токен для авторизации.
-	Access string `json:"access"`
-	// Токен для получения нового access токена.
-	Refresh string `json:"refresh"`
+	// JWT токен для авторизации.
+	Token string `json:"token"`
+	// ID пользователя.
+	UserID uuid.UUID `json:"user_id"`
+	// Email пользователя.
+	UserEmail string `json:"user_email"`
 }
 
-// GetAccess returns the value of Access.
-func (s *AuthToken) GetAccess() string {
-	return s.Access
+// GetToken returns the value of Token.
+func (s *AuthToken) GetToken() string {
+	return s.Token
 }
 
-// GetRefresh returns the value of Refresh.
-func (s *AuthToken) GetRefresh() string {
-	return s.Refresh
+// GetUserID returns the value of UserID.
+func (s *AuthToken) GetUserID() uuid.UUID {
+	return s.UserID
 }
 
-// SetAccess sets the value of Access.
-func (s *AuthToken) SetAccess(val string) {
-	s.Access = val
+// GetUserEmail returns the value of UserEmail.
+func (s *AuthToken) GetUserEmail() string {
+	return s.UserEmail
 }
 
-// SetRefresh sets the value of Refresh.
-func (s *AuthToken) SetRefresh(val string) {
-	s.Refresh = val
+// SetToken sets the value of Token.
+func (s *AuthToken) SetToken(val string) {
+	s.Token = val
+}
+
+// SetUserID sets the value of UserID.
+func (s *AuthToken) SetUserID(val uuid.UUID) {
+	s.UserID = val
+}
+
+// SetUserEmail sets the value of UserEmail.
+func (s *AuthToken) SetUserEmail(val string) {
+	s.UserEmail = val
 }
 
 type BearerAuth struct {
@@ -121,15 +133,15 @@ func (s *ErrorStatusCode) SetResponse(val Error) {
 
 // Ref: #/components/schemas/LoginRequest
 type LoginRequest struct {
-	// Логин пользователя. Может быть как email так и логином.
-	Username string `json:"username"`
-	// Пароль.
+	// Email пользователя для входа.
+	Email string `json:"email"`
+	// Пароль пользователя.
 	Password string `json:"password"`
 }
 
-// GetUsername returns the value of Username.
-func (s *LoginRequest) GetUsername() string {
-	return s.Username
+// GetEmail returns the value of Email.
+func (s *LoginRequest) GetEmail() string {
+	return s.Email
 }
 
 // GetPassword returns the value of Password.
@@ -137,14 +149,30 @@ func (s *LoginRequest) GetPassword() string {
 	return s.Password
 }
 
-// SetUsername sets the value of Username.
-func (s *LoginRequest) SetUsername(val string) {
-	s.Username = val
+// SetEmail sets the value of Email.
+func (s *LoginRequest) SetEmail(val string) {
+	s.Email = val
 }
 
 // SetPassword sets the value of Password.
 func (s *LoginRequest) SetPassword(val string) {
 	s.Password = val
+}
+
+// Ref: #/components/schemas/LogoutResponse
+type LogoutResponse struct {
+	// Сообщение об успешном выходе.
+	Message string `json:"message"`
+}
+
+// GetMessage returns the value of Message.
+func (s *LogoutResponse) GetMessage() string {
+	return s.Message
+}
+
+// SetMessage sets the value of Message.
+func (s *LogoutResponse) SetMessage(val string) {
+	s.Message = val
 }
 
 // NewOptString returns new OptString with value set to v.

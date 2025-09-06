@@ -60,24 +60,58 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			switch elem[0] {
-			case 'l': // Prefix: "login"
+			case 'l': // Prefix: "log"
 
-				if l := len("login"); len(elem) >= l && elem[0:l] == "login" {
+				if l := len("log"); len(elem) >= l && elem[0:l] == "log" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					// Leaf node.
-					switch r.Method {
-					case "POST":
-						s.handleAuthLoginPostRequest([0]string{}, elemIsEscaped, w, r)
-					default:
-						s.notAllowed(w, r, "POST")
+					break
+				}
+				switch elem[0] {
+				case 'i': // Prefix: "in"
+
+					if l := len("in"); len(elem) >= l && elem[0:l] == "in" {
+						elem = elem[l:]
+					} else {
+						break
 					}
 
-					return
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "POST":
+							s.handleAuthLoginPostRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, "POST")
+						}
+
+						return
+					}
+
+				case 'o': // Prefix: "out"
+
+					if l := len("out"); len(elem) >= l && elem[0:l] == "out" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "POST":
+							s.handleAuthLogoutPostRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, "POST")
+						}
+
+						return
+					}
+
 				}
 
 			case 'm': // Prefix: "me"
@@ -194,28 +228,66 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 				break
 			}
 			switch elem[0] {
-			case 'l': // Prefix: "login"
+			case 'l': // Prefix: "log"
 
-				if l := len("login"); len(elem) >= l && elem[0:l] == "login" {
+				if l := len("log"); len(elem) >= l && elem[0:l] == "log" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					// Leaf node.
-					switch method {
-					case "POST":
-						r.name = AuthLoginPostOperation
-						r.summary = "текущий пользователь"
-						r.operationID = ""
-						r.pathPattern = "/auth/login"
-						r.args = args
-						r.count = 0
-						return r, true
-					default:
-						return
+					break
+				}
+				switch elem[0] {
+				case 'i': // Prefix: "in"
+
+					if l := len("in"); len(elem) >= l && elem[0:l] == "in" {
+						elem = elem[l:]
+					} else {
+						break
 					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "POST":
+							r.name = AuthLoginPostOperation
+							r.summary = "Вход в систему"
+							r.operationID = ""
+							r.pathPattern = "/auth/login"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+
+				case 'o': // Prefix: "out"
+
+					if l := len("out"); len(elem) >= l && elem[0:l] == "out" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "POST":
+							r.name = AuthLogoutPostOperation
+							r.summary = "Выход из системы"
+							r.operationID = ""
+							r.pathPattern = "/auth/logout"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+
 				}
 
 			case 'm': // Prefix: "me"

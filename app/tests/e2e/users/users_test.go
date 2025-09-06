@@ -1,11 +1,12 @@
 package usersGenv1_test
 
 import (
-	usersGenv1 "app/internal/module/users/controller/gen"
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	usersGenv1 "github.com/vovanwin/template/shared/pkg/openapi/app/v1"
 
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +18,7 @@ func TestAuthLoginPost(t *testing.T) {
 
 	// Выполняем запрос
 	ctx := context.Background()
-	request := &usersGenv1.LoginRequest{Username: "123", Password: "12345678"}
+	request := &usersGenv1.LoginRequest{Email: "123", Password: "12345678"}
 	params := usersGenv1.AuthLoginPostParams{}
 	token, err := client.AuthLoginPost(ctx, request, params)
 	require.NoError(t, err)
@@ -27,14 +28,18 @@ func TestAuthLoginPost(t *testing.T) {
 
 func TestAuthMeGet(t *testing.T) {
 	// Создаем тестовый HTTP-сервер
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/auth/me", r.URL.Path)
-		require.Equal(t, http.MethodGet, r.Method)
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				require.Equal(t, "/auth/me", r.URL.Path)
+				require.Equal(t, http.MethodGet, r.Method)
 
-		w.WriteHeader(http.StatusOK)
-		_, err := w.Write([]byte(`{"id": "test-id", "login": "test-user"}`))
-		require.NoError(t, err)
-	}))
+				w.WriteHeader(http.StatusOK)
+				_, err := w.Write([]byte(`{"id": "test-id", "login": "test-user"}`))
+				require.NoError(t, err)
+			},
+		),
+	)
 	defer server.Close()
 
 	// Создаем клиента

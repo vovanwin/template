@@ -79,6 +79,72 @@ func decodeAuthLoginPostParams(args [0]string, argsEscaped bool, r *http.Request
 	return params, nil
 }
 
+// AuthLogoutPostParams is parameters of POST /auth/logout operation.
+type AuthLogoutPostParams struct {
+	// Уникальный идентификатор запроса (UUID) отправляется с
+	// фронтенда для идентификации каждого запроса и
+	// логирования соответствующих логов, относящихся к
+	// данному запросу.
+	XRequestID OptUUID
+}
+
+func unpackAuthLogoutPostParams(packed middleware.Parameters) (params AuthLogoutPostParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "X-Request-Id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XRequestID = v.(OptUUID)
+		}
+	}
+	return params
+}
+
+func decodeAuthLogoutPostParams(args [0]string, argsEscaped bool, r *http.Request) (params AuthLogoutPostParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: X-Request-Id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "X-Request-Id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXRequestIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXRequestIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XRequestID.SetTo(paramsDotXRequestIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "X-Request-Id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // AuthMeGetParams is parameters of GET /auth/me operation.
 type AuthMeGetParams struct {
 	// Уникальный идентификатор запроса (UUID) отправляется с

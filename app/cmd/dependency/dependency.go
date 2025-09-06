@@ -13,10 +13,9 @@ import (
 	"github.com/vovanwin/template/app/config"
 	customMiddleware "github.com/vovanwin/template/app/internal/shared/middleware"
 	"github.com/vovanwin/template/app/pkg/httpserver"
-	"github.com/vovanwin/template/app/pkg/sessions"
+	"github.com/vovanwin/template/app/pkg/jwt"
 	"github.com/vovanwin/template/app/pkg/storage/postgres"
 
-	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -39,17 +38,12 @@ func ProvideLogger(config *config.Config) error {
 	return nil
 }
 
-func ProvideSessionManager(config *config.Config, db *postgres.Postgres) (*scs.SessionManager, error) {
-	sessionProvider := sessions.NewSessionProvider()
-	// Приводим к *pgxpool.Pool
-	pool, ok := db.Pool.(*pgxpool.Pool)
-	if !ok {
-		return nil, fmt.Errorf("unable to cast pool to *pgxpool.Pool")
-	}
-	return sessionProvider.CreateSessionManager(config, pool)
+// ProvideJWTService создает JWT сервис
+func ProvideJWTService(config *config.Config) jwt.JWTService {
+	return jwt.NewJWTService(config.JWT.SignKey, config.JWT.TokenTTL)
 }
 
-func ProvideServer(lifecycle fx.Lifecycle, config *config.Config, sessionManager *scs.SessionManager) (*chi.Mux, error) {
+func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, error) {
 	// Объявляю нужные мне милдвары для сервера
 	// Создаем rate limiter
 	rateLimiter := customMiddleware.NewRateLimiter()
@@ -63,8 +57,8 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config, sessionManager
 				cors.Options{
 					AllowedOrigins:   []string{"*"},
 					AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-					AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-					ExposedHeaders:   []string{"Link"},
+					AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+					ExposedHeaders:   []string{},
 					AllowCredentials: false,
 					MaxAge:           300, // 5 minutes
 				},
@@ -77,14 +71,7 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config, sessionManager
 		// Rate limiting (раньше других для быстрого отклонения)
 		r.Use(rateLimiter.RateLimitMiddleware())
 
-		// Сессии для web-контроллеров
-		r.Use(sessionManager.LoadAndSave)
-
-		// Дополнительная безопасность сессий
-		r.Use(customMiddleware.SessionSecurityMiddleware(sessionManager))
-
-		// CSRF защита для web запросов
-		r.Use(customMiddleware.CSRFMiddleware(sessionManager))
+		// JWT защита обрабатывается в ogen SecurityHandler
 
 		r.Use(customMiddleware.MetricsMiddleware)
 		r.Use(customMiddleware.TracingMiddleware)
