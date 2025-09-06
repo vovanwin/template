@@ -11,8 +11,16 @@ import (
 )
 
 type Querier interface {
+	// Создать нового пользователя
+	CreateUser(ctx context.Context, arg CreateUserParams) (*Users, error)
 	// Получить пользователя для me запроса
 	FindMeForId(ctx context.Context, id pgtype.UUID) (*Users, error)
+	// Получить пользователя по email
+	GetUserByEmail(ctx context.Context, email string) (*Users, error)
+	// Получить пользователя по ID
+	GetUserByID(ctx context.Context, id pgtype.UUID) (*Users, error)
+	// Обновить пользователя
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (*Users, error)
 }
 
 var _ Querier = (*Queries)(nil)

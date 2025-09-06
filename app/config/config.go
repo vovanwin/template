@@ -35,11 +35,12 @@ func NewConfig() (*Config, error) {
 
 type (
 	Config struct {
-		Server `yaml:"server"`
-		Log    `yaml:"log"`
-		PG     `yaml:"PG"`
-		Rabbit `yaml:"rabbit"`
-		JWT    `yaml:"JWT"`
+		Server   `yaml:"server"`
+		Log      `yaml:"log"`
+		PG       `yaml:"PG"`
+		Rabbit   `yaml:"rabbit"`
+		JWT      `yaml:"JWT"`
+		Sessions `yaml:"sessions"`
 	}
 
 	Server struct {
@@ -72,6 +73,15 @@ type (
 		SignKey    string        `env-required:"true" yaml:"sign_key" env:"APP_SIGN_KEY" validate:"required"`
 		TokenTTL   time.Duration `env-required:"true" yaml:"token_ttl" env:"APP_TOKEN_TTL" validate:"required"`
 		RefreshTTL time.Duration `env-required:"true" yaml:"refresh_token_ttl" env:"APP_REFRESH_TOKEN_TTL" validate:"required"`
+	}
+
+	Sessions struct {
+		Store    string        `yaml:"store" env:"APP_SESSION_STORE" default:"postgres" validate:"oneof=memory postgres redis"`
+		Lifetime time.Duration `yaml:"lifetime" env:"APP_SESSION_LIFETIME" default:"24h"`
+		// Redis настройки (опционально)
+		RedisAddr     string `yaml:"redis_addr" env:"APP_REDIS_ADDR"`
+		RedisPassword string `yaml:"redis_password" env:"APP_REDIS_PASSWORD"`
+		RedisDB       int    `yaml:"redis_db" env:"APP_REDIS_DB" default:"0"`
 	}
 )
 

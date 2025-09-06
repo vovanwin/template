@@ -5,19 +5,27 @@
 package dbsqlc
 
 import (
-	"time"
-
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Sessions struct {
+	Token  string             `json:"token"`
+	Data   []byte             `json:"data"`
+	Expiry pgtype.Timestamptz `json:"expiry"`
+}
+
 type Users struct {
-	ID        pgtype.UUID `json:"id"`
-	Email     string      `json:"email"`
-	Role      string      `json:"role"`
-	Password  string      `json:"password"`
-	FirstName string      `json:"first_name"`
-	LastName  string      `json:"last_name"`
-	DeletedAt *time.Time  `json:"deleted_at"`
-	UpdatedAt time.Time   `json:"updated_at"`
-	CreatedAt time.Time   `json:"created_at"`
+	ID            pgtype.UUID        `json:"id"`
+	Email         string             `json:"email"`
+	PasswordHash  string             `json:"password_hash"`
+	FirstName     *string            `json:"first_name"`
+	LastName      *string            `json:"last_name"`
+	Role          *string            `json:"role"`
+	TenantID      *string            `json:"tenant_id"`
+	IsActive      *bool              `json:"is_active"`
+	EmailVerified *bool              `json:"email_verified"`
+	Settings      []byte             `json:"settings"`
+	Components    []byte             `json:"components"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }

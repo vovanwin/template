@@ -8,6 +8,8 @@ replace github.com/vovanwin/platform => ../platform
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
+	github.com/a-h/templ v0.3.943
+	github.com/alexedwards/scs/postgresstore v0.0.0-20240316134038-7e11d57e8885
 	github.com/alexedwards/scs/v2 v2.8.0
 	github.com/exaring/otelpgx v0.9.3
 	github.com/fatih/color v1.18.0
@@ -35,7 +37,6 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
-	github.com/a-h/templ v0.3.943 // indirect
 	github.com/ajg/form v1.5.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

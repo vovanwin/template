@@ -11,8 +11,64 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (id, email, password_hash, first_name, last_name, role, tenant_id, 
+                  is_active, email_verified, settings, components)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+RETURNING id, email, password_hash, first_name, last_name, role, tenant_id, 
+          is_active, email_verified, settings, components, created_at, updated_at
+`
+
+type CreateUserParams struct {
+	ID            pgtype.UUID `json:"id"`
+	Email         string      `json:"email"`
+	PasswordHash  string      `json:"password_hash"`
+	FirstName     *string     `json:"first_name"`
+	LastName      *string     `json:"last_name"`
+	Role          *string     `json:"role"`
+	TenantID      *string     `json:"tenant_id"`
+	IsActive      *bool       `json:"is_active"`
+	EmailVerified *bool       `json:"email_verified"`
+	Settings      []byte      `json:"settings"`
+	Components    []byte      `json:"components"`
+}
+
+// Создать нового пользователя
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (*Users, error) {
+	row := q.db.QueryRow(ctx, createUser,
+		arg.ID,
+		arg.Email,
+		arg.PasswordHash,
+		arg.FirstName,
+		arg.LastName,
+		arg.Role,
+		arg.TenantID,
+		arg.IsActive,
+		arg.EmailVerified,
+		arg.Settings,
+		arg.Components,
+	)
+	var i Users
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.FirstName,
+		&i.LastName,
+		&i.Role,
+		&i.TenantID,
+		&i.IsActive,
+		&i.EmailVerified,
+		&i.Settings,
+		&i.Components,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
 const findMeForId = `-- name: FindMeForId :one
- SELECT id, email, role, password, first_name, last_name, deleted_at, updated_at, created_at FROM users WHERE id = $1
+SELECT id, email, password_hash, first_name, last_name, role, tenant_id, is_active, email_verified, settings, components, created_at, updated_at FROM users WHERE id = $1
 `
 
 // Получить пользователя для me запроса
@@ -22,13 +78,133 @@ func (q *Queries) FindMeForId(ctx context.Context, id pgtype.UUID) (*Users, erro
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
-		&i.Role,
-		&i.Password,
+		&i.PasswordHash,
 		&i.FirstName,
 		&i.LastName,
-		&i.DeletedAt,
-		&i.UpdatedAt,
+		&i.Role,
+		&i.TenantID,
+		&i.IsActive,
+		&i.EmailVerified,
+		&i.Settings,
+		&i.Components,
 		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, email, password_hash, first_name, last_name, role, tenant_id, 
+       is_active, email_verified, settings, components, created_at, updated_at
+FROM users 
+WHERE email = $1 AND is_active = true
+`
+
+// Получить пользователя по email
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (*Users, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
+	var i Users
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.FirstName,
+		&i.LastName,
+		&i.Role,
+		&i.TenantID,
+		&i.IsActive,
+		&i.EmailVerified,
+		&i.Settings,
+		&i.Components,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, email, password_hash, first_name, last_name, role, tenant_id, 
+       is_active, email_verified, settings, components, created_at, updated_at
+FROM users 
+WHERE id = $1 AND is_active = true
+`
+
+// Получить пользователя по ID
+func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (*Users, error) {
+	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i Users
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.FirstName,
+		&i.LastName,
+		&i.Role,
+		&i.TenantID,
+		&i.IsActive,
+		&i.EmailVerified,
+		&i.Settings,
+		&i.Components,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return &i, err
+}
+
+const updateUser = `-- name: UpdateUser :one
+UPDATE users 
+SET email = $2, password_hash = $3, first_name = $4, last_name = $5, 
+    role = $6, tenant_id = $7, is_active = $8, email_verified = $9,
+    settings = $10, components = $11, updated_at = NOW()
+WHERE id = $1
+RETURNING id, email, password_hash, first_name, last_name, role, tenant_id, 
+          is_active, email_verified, settings, components, created_at, updated_at
+`
+
+type UpdateUserParams struct {
+	ID            pgtype.UUID `json:"id"`
+	Email         string      `json:"email"`
+	PasswordHash  string      `json:"password_hash"`
+	FirstName     *string     `json:"first_name"`
+	LastName      *string     `json:"last_name"`
+	Role          *string     `json:"role"`
+	TenantID      *string     `json:"tenant_id"`
+	IsActive      *bool       `json:"is_active"`
+	EmailVerified *bool       `json:"email_verified"`
+	Settings      []byte      `json:"settings"`
+	Components    []byte      `json:"components"`
+}
+
+// Обновить пользователя
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (*Users, error) {
+	row := q.db.QueryRow(ctx, updateUser,
+		arg.ID,
+		arg.Email,
+		arg.PasswordHash,
+		arg.FirstName,
+		arg.LastName,
+		arg.Role,
+		arg.TenantID,
+		arg.IsActive,
+		arg.EmailVerified,
+		arg.Settings,
+		arg.Components,
+	)
+	var i Users
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.FirstName,
+		&i.LastName,
+		&i.Role,
+		&i.TenantID,
+		&i.IsActive,
+		&i.EmailVerified,
+		&i.Settings,
+		&i.Components,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return &i, err
 }

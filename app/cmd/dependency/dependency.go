@@ -9,9 +9,11 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vovanwin/template/app/config"
 	customMiddleware "github.com/vovanwin/template/app/internal/shared/middleware"
 	"github.com/vovanwin/template/app/pkg/httpserver"
+	"github.com/vovanwin/template/app/pkg/sessions"
 	"github.com/vovanwin/template/app/pkg/storage/postgres"
 
 	"github.com/alexedwards/scs/v2"
@@ -37,23 +39,23 @@ func ProvideLogger(config *config.Config) error {
 	return nil
 }
 
-func ProvideSessionManager(config *config.Config) *scs.SessionManager {
-	sessionManager := scs.New()
-	sessionManager.Cookie.Name = "app_session"
-	sessionManager.Lifetime = 12 * time.Hour
-	sessionManager.Cookie.HttpOnly = true
-	sessionManager.Cookie.SameSite = http.SameSiteLaxMode
-	if config.IsProduction() {
-		sessionManager.Cookie.Secure = true
+func ProvideSessionManager(config *config.Config, db *postgres.Postgres) (*scs.SessionManager, error) {
+	sessionProvider := sessions.NewSessionProvider()
+	// Приводим к *pgxpool.Pool
+	pool, ok := db.Pool.(*pgxpool.Pool)
+	if !ok {
+		return nil, fmt.Errorf("unable to cast pool to *pgxpool.Pool")
 	}
-	return sessionManager
+	return sessionProvider.CreateSessionManager(config, pool)
 }
 
 func ProvideServer(lifecycle fx.Lifecycle, config *config.Config, sessionManager *scs.SessionManager) (*chi.Mux, error) {
 	// Объявляю нужные мне милдвары для сервера
+	// Создаем rate limiter
+	rateLimiter := customMiddleware.NewRateLimiter()
+
 	middlewareCustom := func(r *chi.Mux) {
 		r.Use(middleware.RequestID)
-		// r.Use(customMiddleware.LoggerWithLevel("device"))
 
 		// CORS для Swagger UI и других клиентов
 		r.Use(
@@ -72,8 +74,17 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config, sessionManager
 		r.Use(middleware.Recoverer)
 		r.Use(middleware.URLFormat)
 
-		// Сессии для web-контроллеров (должно быть до метрик и трейсинга)
+		// Rate limiting (раньше других для быстрого отклонения)
+		r.Use(rateLimiter.RateLimitMiddleware())
+
+		// Сессии для web-контроллеров
 		r.Use(sessionManager.LoadAndSave)
+
+		// Дополнительная безопасность сессий
+		r.Use(customMiddleware.SessionSecurityMiddleware(sessionManager))
+
+		// CSRF защита для web запросов
+		r.Use(customMiddleware.CSRFMiddleware(sessionManager))
 
 		r.Use(customMiddleware.MetricsMiddleware)
 		r.Use(customMiddleware.TracingMiddleware)
@@ -295,8 +306,17 @@ func ProvidePgx(config *config.Config) (*postgres.Postgres, error) {
 
 	connect, err := postgres.New(opt)
 	if err != nil {
-		return nil, fmt.Errorf("create gorm connection: %w", err)
+		return nil, fmt.Errorf("create pgx connection: %w", err)
 	}
 
 	return connect, nil
+}
+
+// ProvidePool предоставляет *pgxpool.Pool для sqlc и других компонентов
+func ProvidePool(pg *postgres.Postgres) *pgxpool.Pool {
+	pool, ok := pg.Pool.(*pgxpool.Pool)
+	if !ok {
+		panic("unable to cast pool to *pgxpool.Pool")
+	}
+	return pool
 }

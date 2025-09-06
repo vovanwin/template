@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/exaring/otelpgx"
-	"github.com/jackc/pgx/v5/tracelog"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -89,12 +88,9 @@ func New(opts Options) (*Postgres, error) {
 		poolConfig.ConnConfig.Tracer = otelpgx.NewTracer()
 	}
 	if !opts.isProduction {
-		tracer := &tracelog.TraceLog{
-			LogLevel: tracelog.LogLevelTrace,
-		}
-		poolConfig.ConnConfig.Tracer = tracer
-		//poolConfig.ConnConfig.Tracer = otelpgx.NewTracer()
-
+		// Создаем трейсер без logger для избежания nil pointer
+		// В production лучше использовать otel
+		poolConfig.ConnConfig.Tracer = otelpgx.NewTracer()
 	}
 
 	for pg.connAttempts > 0 {

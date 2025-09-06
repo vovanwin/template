@@ -4,27 +4,33 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/fx"
 
+	usersServices "github.com/vovanwin/template/app/internal/module/users/services"
 	tpl "github.com/vovanwin/template/app/internal/module/web/templates"
+	"github.com/vovanwin/template/app/internal/shared/middleware"
 )
 
 type ControllerDeps struct {
 	fx.In
 	Router         *chi.Mux
 	SessionManager *scs.SessionManager
+	UsersService   usersServices.UsersService
 }
 
 type WebController struct {
 	sessionManager *scs.SessionManager
+	usersService   usersServices.UsersService
 }
 
 func Controller(deps ControllerDeps) {
 	controller := &WebController{
 		sessionManager: deps.SessionManager,
+		usersService:   deps.UsersService,
 	}
 
 	deps.Router.Route("/web", func(r chi.Router) {
@@ -43,8 +49,9 @@ func (c *WebController) GetLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	csrfToken := middleware.GetCSRFToken(c.sessionManager, r)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	err := tpl.LoginPage("").Render(r.Context(), w)
+	err := tpl.LoginPage("", csrfToken).Render(r.Context(), w)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
@@ -70,17 +77,33 @@ func (c *WebController) PostLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Простая проверка (в реальном приложении проверяйте в БД)
-	if !c.validateCredentials(email, password) {
+	// Проверка через сервис пользователей
+	if !c.validateCredentials(r.Context(), email, password) {
 		c.renderLoginForm(w, r, "Неверный email или пароль")
 		return
 	}
 
-	// Сохраняем сессию
-	c.sessionManager.Put(r.Context(), "user_email", email)
+	// Получаем данные пользователя для сохранения в сессии
+	user, err := c.usersService.GetUserByEmail(r.Context(), email)
+	if err != nil || user == nil {
+		c.renderLoginForm(w, r, "Ошибка аутентификации")
+		return
+	}
+
+	// Сохраняем данные в сессию
+	c.sessionManager.Put(r.Context(), "user_id", user.ID)
+	c.sessionManager.Put(r.Context(), "user_email", user.Email)
+	c.sessionManager.Put(r.Context(), "last_activity", time.Now())
+	c.sessionManager.Put(r.Context(), "session_ip", middleware.GetClientIP(r))
+
+	// Проверяем, есть ли URL для редиректа после логина
+	redirectURL := c.sessionManager.PopString(r.Context(), "redirect_after_login")
+	if redirectURL == "" {
+		redirectURL = "/web/me"
+	}
 
 	// HTMX редирект
-	w.Header().Set("HX-Redirect", "/web/me")
+	w.Header().Set("HX-Redirect", redirectURL)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -111,11 +134,12 @@ func (c *WebController) PostLogout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// renderLoginForm рендерит форму входа с ошибкой
+// renderLoginForm рендерит форму входа с ошибкой (для HTMX partial)
 func (c *WebController) renderLoginForm(w http.ResponseWriter, r *http.Request, errMsg string) {
+	csrfToken := middleware.GetCSRFToken(c.sessionManager, r)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// Временно используем полную страницу, пока не сгенерируем templ
-	err := tpl.LoginPage(errMsg).Render(r.Context(), w)
+	// Для HTMX запросов возвращаем только форму
+	err := tpl.LoginForm(errMsg, csrfToken).Render(r.Context(), w)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
@@ -127,10 +151,12 @@ func (c *WebController) isAuthenticated(ctx context.Context) bool {
 	return email != ""
 }
 
-// validateCredentials проверяет учетные данные (заглушка)
-func (c *WebController) validateCredentials(email, password string) bool {
-	// В реальном приложении проверяйте в БД с хешированием пароля
-	// Пока что простая проверка для демонстрации
-	return email == "admin@example.com" && password == "password" ||
-		email == "user@example.com" && password == "123456"
+// validateCredentials проверяет учетные данные через сервис пользователей
+func (c *WebController) validateCredentials(ctx context.Context, email, password string) bool {
+	user, err := c.usersService.ValidateCredentials(ctx, email, password)
+	if err != nil {
+		// В реальном приложении логируйте ошибку
+		return false
+	}
+	return user != nil
 }

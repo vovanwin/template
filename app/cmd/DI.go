@@ -7,7 +7,6 @@ import (
 
 	"github.com/vovanwin/template/app/cmd/dependency"
 	"github.com/vovanwin/template/app/cmd/migrateCmd"
-	"github.com/vovanwin/template/app/cmd/templgen"
 	"github.com/vovanwin/template/app/internal/module/users"
 	"github.com/vovanwin/template/app/internal/module/web"
 	"github.com/vovanwin/template/app/internal/shared/middleware"
@@ -48,6 +47,8 @@ func inject() fx.Option {
 		//fx.NopLogger,
 		fx.Provide(
 			dependency.ProvideConfig,
+			dependency.ProvidePgx,
+			dependency.ProvidePool,
 			dependency.ProvideSessionManager,
 		),
 		fx.Invoke(dependency.ProvideLogger),
@@ -80,5 +81,4 @@ func Execute() {
 
 func init() {
 	rootCmd.AddCommand(migrateCmd.MigrationsCmd)
-	rootCmd.AddCommand(templgen.Cmd)
 }

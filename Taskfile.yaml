@@ -51,7 +51,7 @@ vars:
   OPEN_API_WEATHER_V1_BUNDLE: '{{.ROOT_DIR}}/shared/api/bundles/weather.openapi.v1.bundle.yaml'
   OPEN_API_FILES: '{{.ROOT_DIR}}/shared/api/bundles'
 
-  MODULES: app
+  MODULES: app platform shared
 
 tasks:
   install-formatters:
@@ -281,6 +281,11 @@ tasks:
     cmds:
       - go run app/main.go
 
+  deps:app:migration:
+    dotenv: [ '.env' ]
+    cmds:
+      - go run app/main.go migration up
+
   deps:temporal:
     dotenv: [ '.env' ]
     cmds:
@@ -296,3 +301,6 @@ tasks:
   sql:
     - echo "SQLC"
     - "{{.SQLC}} generate file app/sqlc.yaml"
+  templ:
+    - echo "SQLC"
+    - "templ generate ./... "
