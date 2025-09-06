@@ -6,7 +6,6 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/vovanwin/template/app/pkg/metrics"
@@ -91,15 +90,6 @@ func TracingMiddleware(next http.Handler) http.Handler {
 				attribute.String("http.url", r.URL.String()),
 				attribute.String("http.user_agent", r.UserAgent()),
 			)
-
-			// Пример обработки ошибок
-			defer func() {
-				if rec := recover(); rec != nil {
-					span.SetStatus(codes.Error, "panic occurred")
-					span.RecordError(rec.(error))
-					http.Error(w, "internal server error", http.StatusInternalServerError)
-				}
-			}()
 
 			// Передача контекста с span дальше по цепочке middleware
 			next.ServeHTTP(w, r.WithContext(ctx))

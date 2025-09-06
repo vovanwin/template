@@ -4,12 +4,12 @@ servers:
 sql:
   - engine: "postgresql"
     queries:
-      - "internal/module/users/dbsqlc/query/query.sql"
-    schema: "db/migrations"
+      - "app/dbsqlc/query/query.sql"
+    schema: "app/db/migrations"
     gen:
       go:
         package: "dbsqlc"
-        out: "internal/module/users/dbsqlc"
+        out: "app/dbsqlc"
         sql_package: "pgx/v5"
         emit_exact_table_names: true # имена структур будут отражать имена таблиц
         emit_pointers_for_null_types: true # структуры будут иметь указатели для нулевых типов
@@ -21,22 +21,11 @@ sql:
           - db_type: "pg_catalog.interval"
             go_type: "time.Duration"
 
-          - db_type: "pg_catalog.timestamptz"
+          - db_type: "timestamptz"
             go_type: "time.Time"
-          - db_type: "pg_catalog.timestamptz"
+
+          - db_type: "timestamptz"
             go_type:
               type: "time.Time"
               pointer: true
-            nullable: true
-
-          - db_type: "uuid"
-            go_type: "github.com/google/uuid.UUID"
-          - db_type: "uuid"
-            go_type: "github.com/google/uuid.UUID"
-            nullable: true
-
-          - column: "users.id"
-            go_type: "app/internal/types.UserID"
-          - column: "users.id"
-            go_type: "app/internal/types.UserID"
             nullable: true

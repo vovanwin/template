@@ -14,6 +14,7 @@ import (
 	"github.com/vovanwin/template/app/pkg/httpserver"
 	"github.com/vovanwin/template/app/pkg/storage/postgres"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -36,7 +37,19 @@ func ProvideLogger(config *config.Config) error {
 	return nil
 }
 
-func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, error) {
+func ProvideSessionManager(config *config.Config) *scs.SessionManager {
+	sessionManager := scs.New()
+	sessionManager.Cookie.Name = "app_session"
+	sessionManager.Lifetime = 12 * time.Hour
+	sessionManager.Cookie.HttpOnly = true
+	sessionManager.Cookie.SameSite = http.SameSiteLaxMode
+	if config.IsProduction() {
+		sessionManager.Cookie.Secure = true
+	}
+	return sessionManager
+}
+
+func ProvideServer(lifecycle fx.Lifecycle, config *config.Config, sessionManager *scs.SessionManager) (*chi.Mux, error) {
 	// Объявляю нужные мне милдвары для сервера
 	middlewareCustom := func(r *chi.Mux) {
 		r.Use(middleware.RequestID)
@@ -58,6 +71,9 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, err
 
 		r.Use(middleware.Recoverer)
 		r.Use(middleware.URLFormat)
+
+		// Сессии для web-контроллеров (должно быть до метрик и трейсинга)
+		r.Use(sessionManager.LoadAndSave)
 
 		r.Use(customMiddleware.MetricsMiddleware)
 		r.Use(customMiddleware.TracingMiddleware)

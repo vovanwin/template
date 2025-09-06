@@ -2,6 +2,9 @@ version: '3'
 
 # Глобальные переменные проекта
 vars:
+  DEV_TOOLS: |
+    github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
   DOCKER_COMPOSE_PATHS: |
     -f ./deployments/local/docker-compose.yml
 #    -f ./deployments/local/docker-compose.temporal.yml
@@ -29,6 +32,7 @@ vars:
   MOCKERY_VERSION: 'v2.53.3'
 
   BIN_DIR: '{{.ROOT_DIR}}/bin'
+  SQLC: '{{.BIN_DIR}}/sqlc'
   GOLANGCI_LINT: '{{.BIN_DIR}}/golangci-lint'
   GCI: '{{.BIN_DIR}}/gci'
   GOFUMPT: '{{.BIN_DIR}}/gofumpt'
@@ -281,3 +285,14 @@ tasks:
     dotenv: [ '.env' ]
     cmds:
       - temporal server start-dev
+
+  dev-tools:install:
+    desc: установить tools инструменты для проекта
+    cmds:
+      - echo "- Install dev tools"
+      - for: { var: DEV_TOOLS }
+        cmd: GOBIN="{{.BIN_DIR}}"  go install "{{ .ITEM }}"  # У
+
+  sql:
+    - echo "SQLC"
+    - "{{.SQLC}} generate file app/sqlc.yaml"
