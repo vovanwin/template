@@ -18,9 +18,6 @@ func NewConfig() (*Config, error) {
 	cfg := &Config{}
 
 	err := cleanenv.ReadConfig(path.Join("./", configPath), cfg)
-	if err != nil {
-		fmt.Printf("Debug: Нет конфиг: %v\n", err)
-	}
 	err = cleanenv.ReadEnv(cfg)
 	if err != nil {
 		fmt.Printf("Error: Ошибка формирования env из переменных окружения: %v\n", err)

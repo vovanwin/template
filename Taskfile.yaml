@@ -50,6 +50,7 @@ vars:
   OPEN_API_FILES: '{{.ROOT_DIR}}/shared/api/bundles'
 
   MODULES: app platform shared
+  SERVICES: app
 
 tasks:
 
@@ -191,10 +192,99 @@ tasks:
     cmds:
       - go run app/main.go
 
+  # Команды миграций с поддержкой множественных сервисов
+  migrate:up:
+    dotenv: ['.env']
+    desc: "Выполняет миграции (по умолчанию app, укажите SERVICE=имя_сервиса)"
+    vars:
+      SERVICE: '{{.SERVICE | default "app"}}'
+    cmds:
+      - go run {{.SERVICE}}/main.go migrate up
+
+  migrate:down:
+    dotenv: ['.env']
+    desc: "Откатывает миграцию (по умолчанию app, укажите SERVICE=имя_сервиса)"
+    vars:
+      SERVICE: '{{.SERVICE | default "app"}}'
+    cmds:
+      - go run {{.SERVICE}}/main.go migrate down
+
+  migrate:status:
+    dotenv: ['.env']
+    desc: "Статус миграций (по умолчанию app, укажите SERVICE=имя_сервиса)"
+    vars:
+      SERVICE: '{{.SERVICE | default "app"}}'
+    cmds:
+      - go run {{.SERVICE}}/main.go migrate status
+
+  migrate:version:
+    dotenv: ['.env']
+    desc: "Версия БД (по умолчанию app, укажите SERVICE=имя_сервиса)"
+    vars:
+      SERVICE: '{{.SERVICE | default "app"}}'
+    cmds:
+      - go run {{.SERVICE}}/main.go migrate version
+
+  migrate:create:
+    dotenv: ['.env']
+    desc: "Создает миграцию (SERVICE=сервис task migrate:create -- имя_миграции)"
+    vars:
+      SERVICE: '{{.SERVICE | default "app"}}'
+    cmds:
+      - go run {{.SERVICE}}/main.go migrate create {{.CLI_ARGS}}
+
+  # Команды для массовых операций с миграциями
+  migrate:all:up:
+    dotenv: ['.env']
+    desc: "Выполняет миграции для всех сервисов из переменной SERVICES"
+    cmds:
+      - |
+        for service in {{.SERVICES}}; do
+          if [ -d "$service" ] && [ -f "$service/main.go" ]; then
+            echo "🚀 Выполняем миграции для сервиса: $service"
+            go run $service/main.go migrate up || echo "❌ Ошибка миграции для $service"
+          else
+            echo "⚠️  Сервис $service не найден или не содержит main.go"
+          fi
+        done
+
+  migrate:all:status:
+    dotenv: ['.env']
+    desc: "Показывает статус миграций для всех сервисов из переменной SERVICES"
+    cmds:
+      - |
+        for service in {{.SERVICES}}; do
+          if [ -d "$service" ] && [ -f "$service/main.go" ]; then
+            echo "📊 Статус миграций для сервиса: $service"
+            go run $service/main.go migrate status || echo "❌ Ошибка получения статуса для $service"
+            echo ""
+          else
+            echo "⚠️  Сервис $service не найден"
+          fi
+        done
+
+  migrate:all:version:
+    dotenv: ['.env']
+    desc: "Показывает версию БД для всех сервисов из переменной SERVICES"
+    cmds:
+      - |
+        for service in {{.SERVICES}}; do
+          if [ -d "$service" ] && [ -f "$service/main.go" ]; then
+            echo "🔢 Версия БД для сервиса: $service"
+            go run $service/main.go migrate version || echo "❌ Ошибка получения версии для $service"
+            echo ""
+          else
+            echo "⚠️  Сервис $service не найден"
+          fi
+        done
+
+  # Legacy команда
   deps:app:migration:
     dotenv: [ '.env' ]
     cmds:
-      - go run app/main.go migration up
+      - task: migrate:up
+        vars:
+          SERVICE: app
 
   deps:temporal:
     dotenv: [ '.env' ]
