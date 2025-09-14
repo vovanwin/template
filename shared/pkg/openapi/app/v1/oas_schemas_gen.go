@@ -15,17 +15,24 @@ func (s *ErrorStatusCode) Error() string {
 
 // Ref: #/components/schemas/AuthToken
 type AuthToken struct {
-	// JWT токен для авторизации.
-	Token string `json:"token"`
+	// Access JWT токен для авторизации.
+	AccessToken string `json:"access_token"`
+	// Refresh токен для обновления access токена.
+	RefreshToken string `json:"refresh_token"`
 	// ID пользователя.
 	UserID uuid.UUID `json:"user_id"`
 	// Email пользователя.
 	UserEmail string `json:"user_email"`
 }
 
-// GetToken returns the value of Token.
-func (s *AuthToken) GetToken() string {
-	return s.Token
+// GetAccessToken returns the value of AccessToken.
+func (s *AuthToken) GetAccessToken() string {
+	return s.AccessToken
+}
+
+// GetRefreshToken returns the value of RefreshToken.
+func (s *AuthToken) GetRefreshToken() string {
+	return s.RefreshToken
 }
 
 // GetUserID returns the value of UserID.
@@ -38,9 +45,14 @@ func (s *AuthToken) GetUserEmail() string {
 	return s.UserEmail
 }
 
-// SetToken sets the value of Token.
-func (s *AuthToken) SetToken(val string) {
-	s.Token = val
+// SetAccessToken sets the value of AccessToken.
+func (s *AuthToken) SetAccessToken(val string) {
+	s.AccessToken = val
+}
+
+// SetRefreshToken sets the value of RefreshToken.
+func (s *AuthToken) SetRefreshToken(val string) {
+	s.RefreshToken = val
 }
 
 // SetUserID sets the value of UserID.
@@ -265,6 +277,22 @@ func (o OptUUID) Or(d uuid.UUID) uuid.UUID {
 		return v
 	}
 	return d
+}
+
+// Ref: #/components/schemas/RefreshRequest
+type RefreshRequest struct {
+	// Рефреш токен, чтобы получить новый access и refresh токены.
+	RefreshToken string `json:"refresh_token"`
+}
+
+// GetRefreshToken returns the value of RefreshToken.
+func (s *RefreshRequest) GetRefreshToken() string {
+	return s.RefreshToken
+}
+
+// SetRefreshToken sets the value of RefreshToken.
+func (s *RefreshRequest) SetRefreshToken(val string) {
+	s.RefreshToken = val
 }
 
 // Ref: #/components/schemas/UserMe

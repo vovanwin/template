@@ -78,6 +78,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /auth/refresh:
+    post:
+      security: []  # Отключаем авторизацию для refresh
+      description: Обновление токенов с помощью refresh токена
+      summary: Обновление токенов
+      parameters:
+        - $ref: "global/parameters.yml#/parameters/XRequestIDHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: успешно
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthToken"
+        default:
+          description: Ошибка
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
 components:
   securitySchemes:
@@ -101,10 +127,13 @@ components:
 
     AuthToken:
       type: object
-      required: [ token, user_id, user_email ]
+      required: [ access_token, refresh_token, user_id, user_email ]
       properties:
-        token:
-          description: JWT токен для авторизации
+        access_token:
+          description: Access JWT токен для авторизации
+          type: string
+        refresh_token:
+          description: Refresh токен для обновления access токена
           type: string
         user_id:
           description: ID пользователя
@@ -174,8 +203,8 @@ components:
 
     RefreshRequest:
       type: object
-      required: [ access, refresh ]
+      required: [ refresh_token ]
       properties:
-        refresh:
-          description: рефреш токен, чтобы получить новый токен и рефреш токены
+        refresh_token:
+          description: рефреш токен, чтобы получить новый access и refresh токены
           type: string

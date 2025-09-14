@@ -6,7 +6,8 @@ package app_v1
 type OperationName = string
 
 const (
-	AuthLoginPostOperation  OperationName = "AuthLoginPost"
-	AuthLogoutPostOperation OperationName = "AuthLogoutPost"
-	AuthMeGetOperation      OperationName = "AuthMeGet"
+	AuthLoginPostOperation   OperationName = "AuthLoginPost"
+	AuthLogoutPostOperation  OperationName = "AuthLogoutPost"
+	AuthMeGetOperation       OperationName = "AuthMeGet"
+	AuthRefreshPostOperation OperationName = "AuthRefreshPost"
 )

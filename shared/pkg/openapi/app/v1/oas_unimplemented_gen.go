@@ -40,6 +40,15 @@ func (UnimplementedHandler) AuthMeGet(ctx context.Context, params AuthMeGetParam
 	return r, ht.ErrNotImplemented
 }
 
+// AuthRefreshPost implements POST /auth/refresh operation.
+//
+// Обновление токенов с помощью refresh токена.
+//
+// POST /auth/refresh
+func (UnimplementedHandler) AuthRefreshPost(ctx context.Context, req *RefreshRequest, params AuthRefreshPostParams) (r *AuthToken, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // NewError creates *ErrorStatusCode from error returned by handler.
 //
 // Used for common default response.

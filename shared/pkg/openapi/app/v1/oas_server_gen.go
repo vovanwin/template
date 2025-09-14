@@ -26,6 +26,12 @@ type Handler interface {
 	//
 	// GET /auth/me
 	AuthMeGet(ctx context.Context, params AuthMeGetParams) (*UserMe, error)
+	// AuthRefreshPost implements POST /auth/refresh operation.
+	//
+	// Обновление токенов с помощью refresh токена.
+	//
+	// POST /auth/refresh
+	AuthRefreshPost(ctx context.Context, req *RefreshRequest, params AuthRefreshPostParams) (*AuthToken, error)
 	// NewError creates *ErrorStatusCode from error returned by handler.
 	//
 	// Used for common default response.

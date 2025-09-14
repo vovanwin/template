@@ -134,6 +134,26 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
+			case 'r': // Prefix: "refresh"
+
+				if l := len("refresh"); len(elem) >= l && elem[0:l] == "refresh" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					// Leaf node.
+					switch r.Method {
+					case "POST":
+						s.handleAuthRefreshPostRequest([0]string{}, elemIsEscaped, w, r)
+					default:
+						s.notAllowed(w, r, "POST")
+					}
+
+					return
+				}
+
 			}
 
 		}
@@ -306,6 +326,30 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						r.summary = "текущий пользователь"
 						r.operationID = ""
 						r.pathPattern = "/auth/me"
+						r.args = args
+						r.count = 0
+						return r, true
+					default:
+						return
+					}
+				}
+
+			case 'r': // Prefix: "refresh"
+
+				if l := len("refresh"); len(elem) >= l && elem[0:l] == "refresh" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					// Leaf node.
+					switch method {
+					case "POST":
+						r.name = AuthRefreshPostOperation
+						r.summary = "Обновление токенов"
+						r.operationID = ""
+						r.pathPattern = "/auth/refresh"
 						r.args = args
 						r.count = 0
 						return r, true

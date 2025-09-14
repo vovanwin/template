@@ -40,7 +40,7 @@ func ProvideLogger(config *config.Config) error {
 
 // ProvideJWTService создает JWT сервис
 func ProvideJWTService(config *config.Config) jwt.JWTService {
-	return jwt.NewJWTService(config.JWT.SignKey, config.JWT.TokenTTL)
+	return jwt.NewJWTService(config.JWT.SignKey, config.JWT.TokenTTL, config.JWT.RefreshTTL)
 }
 
 func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, error) {
@@ -89,11 +89,6 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, err
 	lifecycle.Append(
 		fx.Hook{
 			OnStart: func(ctx context.Context) error {
-				if config.IsLocal() {
-					// 👇 выводит все роуты в консоль🚶‍♂️
-					httpserver.PrintAllRegisteredRoutes(router)
-				}
-
 				go func() {
 					lg := logger.Named("http-server")
 					lg.Info(context.Background(), "Сервер запущен")

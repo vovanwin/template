@@ -12,36 +12,73 @@ import (
 type JWTClaims struct {
 	UserID    string `json:"user_id"`
 	UserEmail string `json:"user_email"`
+	TokenType string `json:"token_type"` // "access" или "refresh"
 	jwt.RegisteredClaims
+}
+
+// TokenPair представляет пару токенов
+type TokenPair struct {
+	AccessToken  string
+	RefreshToken string
 }
 
 // JWTService интерфейс для работы с JWT токенами
 type JWTService interface {
-	GenerateToken(userID, userEmail string) (string, error)
+	GenerateTokenPair(userID, userEmail string) (*TokenPair, error)
+	GenerateToken(userID, userEmail string) (string, error) // оставляем для обратной совместимости
 	ValidateToken(tokenString string) (*JWTClaims, error)
+	RefreshTokens(refreshToken string) (*TokenPair, error)
 }
 
 // DefaultJWTService реализация JWT сервиса
 type DefaultJWTService struct {
-	secretKey []byte
-	tokenTTL  time.Duration
+	secretKey  []byte
+	tokenTTL   time.Duration
+	refreshTTL time.Duration
 }
 
 // NewJWTService создает новый JWT сервис
-func NewJWTService(secretKey string, tokenTTL time.Duration) JWTService {
+func NewJWTService(secretKey string, tokenTTL, refreshTTL time.Duration) JWTService {
 	return &DefaultJWTService{
-		secretKey: []byte(secretKey),
-		tokenTTL:  tokenTTL,
+		secretKey:  []byte(secretKey),
+		tokenTTL:   tokenTTL,
+		refreshTTL: refreshTTL,
 	}
 }
 
-// GenerateToken создает новый JWT токен
+// GenerateTokenPair создает пару access и refresh токенов
+func (j *DefaultJWTService) GenerateTokenPair(userID, userEmail string) (*TokenPair, error) {
+	// Генерируем access токен
+	accessToken, err := j.generateTokenWithType(userID, userEmail, "access", j.tokenTTL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	// Генерируем refresh токен
+	refreshToken, err := j.generateTokenWithType(userID, userEmail, "refresh", j.refreshTTL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	return &TokenPair{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
+}
+
+// GenerateToken создает новый JWT токен (для обратной совместимости)
 func (j *DefaultJWTService) GenerateToken(userID, userEmail string) (string, error) {
+	return j.generateTokenWithType(userID, userEmail, "access", j.tokenTTL)
+}
+
+// generateTokenWithType создает токен определённого типа
+func (j *DefaultJWTService) generateTokenWithType(userID, userEmail, tokenType string, ttl time.Duration) (string, error) {
 	claims := JWTClaims{
 		UserID:    userID,
 		UserEmail: userEmail,
+		TokenType: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.tokenTTL)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 		},
@@ -74,6 +111,23 @@ func (j *DefaultJWTService) ValidateToken(tokenString string) (*JWTClaims, error
 	}
 
 	return nil, fmt.Errorf("invalid token claims")
+}
+
+// RefreshTokens обновляет токены используя refresh токен
+func (j *DefaultJWTService) RefreshTokens(refreshTokenString string) (*TokenPair, error) {
+	// Валидируем refresh токен
+	claims, err := j.ValidateToken(refreshTokenString)
+	if err != nil {
+		return nil, fmt.Errorf("invalid refresh token: %w", err)
+	}
+
+	// Проверяем, что это действительно refresh токен
+	if claims.TokenType != "refresh" {
+		return nil, fmt.Errorf("token is not a refresh token")
+	}
+
+	// Генерируем новую пару токенов
+	return j.GenerateTokenPair(claims.UserID, claims.UserEmail)
 }
 
 // GetUserIDFromContext извлекает ID пользователя из контекста

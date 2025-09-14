@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/vovanwin/platform/pkg/logger"
 	api "github.com/vovanwin/template/shared/pkg/openapi/app/v1"
 	"go.uber.org/zap"
@@ -40,15 +41,15 @@ func (i Implementation) AuthLoginPost(ctx context.Context, req *api.LoginRequest
 		}
 	}
 
-	// Генерируем JWT токен
-	token, err := i.jwtService.GenerateToken(user.ID.String(), user.Email)
+	// Генерируем пару JWT токенов
+	tokenPair, err := i.jwtService.GenerateTokenPair(user.ID.String(), user.Email)
 	if err != nil {
-		lg.Error(ctx, "failed to generate token", zap.Error(err))
+		lg.Error(ctx, "failed to generate token pair", zap.Error(err))
 		return nil, &api.ErrorStatusCode{
 			StatusCode: 500,
 			Response: api.Error{
 				Code:    500,
-				Message: "Failed to generate token",
+				Message: "Failed to generate tokens",
 			},
 		}
 	}
@@ -56,9 +57,64 @@ func (i Implementation) AuthLoginPost(ctx context.Context, req *api.LoginRequest
 	lg.Info(ctx, "successful login", zap.String("user_id", user.ID.String()))
 
 	return &api.AuthToken{
-		Token:     token,
-		UserID:    user.ID,
-		UserEmail: user.Email,
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		UserID:       user.ID,
+		UserEmail:    user.Email,
+	}, nil
+}
+
+// AuthRefreshPost реализует POST /auth/refresh
+func (i Implementation) AuthRefreshPost(ctx context.Context, req *api.RefreshRequest, params api.AuthRefreshPostParams) (*api.AuthToken, error) {
+	lg := logger.Named("users.refresh")
+	lg.Info(ctx, "refresh token request")
+
+	// Обновляем токены используя refresh токен
+	tokenPair, err := i.jwtService.RefreshTokens(req.RefreshToken)
+	if err != nil {
+		lg.Error(ctx, "failed to refresh tokens", zap.Error(err))
+		return nil, &api.ErrorStatusCode{
+			StatusCode: 401,
+			Response: api.Error{
+				Code:    401,
+				Message: "Invalid or expired refresh token",
+			},
+		}
+	}
+
+	// Извлекаем информацию о пользователе из refresh токена для ответа
+	claims, err := i.jwtService.ValidateToken(req.RefreshToken)
+	if err != nil {
+		lg.Error(ctx, "failed to validate refresh token", zap.Error(err))
+		return nil, &api.ErrorStatusCode{
+			StatusCode: 401,
+			Response: api.Error{
+				Code:    401,
+				Message: "Invalid refresh token",
+			},
+		}
+	}
+
+	lg.Info(ctx, "successful token refresh", zap.String("user_id", claims.UserID))
+
+	// Парсим UUID
+	userID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		lg.Error(ctx, "failed to parse user ID", zap.Error(err))
+		return nil, &api.ErrorStatusCode{
+			StatusCode: 500,
+			Response: api.Error{
+				Code:    500,
+				Message: "Internal server error",
+			},
+		}
+	}
+
+	return &api.AuthToken{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		UserID:       userID,
+		UserEmail:    claims.UserEmail,
 	}, nil
 }
 
