@@ -8,6 +8,7 @@ import (
 	"github.com/vovanwin/template/app/pkg/jwt"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/vovanwin/platform/pkg/temporal"
 	api "github.com/vovanwin/template/shared/pkg/openapi/app/v1"
 )
 
@@ -15,16 +16,18 @@ import (
 var _ api.Handler = (*Implementation)(nil)
 
 type Implementation struct {
-	usersService service.UsersService
-	config       *config.Config
-	jwtService   jwt.JWTService
+	usersService    service.UsersService
+	config          *config.Config
+	jwtService      jwt.JWTService
+	temporalService *temporal.Service
 }
 
-func Controller(r *chi.Mux, usersService service.UsersService, config *config.Config, jwtService jwt.JWTService) {
+func Controller(r *chi.Mux, usersService service.UsersService, config *config.Config, jwtService jwt.JWTService, temporalService *temporal.Service) {
 	controller := &Implementation{
-		usersService: usersService,
-		config:       config,
-		jwtService:   jwtService,
+		usersService:    usersService,
+		config:          config,
+		jwtService:      jwtService,
+		temporalService: temporalService,
 	}
 	security := &SecurityHandler{
 		UsersService: usersService,

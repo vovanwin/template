@@ -16,6 +16,8 @@ import (
 	"github.com/vovanwin/template/app/pkg/jwt"
 	"github.com/vovanwin/template/app/pkg/storage/postgres"
 
+	"github.com/vovanwin/platform/pkg/temporal"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -36,6 +38,15 @@ func ProvideLogger(config *config.Config) error {
 		return err
 	}
 	return nil
+}
+
+// InitLogger инициализирует логгер для fx.Provide
+func InitLogger(config *config.Config) *struct{} {
+	err := logger.Init(config.Level, false)
+	if err != nil {
+		panic(err) // В fx.Provide лучше паниковать при критических ошибках инициализации
+	}
+	return &struct{}{} // Возвращаем пустую структуру
 }
 
 // ProvideJWTService создает JWT сервис
@@ -301,4 +312,36 @@ func ProvidePool(pg *postgres.Postgres) *pgxpool.Pool {
 		panic("unable to cast pool to *pgxpool.Pool")
 	}
 	return pool
+}
+
+// ProvideTemporal создает Temporal сервис
+func ProvideTemporal(lifecycle fx.Lifecycle, config *config.Config, _ *struct{}) (*temporal.Service, error) {
+	serviceConfig := temporal.ServiceConfig{
+		Client: temporal.Config{
+			Host:      config.Temporal.Host,
+			Port:      config.Temporal.Port,
+			Namespace: config.Temporal.Namespace,
+		},
+		Worker: temporal.WorkerConfig{
+			TaskQueue: config.Temporal.TaskQueue,
+		},
+	}
+
+	service, err := temporal.NewService(serviceConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temporal service: %w", err)
+	}
+
+	// Регистрируем lifecycle hooks
+	lifecycle.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			return service.Start(ctx)
+		},
+		OnStop: func(ctx context.Context) error {
+			service.Stop(ctx)
+			return nil
+		},
+	})
+
+	return service, nil
 }

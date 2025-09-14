@@ -105,6 +105,33 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /workflows/test-user-onboarding:
+    post:
+      security: []  # Отключаем авторизацию для тестового эндпоинта
+      description: Тестовый эндпоинт для запуска workflow пользователя
+      summary: Тестирование workflow пользователя
+      parameters:
+        - $ref: "global/parameters.yml#/parameters/XRequestIDHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestWorkflowRequest"
+      responses:
+        "200":
+          description: Workflow запущен успешно
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestWorkflowResponse"
+        default:
+          description: Ошибка запуска workflow
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -207,4 +234,42 @@ components:
       properties:
         refresh_token:
           description: рефреш токен, чтобы получить новый access и refresh токены
+          type: string
+
+    TestWorkflowRequest:
+      type: object
+      required: [ user_id, email, name ]
+      properties:
+        user_id:
+          description: ID пользователя для тестирования
+          type: string
+          format: uuid
+        email:
+          description: Email пользователя
+          type: string
+          format: email
+        name:
+          description: Имя пользователя
+          type: string
+          minLength: 2
+        additional_data:
+          description: Дополнительные данные пользователя
+          type: object
+          additionalProperties: true
+
+    TestWorkflowResponse:
+      type: object
+      required: [ success, workflow_id, message ]
+      properties:
+        success:
+          description: Статус запуска workflow
+          type: boolean
+        workflow_id:
+          description: ID запущенного workflow
+          type: string
+        run_id:
+          description: ID запуска workflow
+          type: string
+        message:
+          description: Сообщение о результате
           type: string

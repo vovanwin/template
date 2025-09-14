@@ -52,6 +52,12 @@ type Invoker interface {
 	//
 	// POST /auth/refresh
 	AuthRefreshPost(ctx context.Context, request *RefreshRequest, params AuthRefreshPostParams) (*AuthToken, error)
+	// WorkflowsTestUserOnboardingPost invokes POST /workflows/test-user-onboarding operation.
+	//
+	// Тестовый эндпоинт для запуска workflow пользователя.
+	//
+	// POST /workflows/test-user-onboarding
+	WorkflowsTestUserOnboardingPost(ctx context.Context, request *TestWorkflowRequest, params WorkflowsTestUserOnboardingPostParams) (*TestWorkflowResponse, error)
 }
 
 // Client implements OAS client.
@@ -520,6 +526,97 @@ func (c *Client) sendAuthRefreshPost(ctx context.Context, request *RefreshReques
 
 	stage = "DecodeResponse"
 	result, err := decodeAuthRefreshPostResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// WorkflowsTestUserOnboardingPost invokes POST /workflows/test-user-onboarding operation.
+//
+// Тестовый эндпоинт для запуска workflow пользователя.
+//
+// POST /workflows/test-user-onboarding
+func (c *Client) WorkflowsTestUserOnboardingPost(ctx context.Context, request *TestWorkflowRequest, params WorkflowsTestUserOnboardingPostParams) (*TestWorkflowResponse, error) {
+	res, err := c.sendWorkflowsTestUserOnboardingPost(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendWorkflowsTestUserOnboardingPost(ctx context.Context, request *TestWorkflowRequest, params WorkflowsTestUserOnboardingPostParams) (res *TestWorkflowResponse, err error) {
+	otelAttrs := []attribute.KeyValue{
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.HTTPRouteKey.String("/workflows/test-user-onboarding"),
+	}
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, WorkflowsTestUserOnboardingPostOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/workflows/test-user-onboarding"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeWorkflowsTestUserOnboardingPostRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Request-Id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XRequestID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeWorkflowsTestUserOnboardingPostResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

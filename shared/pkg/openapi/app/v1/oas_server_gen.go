@@ -32,6 +32,12 @@ type Handler interface {
 	//
 	// POST /auth/refresh
 	AuthRefreshPost(ctx context.Context, req *RefreshRequest, params AuthRefreshPostParams) (*AuthToken, error)
+	// WorkflowsTestUserOnboardingPost implements POST /workflows/test-user-onboarding operation.
+	//
+	// Тестовый эндпоинт для запуска workflow пользователя.
+	//
+	// POST /workflows/test-user-onboarding
+	WorkflowsTestUserOnboardingPost(ctx context.Context, req *TestWorkflowRequest, params WorkflowsTestUserOnboardingPostParams) (*TestWorkflowResponse, error)
 	// NewError creates *ErrorStatusCode from error returned by handler.
 	//
 	// Used for common default response.

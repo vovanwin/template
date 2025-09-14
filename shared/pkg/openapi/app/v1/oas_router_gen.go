@@ -48,9 +48,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		switch elem[0] {
-		case '/': // Prefix: "/auth/"
+		case '/': // Prefix: "/"
 
-			if l := len("/auth/"); len(elem) >= l && elem[0:l] == "/auth/" {
+			if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
 				elem = elem[l:]
 			} else {
 				break
@@ -60,9 +60,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			switch elem[0] {
-			case 'l': // Prefix: "log"
+			case 'a': // Prefix: "auth/"
 
-				if l := len("log"); len(elem) >= l && elem[0:l] == "log" {
+				if l := len("auth/"); len(elem) >= l && elem[0:l] == "auth/" {
 					elem = elem[l:]
 				} else {
 					break
@@ -72,9 +72,83 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					break
 				}
 				switch elem[0] {
-				case 'i': // Prefix: "in"
+				case 'l': // Prefix: "log"
 
-					if l := len("in"); len(elem) >= l && elem[0:l] == "in" {
+					if l := len("log"); len(elem) >= l && elem[0:l] == "log" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						break
+					}
+					switch elem[0] {
+					case 'i': // Prefix: "in"
+
+						if l := len("in"); len(elem) >= l && elem[0:l] == "in" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "POST":
+								s.handleAuthLoginPostRequest([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, "POST")
+							}
+
+							return
+						}
+
+					case 'o': // Prefix: "out"
+
+						if l := len("out"); len(elem) >= l && elem[0:l] == "out" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "POST":
+								s.handleAuthLogoutPostRequest([0]string{}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, "POST")
+							}
+
+							return
+						}
+
+					}
+
+				case 'm': // Prefix: "me"
+
+					if l := len("me"); len(elem) >= l && elem[0:l] == "me" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "GET":
+							s.handleAuthMeGetRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, "GET")
+						}
+
+						return
+					}
+
+				case 'r': // Prefix: "refresh"
+
+					if l := len("refresh"); len(elem) >= l && elem[0:l] == "refresh" {
 						elem = elem[l:]
 					} else {
 						break
@@ -84,27 +158,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						// Leaf node.
 						switch r.Method {
 						case "POST":
-							s.handleAuthLoginPostRequest([0]string{}, elemIsEscaped, w, r)
-						default:
-							s.notAllowed(w, r, "POST")
-						}
-
-						return
-					}
-
-				case 'o': // Prefix: "out"
-
-					if l := len("out"); len(elem) >= l && elem[0:l] == "out" {
-						elem = elem[l:]
-					} else {
-						break
-					}
-
-					if len(elem) == 0 {
-						// Leaf node.
-						switch r.Method {
-						case "POST":
-							s.handleAuthLogoutPostRequest([0]string{}, elemIsEscaped, w, r)
+							s.handleAuthRefreshPostRequest([0]string{}, elemIsEscaped, w, r)
 						default:
 							s.notAllowed(w, r, "POST")
 						}
@@ -114,29 +168,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 				}
 
-			case 'm': // Prefix: "me"
+			case 'w': // Prefix: "workflows/test-user-onboarding"
 
-				if l := len("me"); len(elem) >= l && elem[0:l] == "me" {
-					elem = elem[l:]
-				} else {
-					break
-				}
-
-				if len(elem) == 0 {
-					// Leaf node.
-					switch r.Method {
-					case "GET":
-						s.handleAuthMeGetRequest([0]string{}, elemIsEscaped, w, r)
-					default:
-						s.notAllowed(w, r, "GET")
-					}
-
-					return
-				}
-
-			case 'r': // Prefix: "refresh"
-
-				if l := len("refresh"); len(elem) >= l && elem[0:l] == "refresh" {
+				if l := len("workflows/test-user-onboarding"); len(elem) >= l && elem[0:l] == "workflows/test-user-onboarding" {
 					elem = elem[l:]
 				} else {
 					break
@@ -146,7 +180,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					// Leaf node.
 					switch r.Method {
 					case "POST":
-						s.handleAuthRefreshPostRequest([0]string{}, elemIsEscaped, w, r)
+						s.handleWorkflowsTestUserOnboardingPostRequest([0]string{}, elemIsEscaped, w, r)
 					default:
 						s.notAllowed(w, r, "POST")
 					}
@@ -236,9 +270,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 			break
 		}
 		switch elem[0] {
-		case '/': // Prefix: "/auth/"
+		case '/': // Prefix: "/"
 
-			if l := len("/auth/"); len(elem) >= l && elem[0:l] == "/auth/" {
+			if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
 				elem = elem[l:]
 			} else {
 				break
@@ -248,9 +282,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 				break
 			}
 			switch elem[0] {
-			case 'l': // Prefix: "log"
+			case 'a': // Prefix: "auth/"
 
-				if l := len("log"); len(elem) >= l && elem[0:l] == "log" {
+				if l := len("auth/"); len(elem) >= l && elem[0:l] == "auth/" {
 					elem = elem[l:]
 				} else {
 					break
@@ -260,9 +294,95 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 					break
 				}
 				switch elem[0] {
-				case 'i': // Prefix: "in"
+				case 'l': // Prefix: "log"
 
-					if l := len("in"); len(elem) >= l && elem[0:l] == "in" {
+					if l := len("log"); len(elem) >= l && elem[0:l] == "log" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						break
+					}
+					switch elem[0] {
+					case 'i': // Prefix: "in"
+
+						if l := len("in"); len(elem) >= l && elem[0:l] == "in" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "POST":
+								r.name = AuthLoginPostOperation
+								r.summary = "Вход в систему"
+								r.operationID = ""
+								r.pathPattern = "/auth/login"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+
+					case 'o': // Prefix: "out"
+
+						if l := len("out"); len(elem) >= l && elem[0:l] == "out" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "POST":
+								r.name = AuthLogoutPostOperation
+								r.summary = "Выход из системы"
+								r.operationID = ""
+								r.pathPattern = "/auth/logout"
+								r.args = args
+								r.count = 0
+								return r, true
+							default:
+								return
+							}
+						}
+
+					}
+
+				case 'm': // Prefix: "me"
+
+					if l := len("me"); len(elem) >= l && elem[0:l] == "me" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "GET":
+							r.name = AuthMeGetOperation
+							r.summary = "текущий пользователь"
+							r.operationID = ""
+							r.pathPattern = "/auth/me"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+
+				case 'r': // Prefix: "refresh"
+
+					if l := len("refresh"); len(elem) >= l && elem[0:l] == "refresh" {
 						elem = elem[l:]
 					} else {
 						break
@@ -272,34 +392,10 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						// Leaf node.
 						switch method {
 						case "POST":
-							r.name = AuthLoginPostOperation
-							r.summary = "Вход в систему"
+							r.name = AuthRefreshPostOperation
+							r.summary = "Обновление токенов"
 							r.operationID = ""
-							r.pathPattern = "/auth/login"
-							r.args = args
-							r.count = 0
-							return r, true
-						default:
-							return
-						}
-					}
-
-				case 'o': // Prefix: "out"
-
-					if l := len("out"); len(elem) >= l && elem[0:l] == "out" {
-						elem = elem[l:]
-					} else {
-						break
-					}
-
-					if len(elem) == 0 {
-						// Leaf node.
-						switch method {
-						case "POST":
-							r.name = AuthLogoutPostOperation
-							r.summary = "Выход из системы"
-							r.operationID = ""
-							r.pathPattern = "/auth/logout"
+							r.pathPattern = "/auth/refresh"
 							r.args = args
 							r.count = 0
 							return r, true
@@ -310,33 +406,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 
 				}
 
-			case 'm': // Prefix: "me"
+			case 'w': // Prefix: "workflows/test-user-onboarding"
 
-				if l := len("me"); len(elem) >= l && elem[0:l] == "me" {
-					elem = elem[l:]
-				} else {
-					break
-				}
-
-				if len(elem) == 0 {
-					// Leaf node.
-					switch method {
-					case "GET":
-						r.name = AuthMeGetOperation
-						r.summary = "текущий пользователь"
-						r.operationID = ""
-						r.pathPattern = "/auth/me"
-						r.args = args
-						r.count = 0
-						return r, true
-					default:
-						return
-					}
-				}
-
-			case 'r': // Prefix: "refresh"
-
-				if l := len("refresh"); len(elem) >= l && elem[0:l] == "refresh" {
+				if l := len("workflows/test-user-onboarding"); len(elem) >= l && elem[0:l] == "workflows/test-user-onboarding" {
 					elem = elem[l:]
 				} else {
 					break
@@ -346,10 +418,10 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 					// Leaf node.
 					switch method {
 					case "POST":
-						r.name = AuthRefreshPostOperation
-						r.summary = "Обновление токенов"
+						r.name = WorkflowsTestUserOnboardingPostOperation
+						r.summary = "Тестирование workflow пользователя"
 						r.operationID = ""
-						r.pathPattern = "/auth/refresh"
+						r.pathPattern = "/workflows/test-user-onboarding"
 						r.args = args
 						r.count = 0
 						return r, true

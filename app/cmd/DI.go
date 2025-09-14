@@ -9,6 +9,7 @@ import (
 	"github.com/vovanwin/template/app/cmd/migrateCmd"
 	"github.com/vovanwin/template/app/internal/module/users"
 	"github.com/vovanwin/template/app/internal/shared/middleware"
+	"github.com/vovanwin/template/app/internal/workflows"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/fx"
@@ -46,11 +47,12 @@ func inject() fx.Option {
 		//fx.NopLogger,
 		fx.Provide(
 			dependency.ProvideConfig,
+			dependency.InitLogger,
 			dependency.ProvidePgx,
 			dependency.ProvidePool,
 			dependency.ProvideJWTService,
+			dependency.ProvideTemporal,
 		),
-		fx.Invoke(dependency.ProvideLogger),
 
 		fx.Provide(
 			dependency.ProvideServer,
@@ -64,6 +66,7 @@ func inject() fx.Option {
 		),
 
 		users.Module,
+		workflows.Module,
 
 		// загружаю мидлваре в приложение
 		fx.Provide(middleware.NewMiddleware),

@@ -35,11 +35,12 @@ func NewConfig() (*Config, error) {
 
 type (
 	Config struct {
-		Server `yaml:"server"`
-		Log    `yaml:"log"`
-		PG     `yaml:"PG"`
-		Rabbit `yaml:"rabbit"`
-		JWT    `yaml:"JWT"`
+		Server   `yaml:"server"`
+		Log      `yaml:"log"`
+		PG       `yaml:"PG"`
+		Rabbit   `yaml:"rabbit"`
+		JWT      `yaml:"JWT"`
+		Temporal `yaml:"temporal"`
 	}
 
 	Server struct {
@@ -72,6 +73,13 @@ type (
 		SignKey    string        `yaml:"sign_key" env:"APP_SIGN_KEY" validate:"required"`
 		TokenTTL   time.Duration `yaml:"token_ttl" env:"APP_TOKEN_TTL" validate:"required"`
 		RefreshTTL time.Duration `yaml:"refresh_token_ttl" env:"APP_REFRESH_TOKEN_TTL" validate:"required"`
+	}
+
+	Temporal struct {
+		Host      string `yaml:"host" env:"APP_TEMPORAL_HOST" default:"localhost"`
+		Port      int    `yaml:"port" env:"APP_TEMPORAL_PORT" default:"7233"`
+		Namespace string `yaml:"namespace" env:"APP_TEMPORAL_NAMESPACE" default:"default"`
+		TaskQueue string `yaml:"task_queue" env:"APP_TEMPORAL_TASK_QUEUE" default:"default-task-queue"`
 	}
 )
 

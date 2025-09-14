@@ -49,6 +49,15 @@ func (UnimplementedHandler) AuthRefreshPost(ctx context.Context, req *RefreshReq
 	return r, ht.ErrNotImplemented
 }
 
+// WorkflowsTestUserOnboardingPost implements POST /workflows/test-user-onboarding operation.
+//
+// Тестовый эндпоинт для запуска workflow пользователя.
+//
+// POST /workflows/test-user-onboarding
+func (UnimplementedHandler) WorkflowsTestUserOnboardingPost(ctx context.Context, req *TestWorkflowRequest, params WorkflowsTestUserOnboardingPostParams) (r *TestWorkflowResponse, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // NewError creates *ErrorStatusCode from error returned by handler.
 //
 // Used for common default response.

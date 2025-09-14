@@ -206,6 +206,11 @@ func (l *logger) Fatal(ctx context.Context, msg string, fields ...zap.Field) {
 	l.zapLogger.Fatal(msg, allFields...)
 }
 
+// GetZapLogger возвращает внутренний *zap.Logger для использования в сторонних библиотеках
+func (l *logger) GetZapLogger() *zap.Logger {
+	return l.zapLogger
+}
+
 // parseLevel конвертирует строковый уровень в zapcore.Level
 func parseLevel(levelStr string) zapcore.Level {
 	switch strings.ToLower(levelStr) {

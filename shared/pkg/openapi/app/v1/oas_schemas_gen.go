@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-faster/jx"
 	"github.com/google/uuid"
 )
 
@@ -233,6 +234,52 @@ func (o OptString) Or(d string) string {
 	return d
 }
 
+// NewOptTestWorkflowRequestAdditionalData returns new OptTestWorkflowRequestAdditionalData with value set to v.
+func NewOptTestWorkflowRequestAdditionalData(v TestWorkflowRequestAdditionalData) OptTestWorkflowRequestAdditionalData {
+	return OptTestWorkflowRequestAdditionalData{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTestWorkflowRequestAdditionalData is optional TestWorkflowRequestAdditionalData.
+type OptTestWorkflowRequestAdditionalData struct {
+	Value TestWorkflowRequestAdditionalData
+	Set   bool
+}
+
+// IsSet returns true if OptTestWorkflowRequestAdditionalData was set.
+func (o OptTestWorkflowRequestAdditionalData) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTestWorkflowRequestAdditionalData) Reset() {
+	var v TestWorkflowRequestAdditionalData
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTestWorkflowRequestAdditionalData) SetTo(v TestWorkflowRequestAdditionalData) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTestWorkflowRequestAdditionalData) Get() (v TestWorkflowRequestAdditionalData, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTestWorkflowRequestAdditionalData) Or(d TestWorkflowRequestAdditionalData) TestWorkflowRequestAdditionalData {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptUUID returns new OptUUID with value set to v.
 func NewOptUUID(v uuid.UUID) OptUUID {
 	return OptUUID{
@@ -293,6 +340,122 @@ func (s *RefreshRequest) GetRefreshToken() string {
 // SetRefreshToken sets the value of RefreshToken.
 func (s *RefreshRequest) SetRefreshToken(val string) {
 	s.RefreshToken = val
+}
+
+// Ref: #/components/schemas/TestWorkflowRequest
+type TestWorkflowRequest struct {
+	// ID пользователя для тестирования.
+	UserID uuid.UUID `json:"user_id"`
+	// Email пользователя.
+	Email string `json:"email"`
+	// Имя пользователя.
+	Name string `json:"name"`
+	// Дополнительные данные пользователя.
+	AdditionalData OptTestWorkflowRequestAdditionalData `json:"additional_data"`
+}
+
+// GetUserID returns the value of UserID.
+func (s *TestWorkflowRequest) GetUserID() uuid.UUID {
+	return s.UserID
+}
+
+// GetEmail returns the value of Email.
+func (s *TestWorkflowRequest) GetEmail() string {
+	return s.Email
+}
+
+// GetName returns the value of Name.
+func (s *TestWorkflowRequest) GetName() string {
+	return s.Name
+}
+
+// GetAdditionalData returns the value of AdditionalData.
+func (s *TestWorkflowRequest) GetAdditionalData() OptTestWorkflowRequestAdditionalData {
+	return s.AdditionalData
+}
+
+// SetUserID sets the value of UserID.
+func (s *TestWorkflowRequest) SetUserID(val uuid.UUID) {
+	s.UserID = val
+}
+
+// SetEmail sets the value of Email.
+func (s *TestWorkflowRequest) SetEmail(val string) {
+	s.Email = val
+}
+
+// SetName sets the value of Name.
+func (s *TestWorkflowRequest) SetName(val string) {
+	s.Name = val
+}
+
+// SetAdditionalData sets the value of AdditionalData.
+func (s *TestWorkflowRequest) SetAdditionalData(val OptTestWorkflowRequestAdditionalData) {
+	s.AdditionalData = val
+}
+
+// Дополнительные данные пользователя.
+type TestWorkflowRequestAdditionalData map[string]jx.Raw
+
+func (s *TestWorkflowRequestAdditionalData) init() TestWorkflowRequestAdditionalData {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+// Ref: #/components/schemas/TestWorkflowResponse
+type TestWorkflowResponse struct {
+	// Статус запуска workflow.
+	Success bool `json:"success"`
+	// ID запущенного workflow.
+	WorkflowID string `json:"workflow_id"`
+	// ID запуска workflow.
+	RunID OptString `json:"run_id"`
+	// Сообщение о результате.
+	Message string `json:"message"`
+}
+
+// GetSuccess returns the value of Success.
+func (s *TestWorkflowResponse) GetSuccess() bool {
+	return s.Success
+}
+
+// GetWorkflowID returns the value of WorkflowID.
+func (s *TestWorkflowResponse) GetWorkflowID() string {
+	return s.WorkflowID
+}
+
+// GetRunID returns the value of RunID.
+func (s *TestWorkflowResponse) GetRunID() OptString {
+	return s.RunID
+}
+
+// GetMessage returns the value of Message.
+func (s *TestWorkflowResponse) GetMessage() string {
+	return s.Message
+}
+
+// SetSuccess sets the value of Success.
+func (s *TestWorkflowResponse) SetSuccess(val bool) {
+	s.Success = val
+}
+
+// SetWorkflowID sets the value of WorkflowID.
+func (s *TestWorkflowResponse) SetWorkflowID(val string) {
+	s.WorkflowID = val
+}
+
+// SetRunID sets the value of RunID.
+func (s *TestWorkflowResponse) SetRunID(val OptString) {
+	s.RunID = val
+}
+
+// SetMessage sets the value of Message.
+func (s *TestWorkflowResponse) SetMessage(val string) {
+	s.Message = val
 }
 
 // Ref: #/components/schemas/UserMe
