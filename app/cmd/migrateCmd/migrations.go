@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log/slog"
 	"net"
 	"os"
 	"strings"
@@ -31,7 +30,7 @@ var (
 // @see https://github.com/pressly/goose/blob/master/examples/go-migrations/main.go
 func migration(_ *cobra.Command, args []string) {
 	if len(args) == 0 {
-		slog.Error("не указан параметр команды")
+		fmt.Println("Ошибка: не указан параметр команды")
 		os.Exit(0)
 	}
 
@@ -59,11 +58,11 @@ func migration(_ *cobra.Command, args []string) {
 	defer db.Close()
 
 	if err != nil {
-		slog.Error("Unable to connect to database because %s", "err", err)
+		fmt.Printf("Ошибка подключения к БД: %v\n", err)
 	}
 
 	if err = db.Ping(); err != nil {
-		slog.Error("Cannot ping database because %s", "err", err)
+		fmt.Printf("Ошибка ping БД: %v\n", err)
 	}
 
 	if err := goose.SetDialect("postgres"); err != nil {
@@ -72,10 +71,10 @@ func migration(_ *cobra.Command, args []string) {
 	goose.SetBaseFS(embeded.EmbedMigrations)
 
 	if err := goose.RunWithOptionsContext(context.Background(), args[0], db, pathMigrations, args[1:], goose.WithAllowMissing()); err != nil {
-		slog.Error("goose", "command up: ", err)
+		fmt.Printf("Ошибка выполнения goose: %v\n", err)
 	}
 
-	slog.Info("Команда выполнена")
+	fmt.Println("Команда выполнена")
 
 	os.Exit(0)
 }

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log/slog"
+	"fmt"
 	"net"
 	"os"
 	"path"
@@ -19,15 +19,15 @@ func NewConfig() (*Config, error) {
 
 	err := cleanenv.ReadConfig(path.Join("./", configPath), cfg)
 	if err != nil {
-		slog.Debug("Нет конфиг :", "err", err)
+		fmt.Printf("Debug: Нет конфиг: %v\n", err)
 	}
 	err = cleanenv.ReadEnv(cfg)
 	if err != nil {
-		slog.Error("Ошибка формирования env из переменных окружения:", "err", err)
+		fmt.Printf("Error: Ошибка формирования env из переменных окружения: %v\n", err)
 	}
 
 	if err := validator.NewCustomValidator().Validate(cfg); err != nil {
-		slog.Error("[config] Отсуствуют обязательные конфиги:", "err", err)
+		fmt.Printf("Error: [config] Отсуствуют обязательные конфиги: %v\n", err)
 		os.Exit(1)
 	}
 	return cfg, nil

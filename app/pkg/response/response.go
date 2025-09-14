@@ -4,9 +4,12 @@ import (
 	"app/config"
 	"app/internal/shared/validator"
 	"app/pkg/utils"
+	"context"
 	"errors"
 	"github.com/go-chi/render"
-	"log/slog"
+
+	"github.com/vovanwin/platform/pkg/logger"
+	"go.uber.org/zap"
 	"net/http"
 )
 
@@ -52,7 +55,7 @@ func (h ResponseHandler) ErrorResponse(w http.ResponseWriter, r *http.Request, e
 		})
 		return
 	case errors.Is(err, utils.ErrForbidden):
-		slog.Warn("нет доступа", "err", err)
+		logger.Warn(context.Background(), "нет доступа", zap.Error(err))
 		status = http.StatusForbidden
 		render.Status(r, status)
 		render.JSON(w, r, Error{
@@ -61,7 +64,7 @@ func (h ResponseHandler) ErrorResponse(w http.ResponseWriter, r *http.Request, e
 		})
 		return
 	case errors.Is(err, utils.ErrUnauthorized):
-		slog.Warn("Не авторизован", "err", err)
+		logger.Warn(context.Background(), "Не авторизован", zap.Error(err))
 		status = http.StatusUnauthorized
 		render.Status(r, status)
 		render.JSON(w, r, Error{
@@ -70,11 +73,11 @@ func (h ResponseHandler) ErrorResponse(w http.ResponseWriter, r *http.Request, e
 		})
 		return
 	case errors.Is(err, utils.ErrValidation):
-		slog.Warn("Ошибка валидации", "err", err)
+		logger.Warn(context.Background(), "Ошибка валидации", zap.Error(err))
 		ValidationErrorResponse(w, r, err)
 		return
 	default:
-		slog.Error("ошибка запроса", "err", err)
+		logger.Error(context.Background(), "ошибка запроса", zap.Error(err))
 		status = http.StatusBadRequest
 	}
 

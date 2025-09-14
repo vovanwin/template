@@ -1,6 +1,6 @@
 module github.com/vovanwin/template/app
 
-go 1.24.5
+go 1.25.1
 
 replace github.com/vovanwin/template/shared => ../shared
 

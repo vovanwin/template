@@ -1,8 +1,6 @@
 module github.com/vovanwin/template/shared
 
-go 1.24.5
-
-replace github.com/vovanwin/template/shared => ../shared
+go 1.25.1
 
 require (
 	github.com/go-faster/errors v0.7.1

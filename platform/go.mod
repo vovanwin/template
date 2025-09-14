@@ -1,8 +1,6 @@
 module github.com/vovanwin/platform
 
-go 1.24.5
-
-replace github.com/vovanwin/platform => ../platform
+go 1.25.1
 
 require (
 	go.uber.org/zap v1.27.0
