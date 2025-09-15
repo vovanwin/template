@@ -24,12 +24,24 @@ import (
 	healthsvc "github.com/vovanwin/platform/pkg/grpc/health"
 	"github.com/vovanwin/platform/pkg/logger"
 	"go.uber.org/fx"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 func ProvideConfig() (*config.Config, error) {
 	return config.NewConfig()
+}
+
+// LogComponentsStatus логирует статус всех компонентов при запуске
+func LogComponentsStatus(config *config.Config) {
+	lg := logger.Named("components-status")
+	lg.Info(context.Background(), "🚀 Starting application components:")
+	lg.Info(context.Background(), fmt.Sprintf("  ✅ HTTP Server: %v (port: %s)", config.Server.EnableHTTP, config.Server.HTTPPort))
+	lg.Info(context.Background(), fmt.Sprintf("  ✅ gRPC Server: %v (port: %s)", config.Server.EnableGRPC, config.Server.GRPCPort))
+	lg.Info(context.Background(), fmt.Sprintf("  ✅ Debug Server: %v (port: %s)", config.Server.EnableDebug, config.Server.DebugPort))
+	lg.Info(context.Background(), fmt.Sprintf("  ✅ Swagger Server: %v (port: %s)", config.Server.EnableSwagger, config.Server.SwaggerPort))
+	lg.Info(context.Background(), fmt.Sprintf("  ✅ Temporal Service: %v (host: %s:%d)", config.Server.EnableTemporal, config.Temporal.Host, config.Temporal.Port))
 }
 
 func ProvideLogger(config *config.Config) error {
@@ -55,6 +67,13 @@ func ProvideJWTService(config *config.Config) jwt.JWTService {
 }
 
 func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, error) {
+	// Проверяем, включен ли HTTP сервер
+	if !config.Server.EnableHTTP {
+		lg := logger.Named("http-server")
+		lg.Info(context.Background(), "HTTP сервер отключен конфигурацией")
+		return chi.NewRouter(), nil // Возвращаем пустой роутер
+	}
+
 	// Объявляю нужные мне милдвары для сервера
 	// Создаем rate limiter
 	rateLimiter := customMiddleware.NewRateLimiter()
@@ -89,7 +108,7 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, err
 	}
 
 	opt := httpserver.NewOptions(
-		net.JoinHostPort(config.Server.Host, "8080"),
+		net.JoinHostPort(config.Server.Host, config.Server.HTTPPort),
 		config.ReadHeaderTimeout,
 		httpserver.WithMiddlewareSetup(middlewareCustom),
 	)
@@ -102,9 +121,9 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, err
 			OnStart: func(ctx context.Context) error {
 				go func() {
 					lg := logger.Named("http-server")
-					lg.Info(context.Background(), "Сервер запущен")
+					lg.Info(context.Background(), fmt.Sprintf("HTTP сервер запущен на %s", net.JoinHostPort(config.Server.Host, config.Server.HTTPPort)))
 					if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-						lg.Error(context.Background(), "Ошибка запуска сервера")
+						lg.Error(context.Background(), "Ошибка запуска HTTP сервера", zap.Error(err))
 					}
 				}()
 
@@ -112,11 +131,11 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, err
 			},
 			OnStop: func(ctx context.Context) error {
 				lg := logger.Named("http-server")
-				lg.Info(ctx, "Выключение...")
+				lg.Info(ctx, "HTTP сервер завершает работу...")
 				shutdownCtx, cancel := context.WithTimeout(ctx, config.GracefulTimeout*time.Second)
 				defer cancel()
 				if err := server.Shutdown(shutdownCtx); err != nil {
-					lg.Error(ctx, "Ошибка при остановке сервера")
+					lg.Error(ctx, "Ошибка остановки HTTP сервера", zap.Error(err))
 				}
 				return nil
 			},
@@ -126,8 +145,15 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, err
 	return router, nil
 }
 
-// ProvideDebugServer запускает отдельный debug/admin HTTP сервер на 8082
+// ProvideDebugServer запускает отдельный debug/admin HTTP сервер
 func ProvideDebugServer(lifecycle fx.Lifecycle, config *config.Config) error {
+	// Проверяем, включен ли Debug сервер
+	if !config.Server.EnableDebug {
+		lg := logger.Named("debug-server")
+		lg.Info(context.Background(), "Debug сервер отключен конфигурацией")
+		return nil
+	}
+
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
@@ -161,7 +187,7 @@ func ProvideDebugServer(lifecycle fx.Lifecycle, config *config.Config) error {
 	)
 
 	srv := &http.Server{
-		Addr:    net.JoinHostPort(config.Server.Host, "8082"),
+		Addr:    net.JoinHostPort(config.Server.Host, config.Server.DebugPort),
 		Handler: r,
 	}
 
@@ -170,14 +196,16 @@ func ProvideDebugServer(lifecycle fx.Lifecycle, config *config.Config) error {
 			OnStart: func(ctx context.Context) error {
 				go func() {
 					lg := logger.Named("debug-server")
-					lg.Info(context.Background(), "Debug server started")
+					lg.Info(context.Background(), fmt.Sprintf("Debug сервер запущен на %s", net.JoinHostPort(config.Server.Host, config.Server.DebugPort)))
 					if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-						lg.Error(context.Background(), "Ошибка запуска debug сервера")
+						lg.Error(context.Background(), "Ошибка запуска debug сервера", zap.Error(err))
 					}
 				}()
 				return nil
 			},
 			OnStop: func(ctx context.Context) error {
+				lg := logger.Named("debug-server")
+				lg.Info(context.Background(), "Debug сервер завершает работу...")
 				shutdownCtx, cancel := context.WithTimeout(ctx, config.GracefulTimeout*time.Second)
 				defer cancel()
 				return srv.Shutdown(shutdownCtx)
@@ -188,8 +216,15 @@ func ProvideDebugServer(lifecycle fx.Lifecycle, config *config.Config) error {
 	return nil
 }
 
-// ProvideSwaggerServer запускает сервер со Swagger UI на 8084
+// ProvideSwaggerServer запускает сервер со Swagger UI
 func ProvideSwaggerServer(lifecycle fx.Lifecycle, config *config.Config) error {
+	// Проверяем, включен ли Swagger сервер
+	if !config.Server.EnableSwagger {
+		lg := logger.Named("swagger-server")
+		lg.Info(context.Background(), "Swagger сервер отключен конфигурацией")
+		return nil
+	}
+
 	r := chi.NewRouter()
 
 	// Раздаём всю директорию со спеками, чтобы $ref ссылки работали
@@ -220,7 +255,7 @@ func ProvideSwaggerServer(lifecycle fx.Lifecycle, config *config.Config) error {
 	)
 
 	srv := &http.Server{
-		Addr:    net.JoinHostPort(config.Server.Host, "8084"),
+		Addr:    net.JoinHostPort(config.Server.Host, config.Server.SwaggerPort),
 		Handler: r,
 	}
 
@@ -229,14 +264,16 @@ func ProvideSwaggerServer(lifecycle fx.Lifecycle, config *config.Config) error {
 			OnStart: func(ctx context.Context) error {
 				go func() {
 					lg := logger.Named("swagger-server")
-					lg.Info(context.Background(), "Swagger server started")
+					lg.Info(context.Background(), fmt.Sprintf("Swagger сервер запущен на %s", net.JoinHostPort(config.Server.Host, config.Server.SwaggerPort)))
 					if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-						lg.Error(context.Background(), "Ошибка запуска swagger сервера")
+						lg.Error(context.Background(), "Ошибка запуска swagger сервера", zap.Error(err))
 					}
 				}()
 				return nil
 			},
 			OnStop: func(ctx context.Context) error {
+				lg := logger.Named("swagger-server")
+				lg.Info(context.Background(), "Swagger сервер завершает работу...")
 				shutdownCtx, cancel := context.WithTimeout(ctx, config.GracefulTimeout*time.Second)
 				defer cancel()
 				return srv.Shutdown(shutdownCtx)
@@ -247,9 +284,16 @@ func ProvideSwaggerServer(lifecycle fx.Lifecycle, config *config.Config) error {
 	return nil
 }
 
-// ProvideGRPCServer запускает gRPC сервер на 8081
+// ProvideGRPCServer запускает gRPC сервер
 func ProvideGRPCServer(lifecycle fx.Lifecycle, config *config.Config) error {
-	lis, err := net.Listen("tcp", net.JoinHostPort(config.Server.Host, "8081"))
+	// Проверяем, включен ли gRPC сервер
+	if !config.Server.EnableGRPC {
+		lg := logger.Named("grpc-server")
+		lg.Info(context.Background(), "gRPC сервер отключен конфигурацией")
+		return nil
+	}
+
+	lis, err := net.Listen("tcp", net.JoinHostPort(config.Server.Host, config.Server.GRPCPort))
 	if err != nil {
 		return fmt.Errorf("listen grpc: %w", err)
 	}
@@ -262,20 +306,23 @@ func ProvideGRPCServer(lifecycle fx.Lifecycle, config *config.Config) error {
 			OnStart: func(ctx context.Context) error {
 				go func() {
 					lg := logger.Named("grpc-server")
-					lg.Info(context.Background(), "gRPC server started")
+					lg.Info(context.Background(), fmt.Sprintf("gRPC сервер запущен на %s", net.JoinHostPort(config.Server.Host, config.Server.GRPCPort)))
 					if err := s.Serve(lis); err != nil {
-						lg.Error(context.Background(), "Ошибка запуска grpc сервера")
+						lg.Error(context.Background(), "Ошибка запуска gRPC сервера", zap.Error(err))
 					}
 				}()
 				return nil
 			},
 			OnStop: func(ctx context.Context) error {
+				lg := logger.Named("grpc-server")
+				lg.Info(context.Background(), "gRPC сервер завершает работу...")
 				done := make(chan struct{})
 				go func() { s.GracefulStop(); close(done) }()
 				select {
 				case <-done:
 					return nil
 				case <-time.After(config.GracefulTimeout * time.Second):
+					lg.Info(context.Background(), "Принудительная остановка gRPC сервера")
 					s.Stop()
 					return nil
 				}
@@ -315,7 +362,14 @@ func ProvidePool(pg *postgres.Postgres) *pgxpool.Pool {
 }
 
 // ProvideTemporal создает Temporal сервис
-func ProvideTemporal(lifecycle fx.Lifecycle, config *config.Config, _ *struct{}) (*temporal.Service, error) {
+func ProvideTemporal(lifecycle fx.Lifecycle, config *config.Config, _ *struct{}) *temporal.Service {
+	// Проверяем, включен ли Temporal
+	if !config.Server.EnableTemporal {
+		lg := logger.Named("temporal-service")
+		lg.Info(context.Background(), "Temporal сервис отключен конфигурацией")
+		return nil // Возвращаем nil, но без ошибки
+	}
+
 	serviceConfig := temporal.ServiceConfig{
 		Client: temporal.Config{
 			Host:      config.Temporal.Host,
@@ -329,19 +383,26 @@ func ProvideTemporal(lifecycle fx.Lifecycle, config *config.Config, _ *struct{})
 
 	service, err := temporal.NewService(serviceConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temporal service: %w", err)
+		lg := logger.Named("temporal-service")
+		lg.Error(context.Background(), "Ошибка создания Temporal сервиса", zap.Error(err))
+		return nil
 	}
 
 	// Регистрируем lifecycle hooks
 	lifecycle.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
+			lg := logger.Named("temporal-service")
+			lg.Info(ctx, fmt.Sprintf("Запуск Temporal сервиса (host: %s:%d, namespace: %s)",
+				config.Temporal.Host, config.Temporal.Port, config.Temporal.Namespace))
 			return service.Start(ctx)
 		},
 		OnStop: func(ctx context.Context) error {
+			lg := logger.Named("temporal-service")
+			lg.Info(ctx, "Temporal сервис завершает работу...")
 			service.Stop(ctx)
 			return nil
 		},
 	})
 
-	return service, nil
+	return service
 }

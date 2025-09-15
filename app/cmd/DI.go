@@ -43,34 +43,61 @@ var (
 )
 
 func inject() fx.Option {
-	return fx.Options(
+	// Загружаем конфигурацию сначала, чтобы знать какие компоненты включены
+	config, err := dependency.ProvideConfig()
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	options := []fx.Option{
 		//fx.NopLogger,
+		fx.Supply(config), // Предоставляем конфигурацию как уже созданную зависимость
 		fx.Provide(
-			dependency.ProvideConfig,
 			dependency.InitLogger,
 			dependency.ProvidePgx,
 			dependency.ProvidePool,
 			dependency.ProvideJWTService,
-			dependency.ProvideTemporal,
+			dependency.ProvideTemporal, // Всегда предоставляем Temporal (может быть nil)
 		),
+		// Логируем статус компонентов при старте
+		fx.Invoke(func() { dependency.LogComponentsStatus(config) }),
+	}
 
-		fx.Provide(
-			dependency.ProvideServer,
-		),
+	// Всегда добавляем провайдер HTTP сервера (он может быть отключен внутри)
+	options = append(options, fx.Provide(dependency.ProvideServer))
 
-		// start additional servers via lifecycle hooks
-		fx.Invoke(
-			dependency.ProvideDebugServer,
-			dependency.ProvideSwaggerServer,
-			dependency.ProvideGRPCServer,
-		),
+	// Условно добавляем дополнительные серверы
+	var invokeOptions []interface{}
 
+	if config.Server.EnableDebug {
+		invokeOptions = append(invokeOptions, dependency.ProvideDebugServer)
+	}
+
+	if config.Server.EnableSwagger {
+		invokeOptions = append(invokeOptions, dependency.ProvideSwaggerServer)
+	}
+
+	if config.Server.EnableGRPC {
+		invokeOptions = append(invokeOptions, dependency.ProvideGRPCServer)
+	}
+
+	if len(invokeOptions) > 0 {
+		options = append(options, fx.Invoke(invokeOptions...))
+	}
+
+	// Добавляем модули приложения
+	options = append(options,
 		users.Module,
-		workflows.Module,
-
-		// загружаю мидлваре в приложение
 		fx.Provide(middleware.NewMiddleware),
 	)
+
+	// Условно добавляем workflows модуль только если Temporal включен
+	if config.Server.EnableTemporal {
+		options = append(options, workflows.Module)
+	}
+
+	return fx.Options(options...)
 }
 
 func Execute() {

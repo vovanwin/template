@@ -48,6 +48,19 @@ type (
 		ContextTimeout    time.Duration `yaml:"context_timeout" env:"APP_CONTEXT_TIMEOUT" validate:"required"`
 		ReadHeaderTimeout time.Duration `yaml:"read_header_timeout" env:"APP_READ_HEADER_TIMEOUT" default:"60s"`
 		GracefulTimeout   time.Duration `yaml:"grace_ful_timeout" env:"APP_GRACE_FUL_TIMEOUT" default:"8s"`
+
+		// Server component ports
+		HTTPPort    string `yaml:"http_port" env:"APP_HTTP_PORT" default:"8080"`
+		GRPCPort    string `yaml:"grpc_port" env:"APP_GRPC_PORT" default:"8081"`
+		DebugPort   string `yaml:"debug_port" env:"APP_DEBUG_PORT" default:"8082"`
+		SwaggerPort string `yaml:"swagger_port" env:"APP_SWAGGER_PORT" default:"8084"`
+
+		// Feature flags
+		EnableHTTP     bool `yaml:"enable_http" env:"APP_ENABLE_HTTP" default:"true"`
+		EnableGRPC     bool `yaml:"enable_grpc" env:"APP_ENABLE_GRPC" default:"true"`
+		EnableDebug    bool `yaml:"enable_debug" env:"APP_ENABLE_DEBUG" default:"true"`
+		EnableSwagger  bool `yaml:"enable_swagger" env:"APP_ENABLE_SWAGGER" default:"true"`
+		EnableTemporal bool `yaml:"enable_temporal" env:"APP_ENABLE_TEMPORAL" default:"true"`
 	}
 
 	Log struct {

@@ -15,7 +15,20 @@ import (
 // WorkflowsTestUserOnboardingPost запускает тестовый workflow пользователя
 func (i Implementation) WorkflowsTestUserOnboardingPost(ctx context.Context, req *api.TestWorkflowRequest, params api.WorkflowsTestUserOnboardingPostParams) (*api.TestWorkflowResponse, error) {
 	lg := logger.Named("workflows.test-user-onboarding")
-	lg.Info(ctx, "Starting test user onboarding workflow",
+
+	// Проверяем, доступен ли Temporal сервис
+	if i.temporalService == nil {
+		lg.Warn(ctx, "Temporal сервис недоступен - workflow эндпоинт отключен")
+		return nil, &api.ErrorStatusCode{
+			StatusCode: 503,
+			Response: api.Error{
+				Code:    503,
+				Message: "Temporal сервис недоступен. Workflow функционал отключен.",
+			},
+		}
+	}
+
+	lg.Info(ctx, "Запуск тестового workflow пользователя",
 		zap.String("user_id", req.UserID.String()),
 		zap.String("email", req.Email))
 
