@@ -11,7 +11,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vovanwin/template/app/config"
-	customMiddleware "github.com/vovanwin/template/app/internal/shared/middleware"
 	"github.com/vovanwin/template/app/pkg/httpserver"
 	"github.com/vovanwin/template/app/pkg/jwt"
 	"github.com/vovanwin/template/app/pkg/storage/postgres"
@@ -31,17 +30,6 @@ import (
 
 func ProvideConfig() (*config.Config, error) {
 	return config.NewConfig()
-}
-
-// LogComponentsStatus логирует статус всех компонентов при запуске
-func LogComponentsStatus(config *config.Config) {
-	lg := logger.Named("components-status")
-	lg.Info(context.Background(), "🚀 Starting application components:")
-	lg.Info(context.Background(), fmt.Sprintf("  ✅ HTTP Server: %v (port: %s)", config.Server.EnableHTTP, config.Server.HTTPPort))
-	lg.Info(context.Background(), fmt.Sprintf("  ✅ gRPC Server: %v (port: %s)", config.Server.EnableGRPC, config.Server.GRPCPort))
-	lg.Info(context.Background(), fmt.Sprintf("  ✅ Debug Server: %v (port: %s)", config.Server.EnableDebug, config.Server.DebugPort))
-	lg.Info(context.Background(), fmt.Sprintf("  ✅ Swagger Server: %v (port: %s)", config.Server.EnableSwagger, config.Server.SwaggerPort))
-	lg.Info(context.Background(), fmt.Sprintf("  ✅ Temporal Service: %v (host: %s:%d)", config.Server.EnableTemporal, config.Temporal.Host, config.Temporal.Port))
 }
 
 func ProvideLogger(config *config.Config) error {
@@ -74,10 +62,6 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, err
 		return chi.NewRouter(), nil // Возвращаем пустой роутер
 	}
 
-	// Объявляю нужные мне милдвары для сервера
-	// Создаем rate limiter
-	rateLimiter := customMiddleware.NewRateLimiter()
-
 	middlewareCustom := func(r *chi.Mux) {
 		r.Use(middleware.RequestID)
 
@@ -98,13 +82,6 @@ func ProvideServer(lifecycle fx.Lifecycle, config *config.Config) (*chi.Mux, err
 		r.Use(middleware.Recoverer)
 		r.Use(middleware.URLFormat)
 
-		// Rate limiting (раньше других для быстрого отклонения)
-		r.Use(rateLimiter.RateLimitMiddleware())
-
-		// JWT защита обрабатывается в ogen SecurityHandler
-
-		r.Use(customMiddleware.MetricsMiddleware)
-		r.Use(customMiddleware.TracingMiddleware)
 	}
 
 	opt := httpserver.NewOptions(

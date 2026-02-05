@@ -1,12 +1,13 @@
 version: '3'
 
+env:
+  APP_ENV: local
+
 # Глобальные переменные проекта
 vars:
   DEV_TOOLS: |
-    github.com/sqlc-dev/sqlc/cmd/sqlc@latest
     mvdan.cc/gofumpt@v0.8.0
     github.com/daixiang0/gci@v0.13.6
-    github.com/ogen-go/ogen/cmd/ogen@v1.14.0
     github.com/mikefarah/yq/v4@v4.45.2
     github.com/bufbuild/buf/cmd/buf@v1.53.0
     google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.6
@@ -14,7 +15,8 @@ vars:
     github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.26.3
     github.com/envoyproxy/protoc-gen-validate@v1.2.1
     github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.26.3
-    github.com/vektra/mockery/v2@v2.53.3
+    github.com/pressly/goose/v3/cmd/goose@latest
+    github.com/vovanwin/configgen/cmd/configgen@v0.1.0
 
   DOCKER_COMPOSE_PATHS: |
     -f ./deployments/local/docker-compose.yml
@@ -30,13 +32,10 @@ vars:
   GOLANGCI_LINT_VERSION: 'v2.3.0'
 
   BIN_DIR: '{{.ROOT_DIR}}/bin'
-  SQLC: '{{.BIN_DIR}}/sqlc'
   GOLANGCI_LINT: '{{.BIN_DIR}}/golangci-lint'
   GCI: '{{.BIN_DIR}}/gci'
   GOFUMPT: '{{.BIN_DIR}}/gofumpt'
   BUF: '{{.BIN_DIR}}/buf'
-  OGEN: '{{.BIN_DIR}}/ogen'
-  YQ: '{{.BIN_DIR}}/yq'
   PROTOC_GEN_GO: '{{.BIN_DIR}}/protoc-gen-go'
   PROTOC_GEN_GO_GRPC: '{{.BIN_DIR}}/protoc-gen-go-grpc'
   PROTOC_GEN_GRPC_GATEWAY: '{{.BIN_DIR}}/protoc-gen-grpc-gateway'
@@ -44,13 +43,30 @@ vars:
   PROTOC_GEN_OPENAPIV2: '{{.BIN_DIR}}/protoc-gen-openapiv2'
   GRPCURL: '{{.BIN_DIR}}/grpcurl'
   MOCKERY: "{{.BIN_DIR}}/mockery"
-
-  OPEN_API_WEATHER_V1_BASE: '{{.ROOT_DIR}}/shared/api/weather/v1/weather.openapi.yaml'
-  OPEN_API_WEATHER_V1_BUNDLE: '{{.ROOT_DIR}}/shared/api/bundles/weather.openapi.v1.bundle.yaml'
-  OPEN_API_FILES: '{{.ROOT_DIR}}/shared/api/bundles'
+  GOOSE: "{{.BIN_DIR}}/goose"
+  CONFIGGEN: "{{.BIN_DIR}}/configgen"
 
   MODULES: app platform shared
   SERVICES: app
+
+  # Database configuration for migrations
+  DB_HOST: '{{.APP_HOST_PG | default "localhost"}}'
+  DB_PORT: '{{.APP_PORT_PG | default "5432"}}'
+  DB_USER: '{{.APP_USER_PG | default "postgres"}}'
+  DB_PASSWORD: '{{.APP_PASSWORD_PG | default "postgres"}}'
+  DB_NAME: '{{.APP_DBNAME_PG | default "mymeetbot"}}'
+  DB_SCHEMA: '{{.APP_SCHEME_PG | default "public"}}'
+  DB_DSN: 'postgres://{{.DB_USER}}:{{.DB_PASSWORD}}@{{.DB_HOST}}:{{.DB_PORT}}/{{.DB_NAME}}?sslmode=disable&search_path={{.DB_SCHEMA}}'
+
+  # Test database configuration
+  TEST_DB_NAME: '{{.DB_NAME}}_test'
+  TEST_DB_DSN: 'postgres://{{.DB_USER}}:{{.DB_PASSWORD}}@{{.DB_HOST}}:{{.DB_PORT}}/{{.TEST_DB_NAME}}?sslmode=disable&search_path={{.DB_SCHEMA}}'
+
+  MIGRATIONS_DIR: './app/db/migrations'
+
+  CONFIG_DIR: ./app
+  CONFIG_CONFIGS: ./app/config
+  CONFIG_OUTPUT: ./app/config
 
 tasks:
 
@@ -98,13 +114,6 @@ tasks:
         exit $ERR
 
 
-  ogen:gen:
-    desc: "Генерация Go-кода из всех OpenAPI-деклараций с x-ogen"
-    deps: [ install ]
-    cmds:
-      - '{{.OGEN}} --target shared/pkg/openapi/app/v1 --package app_v1 --config config.yml  --clean shared/api/app/v1/app.v1.swagger.yml'
-  
-
   deps:update:
     desc: "Обновление зависимостей в go.mod во всех модулях"
     cmds:
@@ -135,15 +144,73 @@ tasks:
     cmds:
       - '{{.BUF}} generate'
 
-  mockery:gen:
-    desc: "Генерирует моки интерфейсов с помощью mockery"
-    deps: [ install ]
+  # Команды миграций с использованием goose
+  migrate:up:
+    dotenv: ['.env']
+    desc: "Выполняет миграции для основной БД"
     cmds:
-      - |
-        echo '🧪 Генерация моков...'
-        {{.MOCKERY}}
-        
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "{{.DB_DSN}}" up'
 
+  migrate:down:
+    dotenv: ['.env']
+    desc: "Откатывает одну миграцию для основной БД"
+    cmds:
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "{{.DB_DSN}}" down'
+
+  migrate:reset:
+    dotenv: ['.env']
+    desc: "Откатывает все миграции для основной БД"
+    cmds:
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "{{.DB_DSN}}" reset'
+
+  migrate:status:
+    dotenv: ['.env']
+    desc: "Статус миграций для основной БД"
+    cmds:
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "{{.DB_DSN}}" status'
+
+  migrate:version:
+    dotenv: ['.env']
+    desc: "Текущая версия БД"
+    cmds:
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "{{.DB_DSN}}" version'
+
+  migrate:create:
+    dotenv: ['.env']
+    desc: "Создает новую миграцию (task migrate:create -- имя_миграции)"
+    cmds:
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} create {{.CLI_ARGS}} sql'
+
+  migrate:fix:
+    dotenv: ['.env']
+    desc: "Исправляет последовательность версий миграций"
+    cmds:
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} fix'
+
+  # Команды для тестовой БД
+  migrate:test:up:
+    dotenv: ['.env']
+    desc: "Выполняет миграции для тестовой БД"
+    cmds:
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "{{.TEST_DB_DSN}}" up'
+
+  migrate:test:down:
+    dotenv: ['.env']
+    desc: "Откатывает одну миграцию для тестовой БД"
+    cmds:
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "{{.TEST_DB_DSN}}" down'
+
+  migrate:test:reset:
+    dotenv: ['.env']
+    desc: "Откатывает все миграции для тестовой БД"
+    cmds:
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "{{.TEST_DB_DSN}}" reset'
+
+  migrate:test:status:
+    dotenv: ['.env']
+    desc: "Статус миграций для тестовой БД"
+    cmds:
+      - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "{{.TEST_DB_DSN}}" status'
   deps:
     dotenv: ['.env']
     desc: контейнеры - запустить
@@ -192,92 +259,6 @@ tasks:
     cmds:
       - go run app/main.go
 
-  # Команды миграций с поддержкой множественных сервисов
-  migrate:up:
-    dotenv: ['.env']
-    desc: "Выполняет миграции (по умолчанию app, укажите SERVICE=имя_сервиса)"
-    vars:
-      SERVICE: '{{.SERVICE | default "app"}}'
-    cmds:
-      - go run {{.SERVICE}}/main.go migrate up
-
-  migrate:down:
-    dotenv: ['.env']
-    desc: "Откатывает миграцию (по умолчанию app, укажите SERVICE=имя_сервиса)"
-    vars:
-      SERVICE: '{{.SERVICE | default "app"}}'
-    cmds:
-      - go run {{.SERVICE}}/main.go migrate down
-
-  migrate:status:
-    dotenv: ['.env']
-    desc: "Статус миграций (по умолчанию app, укажите SERVICE=имя_сервиса)"
-    vars:
-      SERVICE: '{{.SERVICE | default "app"}}'
-    cmds:
-      - go run {{.SERVICE}}/main.go migrate status
-
-  migrate:version:
-    dotenv: ['.env']
-    desc: "Версия БД (по умолчанию app, укажите SERVICE=имя_сервиса)"
-    vars:
-      SERVICE: '{{.SERVICE | default "app"}}'
-    cmds:
-      - go run {{.SERVICE}}/main.go migrate version
-
-  migrate:create:
-    dotenv: ['.env']
-    desc: "Создает миграцию (SERVICE=сервис task migrate:create -- имя_миграции)"
-    vars:
-      SERVICE: '{{.SERVICE | default "app"}}'
-    cmds:
-      - go run {{.SERVICE}}/main.go migrate create {{.CLI_ARGS}}
-
-  # Команды для массовых операций с миграциями
-  migrate:all:up:
-    dotenv: ['.env']
-    desc: "Выполняет миграции для всех сервисов из переменной SERVICES"
-    cmds:
-      - |
-        for service in {{.SERVICES}}; do
-          if [ -d "$service" ] && [ -f "$service/main.go" ]; then
-            echo "🚀 Выполняем миграции для сервиса: $service"
-            go run $service/main.go migrate up || echo "❌ Ошибка миграции для $service"
-          else
-            echo "⚠️  Сервис $service не найден или не содержит main.go"
-          fi
-        done
-
-  migrate:all:status:
-    dotenv: ['.env']
-    desc: "Показывает статус миграций для всех сервисов из переменной SERVICES"
-    cmds:
-      - |
-        for service in {{.SERVICES}}; do
-          if [ -d "$service" ] && [ -f "$service/main.go" ]; then
-            echo "📊 Статус миграций для сервиса: $service"
-            go run $service/main.go migrate status || echo "❌ Ошибка получения статуса для $service"
-            echo ""
-          else
-            echo "⚠️  Сервис $service не найден"
-          fi
-        done
-
-  migrate:all:version:
-    dotenv: ['.env']
-    desc: "Показывает версию БД для всех сервисов из переменной SERVICES"
-    cmds:
-      - |
-        for service in {{.SERVICES}}; do
-          if [ -d "$service" ] && [ -f "$service/main.go" ]; then
-            echo "🔢 Версия БД для сервиса: $service"
-            go run $service/main.go migrate version || echo "❌ Ошибка получения версии для $service"
-            echo ""
-          else
-            echo "⚠️  Сервис $service не найден"
-          fi
-        done
-
   # Legacy команда
   deps:app:migration:
     dotenv: [ '.env' ]
@@ -304,9 +285,7 @@ tasks:
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s {{.GOLANGCI_LINT_VERSION}}
         }
 
-  sql:
-    - echo "SQLC"
-    - "{{.SQLC}} generate file app/sqlc.yaml"
-  templ:
-    - echo "SQLC"
-    - "templ generate ./... "
+  generate-config:
+    desc: Генерация конфигов
+    cmds:
+      - go run {{.CONFIGGEN}} --configs={{.CONFIG_CONFIGS}} --output={{.CONFIG_OUTPUT}} --package=config
