@@ -58,7 +58,7 @@ type JWT struct {
 // PG секция конфигурации
 type PG struct {
 	// Имя базы данных
-	Db string `toml:"db"`
+	Db string `toml:"migration"`
 	// Хост базы данных
 	Host string `toml:"host"`
 	// Пароль БД

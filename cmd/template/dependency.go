@@ -6,9 +6,8 @@ import (
 	"log/slog"
 
 	"github.com/vovanwin/template/config"
-	"github.com/vovanwin/template/pkg/storage/postgres"
-
-	"github.com/vovanwin/template/pkg/logger"
+	"github.com/vovanwin/template/internal/pkg/logger"
+	postgres2 "github.com/vovanwin/template/internal/pkg/storage/postgres"
 )
 
 func ProvideConfig(configDir string) func() (*config.Config, error) {
@@ -221,8 +220,8 @@ func ProvideLogger(cfg *config.Config) *slog.Logger {
 //	return nil
 //}
 
-func ProvidePgx(c *config.Config) (*postgres.Postgres, error) {
-	opt := postgres.NewOptions(
+func ProvidePgx(c *config.Config) (*postgres2.Postgres, error) {
+	opt := postgres2.NewOptions(
 		c.PG.Host,
 		c.PG.User,
 		c.PG.Password,
@@ -232,7 +231,7 @@ func ProvidePgx(c *config.Config) (*postgres.Postgres, error) {
 		config.IsProduction(),
 	)
 
-	connect, err := postgres.New(opt)
+	connect, err := postgres2.New(opt)
 	if err != nil {
 		return nil, fmt.Errorf("create pgx connection: %w", err)
 	}

@@ -3,7 +3,7 @@
 # Copy createdb.sh.example to createdb.sh
 # then uncomment then set database name and username to create you need databases
 #
-# example: .env POSTGRES_USER=appuser and need db name is myshop_db
+# example: .env POSTGRES_USER=appuser and need migration name is myshop_db
 # 
 #    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
 #        CREATE USER myuser WITH PASSWORD 'mypassword';

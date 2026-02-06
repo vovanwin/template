@@ -43,7 +43,7 @@ func (o *Options) Validate() error {
 	errs.Add(errors461e464ebed9.NewValidationError("host", _validate_Options_host(o)))
 	errs.Add(errors461e464ebed9.NewValidationError("user", _validate_Options_user(o)))
 	errs.Add(errors461e464ebed9.NewValidationError("password", _validate_Options_password(o)))
-	errs.Add(errors461e464ebed9.NewValidationError("db", _validate_Options_db(o)))
+	errs.Add(errors461e464ebed9.NewValidationError("migration", _validate_Options_db(o)))
 	errs.Add(errors461e464ebed9.NewValidationError("port", _validate_Options_port(o)))
 	errs.Add(errors461e464ebed9.NewValidationError("scheme", _validate_Options_scheme(o)))
 	return errs.AsError()
@@ -72,7 +72,7 @@ func _validate_Options_password(o *Options) error {
 
 func _validate_Options_db(o *Options) error {
 	if err := validator461e464ebed9.GetValidatorFor(o).Var(o.db, "required"); err != nil {
-		return fmt461e464ebed9.Errorf("field `db` did not pass the test: %w", err)
+		return fmt461e464ebed9.Errorf("field `migration` did not pass the test: %w", err)
 	}
 	return nil
 }

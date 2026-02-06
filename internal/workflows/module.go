@@ -1,10 +1,10 @@
 package workflows
 
 import (
+	"github.com/vovanwin/template/internal/pkg/temporal"
 	"github.com/vovanwin/template/internal/workflows/activities"
 	"github.com/vovanwin/template/internal/workflows/workflows"
 
-	"github.com/vovanwin/template/pkg/temporal"
 	"go.uber.org/fx"
 )
 

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package template.v1;
+
+option go_package = "github.com/vovanwin/template/pkg/template;template";
+
+import "google/api/annotations.proto";
+
+service TemplateService {
+  rpc GetHealth(GetHealthRequest) returns (GetHealthResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/health"
+    };
+  }
+}
+
+message GetHealthRequest {}
+
+message GetHealthResponse {
+  string status = 1;
+}
