@@ -46,7 +46,6 @@ vars:
   GOOSE: "{{.BIN_DIR}}/goose"
   CONFIGGEN: "{{.BIN_DIR}}/configgen"
 
-  MODULES: app platform shared
   SERVICES: app
 
   # Database configuration for migrations
@@ -62,11 +61,10 @@ vars:
   TEST_DB_NAME: '{{.DB_NAME}}_test'
   TEST_DB_DSN: 'postgres://{{.DB_USER}}:{{.DB_PASSWORD}}@{{.DB_HOST}}:{{.DB_PORT}}/{{.TEST_DB_NAME}}?sslmode=disable&search_path={{.DB_SCHEMA}}'
 
-  MIGRATIONS_DIR: './app/db/migrations'
+  MIGRATIONS_DIR: './db/migrations'
 
-  CONFIG_DIR: ./app
-  CONFIG_CONFIGS: ./app/config
-  CONFIG_OUTPUT: ./app/config
+  CONFIG_CONFIGS: ./config
+  CONFIG_OUTPUT: ./config
 
 tasks:
 
@@ -76,73 +74,39 @@ tasks:
     cmds:
       - |
         echo "🧼 Форматируем через gofumpt ..."
-        
-        for module in {{.MODULES}}; do
-          if [ -d "$module" ]; then
-            echo "🧼 Форматируем $module"
-            find $module -type f -name '*.go' ! -path '*/mocks/*' -exec {{.GOFUMPT}} -extra -w {} +
-          fi
-        done
+        find cmd config internal pkg -type f -name '*.go' ! -path '*/mocks/*' -exec {{.GOFUMPT}} -extra -w {} +
       - |
         echo "🎯 Сортируем импорты через gci ..."
-        
-        for module in {{.MODULES}}; do
-          if [ -d "$module" ]; then
-            echo "🎯 Сортируем импорты в $module"
-            find $module -type f -name '*.go' ! -path '*/mocks/*' -exec {{.GCI}} write -s standard -s default -s "prefix(github.com/olezhek28/microservices-course-examples/)" {} +
-          fi
-        done
+        find cmd config internal pkg -type f -name '*.go' ! -path '*/mocks/*' -exec {{.GCI}} write -s standard -s default -s "prefix(github.com/vovanwin/template/)" {} +
 
 
   lint:
-    desc: "Запускает golangci-lint для всех модулей"
+    desc: "Запускает golangci-lint"
     deps: [ install ]
-    vars:
-      MODULES: '{{.MODULES}}'
-      GOLANGCI_LINT: '{{.GOLANGCI_LINT}}'
     cmds:
-      - |
-        set -e
-        ERR=0
-        echo "🔍 Линтим все модули ..."
-        for mod in {{.MODULES}}; do
-          if [ -d "$mod" ]; then
-            echo "🔍 Линтим $mod module"
-            {{.GOLANGCI_LINT}} run $mod/... --config=.golangci.yml || ERR=1
-          fi
-        done
-        exit $ERR
+      - '{{.GOLANGCI_LINT}} run ./... --config=.golangci.yml'
 
 
   deps:update:
-    desc: "Обновление зависимостей в go.mod во всех модулях"
+    desc: "Обновление зависимостей"
     cmds:
-      - |
-        echo "🔄 Обновление зависимостей в go.work"
-        go work sync
-        echo "🔄 Обновление зависимостей в go.mod во всех модулях"
-        for mod in {{.MODULES}}; do
-          if [ -d "$mod" ]; then
-            echo "🔄 Обновление зависимостей в $mod"
-            (cd "$mod" && go mod tidy -compat=1.25.1) || exit 1
-          fi
-        done
-
+      - go mod tidy
 
 
   proto:lint:
     deps: [ install ]
     desc: Проверка .proto-файлов на соответствие стилю
-    dir: shared/proto
+    dir: api
     cmds:
       - '{{.BUF}} lint'
 
   proto:gen:
-    deps: [ install, proto:lint ]
+    deps: []
     desc: Генерация Go-кода из .proto
-    dir: shared/proto
+    dir: api
     cmds:
-      - '{{.BUF}} generate'
+      - '{{.BUF}} mod update'
+      - 'PATH={{.BIN_DIR}}:$PATH {{.BUF}} generate'
 
   # Команды миграций с использованием goose
   migrate:
@@ -161,7 +125,6 @@ tasks:
       - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} postgres "{{.DB_DSN}}" reset'
 
   migrate:create:
-    dotenv: ['.env']
     desc: "Создает новую миграцию (task migrate:create -- имя_миграции)"
     cmds:
       - '{{.GOOSE}} -dir {{.MIGRATIONS_DIR}} create {{.CLI_ARGS}} sql'
@@ -218,19 +181,6 @@ tasks:
       - for: { var: SERVICES }
         cmd: "{{.DOCKER_COMPOSE_CMD}} up -d {{.ITEM}}"
 
-  deps:app:
-    dotenv: [ '.env' ]
-    cmds:
-      - go run app/main.go
-
-  # Legacy команда
-  deps:app:migration:
-    dotenv: [ '.env' ]
-    cmds:
-      - task: migrate:up
-        vars:
-          SERVICE: app
-
   deps:temporal:
     dotenv: [ '.env' ]
     cmds:
@@ -257,5 +207,5 @@ tasks:
   run:
     desc: Сборка и запуск приложения
     cmds:
-      - go build -o {{.BIN_DIR}}/app ./app/cmd/template
+      - go build -o {{.BIN_DIR}}/app ./cmd/template
       - '{{.BIN_DIR}}/app --config={{.CONFIG_CONFIGS}}'

@@ -5,10 +5,10 @@ import (
 	"log"
 	"log/slog"
 
-	"github.com/vovanwin/template/app/config"
-	"github.com/vovanwin/template/app/pkg/storage/postgres"
+	"github.com/vovanwin/template/config"
+	"github.com/vovanwin/template/pkg/storage/postgres"
 
-	"github.com/vovanwin/platform/pkg/logger"
+	"github.com/vovanwin/template/pkg/logger"
 )
 
 func ProvideConfig(configDir string) func() (*config.Config, error) {

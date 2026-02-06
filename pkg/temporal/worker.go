@@ -2,11 +2,8 @@ package temporal
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/vovanwin/platform/pkg/logger"
 	"go.temporal.io/sdk/worker"
-	"go.uber.org/zap"
 )
 
 // Worker обертка над temporal воркером
@@ -34,7 +31,6 @@ func NewWorker(client *Client, config WorkerConfig) *Worker {
 func (w *Worker) RegisterWorkflow(workflows ...interface{}) {
 	for _, workflow := range workflows {
 		w.temporalWorker.RegisterWorkflow(workflow)
-		logger.Info(context.Background(), "Registered workflow", zap.String("workflow", fmt.Sprintf("%T", workflow)))
 	}
 }
 
@@ -42,7 +38,6 @@ func (w *Worker) RegisterWorkflow(workflows ...interface{}) {
 func (w *Worker) RegisterActivity(activities ...interface{}) {
 	for _, activity := range activities {
 		w.temporalWorker.RegisterActivity(activity)
-		logger.Info(context.Background(), "Registered activity", zap.String("activity", fmt.Sprintf("%T", activity)))
 	}
 }
 
@@ -50,28 +45,23 @@ func (w *Worker) RegisterActivity(activities ...interface{}) {
 func (w *Worker) RegisterWorkflowWithName(workflow interface{}, name string) {
 	// Просто используем стандартную регистрацию, Temporal сам определит имя
 	w.temporalWorker.RegisterWorkflow(workflow)
-	logger.Info(context.Background(), "Registered workflow with name",
-		zap.String("workflow", fmt.Sprintf("%T", workflow)),
-		zap.String("name", name))
+
 }
 
 // RegisterActivityWithName регистрирует активность с именем
 func (w *Worker) RegisterActivityWithName(activity interface{}, name string) {
 	// Просто используем стандартную регистрацию, Temporal сам определит имя
 	w.temporalWorker.RegisterActivity(activity)
-	logger.Info(context.Background(), "Registered activity with name",
-		zap.String("activity", fmt.Sprintf("%T", activity)),
-		zap.String("name", name))
+
 }
 
 // Start запускает воркер
 func (w *Worker) Start(ctx context.Context) error {
-	logger.Info(ctx, "Starting temporal worker", zap.String("task_queue", w.taskQueue))
 
 	// Запускаем воркер в горутине
 	go func() {
 		if err := w.temporalWorker.Run(worker.InterruptCh()); err != nil {
-			logger.Error(context.Background(), "Temporal worker error", zap.Error(err))
+
 		}
 	}()
 
@@ -80,6 +70,5 @@ func (w *Worker) Start(ctx context.Context) error {
 
 // Stop останавливает воркер
 func (w *Worker) Stop(ctx context.Context) {
-	logger.Info(ctx, "Stopping temporal worker", zap.String("task_queue", w.taskQueue))
 	w.temporalWorker.Stop()
 }
