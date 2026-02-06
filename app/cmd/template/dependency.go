@@ -14,8 +14,7 @@ import (
 func ProvideConfig(configDir string) func() (*config.Config, error) {
 	return func() (*config.Config, error) {
 		cfg, err := config.Load(&config.LoadOptions{
-			ConfigDir:           configDir,
-			EnableLocalOverride: true,
+			ConfigDir: configDir,
 		})
 		if err != nil {
 			log.Fatal(err)
@@ -28,10 +27,13 @@ func ProvideConfig(configDir string) func() (*config.Config, error) {
 	}
 }
 
-func ProvideLogger(cfg *config.Config) (*slog.Logger, error) {
-	logInit := logger.NewLogger()
-
-	return logInit, nil
+func ProvideLogger(cfg *config.Config) *slog.Logger {
+	logger := logger.NewLogger(logger.Options{
+		Level: cfg.Log.Level,
+		JSON:  cfg.Log.Format,
+	})
+	logger.Debug("start logger")
+	return logger
 }
 
 //// InitLogger инициализирует логгер для fx.Provide

@@ -5,27 +5,46 @@ package config
 
 import "time"
 
+// Environment представляет окружение развертывания
+type Environment string
+
+const (
+	EnvLocal      Environment = "local"
+	EnvDev        Environment = "dev"
+	EnvStaging    Environment = "stg"
+	EnvProduction Environment = "prod"
+)
+
 // Config основная структура конфигурации
 type Config struct {
-	// Настройки JWT аутентификации
-	JWT JWT `toml:"JWT"`
-	// Подключение к PostgreSQL
-	PG PG `toml:"PG"`
+	Env Environment `toml:"-"`
+	JWT JWT         `toml:"JWT"`
+	PG  PG          `toml:"PG"`
 	// Информация о приложении
 	App App `toml:"app"`
 	// Переключатели функций
 	Features Features `toml:"features"`
-	// Уровень логирования: DEBUG, INFO, WARN, ERROR
-	Log Log `toml:"log"`
-	// Подключение к RabbitMQ
-	Rabbit Rabbit `toml:"rabbit"`
-	// Настройки HTTP/gRPC сервера
-	Server Server `toml:"server"`
-	// Настройки Temporal
+	Log      Log      `toml:"log"`
+	Rabbit   Rabbit   `toml:"rabbit"`
+	Server   Server   `toml:"server"`
 	Temporal Temporal `toml:"temporal"`
 }
 
-// Настройки JWT аутентификации
+func (c *Config) IsProduction() bool { return c.Env == EnvProduction }
+func (c *Config) IsStg() bool        { return c.Env == EnvStaging }
+func (c *Config) IsLocal() bool      { return c.Env == EnvLocal }
+func (c *Config) GetEnv() string     { return string(c.Env) }
+
+//go:generate minimock -i Configurator -o ./mock/ -s _mock.go -g
+
+// Configurator интерфейс для мокирования конфигурации в тестах
+type Configurator interface {
+	IsProduction() bool
+	IsStg() bool
+	IsLocal() bool
+	GetEnv() string
+}
+
 // JWT секция конфигурации
 type JWT struct {
 	// Время жизни refresh токена
@@ -36,7 +55,6 @@ type JWT struct {
 	TokenTtl time.Duration `toml:"token_ttl"`
 }
 
-// Подключение к PostgreSQL
 // PG секция конфигурации
 type PG struct {
 	// Имя базы данных
@@ -71,7 +89,6 @@ type Features struct {
 	EnableTracing bool `toml:"enable_tracing"`
 }
 
-// Уровень логирования: DEBUG, INFO, WARN, ERROR
 // Log секция конфигурации
 type Log struct {
 	// Формат вывода: text=false , json = true
@@ -79,14 +96,12 @@ type Log struct {
 	Level  string `toml:"level"`
 }
 
-// Подключение к RabbitMQ
 // Rabbit секция конфигурации
 type Rabbit struct {
 	// AMQP URI для подключения к RabbitMQ
 	AmqpUrl string `toml:"amqp_url"`
 }
 
-// Настройки HTTP/gRPC сервера
 // Server секция конфигурации
 type Server struct {
 	// Порт debug/pprof
@@ -105,7 +120,6 @@ type Server struct {
 	SwaggerPort string `toml:"swagger_port"`
 }
 
-// Настройки Temporal
 // Temporal секция конфигурации
 type Temporal struct {
 	// Хост Temporal сервера
