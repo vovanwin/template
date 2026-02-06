@@ -1,0 +1,62 @@
+# Настройки HTTP/gRPC сервера
+[server]
+# Хост сервера
+host = "0.0.0.0"
+# Основной порт приложения
+port = "8080"
+# Окружение: local, dev, prod
+env = "prod"
+# Порт HTTP сервера
+http_port = "8080"
+# Порт gRPC сервера
+grpc_port = "8081"
+# Порт debug/pprof
+debug_port = "8082"
+# Порт Swagger UI
+swagger_port = "8084"
+
+# Уровень логирования: DEBUG, INFO, WARN, ERROR
+[log]
+level = "INFO"
+# Формат вывода: text=false , json = true
+format = false
+
+# Подключение к PostgreSQL
+[PG]
+# Хост базы данных
+host = "postgres"
+# Порт базы данных
+port = "5432"
+# Пользователь БД
+user = "app"
+# Пароль БД
+password = "change-me-in-env"
+# Схема БД
+scheme = "public"
+# Имя базы данных
+db = "template"
+
+# Подключение к RabbitMQ
+[rabbit]
+# AMQP URI для подключения к RabbitMQ
+amqp_url = "amqp://app:change-me-in-env@rabbitmq:5672"
+
+# Настройки JWT аутентификации
+[JWT]
+# Секретный ключ подписи токенов
+sign_key = "change-me-in-env"
+# Время жизни access токена
+token_ttl = "15m"
+# Время жизни refresh токена
+refresh_token_ttl = "720h"
+
+# Настройки Temporal
+[temporal]
+# Хост Temporal сервера
+host = "temporal"
+# Порт Temporal сервера
+port = 7233
+# Пространство имён
+namespace = "default"
+# Очередь задач
+task_queue = "default-task-queue"

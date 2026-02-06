@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/vovanwin/platform/pkg/closer"
 	"github.com/vovanwin/platform/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -77,12 +76,4 @@ func (s *Service) Stop(ctx context.Context) {
 
 	s.worker.Stop(ctx)
 	s.client.Close()
-}
-
-// RegisterCloser регистрирует service в closer для graceful shutdown
-func (s *Service) RegisterCloser(c *closer.Closer) {
-	c.Add(func(ctx context.Context) error {
-		s.Stop(ctx)
-		return nil
-	})
 }

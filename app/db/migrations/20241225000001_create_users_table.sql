@@ -22,18 +22,6 @@ CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
 
--- Триггер для автоматического обновления updated_at
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 -- Вставляем тестовых пользователей (пароли: password и 123456)
 INSERT INTO users (email, password_hash, first_name, last_name, role) VALUES
 ('admin@example.com', '$argon2id$v=19$m=65536,t=1,p=12$e7hiycNCJOQCI9TH8oJOMQ$BpmBj/C/W/SJJ9feV8o1/WDLjPu5hY3C6/jD6pVZbOQ', 'Admin', 'User', 'admin'),

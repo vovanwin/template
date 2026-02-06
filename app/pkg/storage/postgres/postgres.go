@@ -3,8 +3,6 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"github.com/vovanwin/platform/pkg/logger"
-	"go.uber.org/zap"
 	"time"
 
 	"github.com/exaring/otelpgx"
@@ -100,7 +98,6 @@ func New(opts Options) (*Postgres, error) {
 			break
 		}
 
-		logger.Info(context.Background(), "Postgres is trying to connect", zap.Int("attempts_left", pg.connAttempts))
 		time.Sleep(pg.connTimeout)
 		pg.connAttempts--
 	}

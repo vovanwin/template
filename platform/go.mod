@@ -3,6 +3,7 @@ module github.com/vovanwin/platform
 go 1.25.1
 
 require (
+	github.com/lmittmann/tint v1.1.3
 	go.temporal.io/sdk v1.36.0
 	go.uber.org/zap v1.27.0
 	google.golang.org/grpc v1.72.2
