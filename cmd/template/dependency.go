@@ -1,24 +1,19 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"log/slog"
 
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/vovanwin/template/api"
 	"github.com/vovanwin/template/config"
-	"github.com/vovanwin/template/internal/controller/template"
 	"github.com/vovanwin/template/internal/pkg/logger"
 	"github.com/vovanwin/template/internal/pkg/server"
 	postgres2 "github.com/vovanwin/template/internal/pkg/storage/postgres"
 	pkg "github.com/vovanwin/template/pkg"
-	templatepb "github.com/vovanwin/template/pkg/template"
 
 	"go.uber.org/fx"
-	"google.golang.org/grpc"
 )
 
 func ProvideConfig(configDir string) func() (*config.Config, error) {
@@ -60,12 +55,6 @@ func ProvideServerConfig(cfg *config.Config) server.Config {
 
 func ProvideServerModule() fx.Option {
 	return server.NewModule(
-		server.WithGRPCRegistrator(func(s *grpc.Server) {
-			templatepb.RegisterTemplateServiceServer(s, &template.TemplateGRPCServer{})
-		}),
-		server.WithGatewayRegistrator(func(ctx context.Context, mux *runtime.ServeMux, _ *grpc.Server) error {
-			return templatepb.RegisterTemplateServiceHandlerServer(ctx, mux, &template.TemplateGRPCServer{})
-		}),
 		server.WithHTTPMiddleware(middleware.Recoverer, middleware.RequestID),
 	)
 }

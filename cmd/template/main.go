@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 
+	"github.com/vovanwin/template/internal/controller/template"
+
 	"go.uber.org/fx"
 )
 
@@ -14,6 +16,11 @@ func inject(configDir string) fx.Option {
 			ProvideServerConfig,
 			ProvidePgx,
 		),
+
+		// gRPC сервисы
+		template.Module(),
+
+		// Сервер (автоматически собирает все registrators)
 		ProvideServerModule(),
 	)
 }

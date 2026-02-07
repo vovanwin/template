@@ -30,6 +30,11 @@ func main() {
 		fatal("getwd: %v", err)
 	}
 
+	goModule := parseGoModule(filepath.Join(root, "go.mod"))
+	if goModule == "" {
+		fatal("could not parse module path from go.mod")
+	}
+
 	protoFiles, err := filepath.Glob(filepath.Join(root, "api", "*", "*.proto"))
 	if err != nil {
 		fatal("glob: %v", err)
@@ -62,6 +67,16 @@ func main() {
 				fmt.Printf("created %s\n", controllerFile)
 			}
 
+			// generate module.go if missing
+			moduleFile := filepath.Join(controllerDir, "module.go")
+			if _, err := os.Stat(moduleFile); os.IsNotExist(err) {
+				content := genModule(svc, goModule)
+				if err := os.WriteFile(moduleFile, []byte(content), 0o644); err != nil {
+					fatal("write %s: %v", moduleFile, err)
+				}
+				fmt.Printf("created %s\n", moduleFile)
+			}
+
 			// generate method stubs for missing methods
 			for _, m := range svc.Methods {
 				fileName := camelToSnake(m.Name) + ".go"
@@ -84,7 +99,20 @@ var (
 	reGoPackage = regexp.MustCompile(`option\s+go_package\s*=\s*"([^"]+)"`)
 	reService   = regexp.MustCompile(`service\s+(\w+)\s*\{`)
 	reRPC       = regexp.MustCompile(`rpc\s+(\w+)\s*\(\s*(\w+)\s*\)\s*returns\s*\(\s*(\w+)\s*\)`)
+	reModule    = regexp.MustCompile(`(?m)^module\s+(\S+)`)
 )
+
+func parseGoModule(goModPath string) string {
+	data, err := os.ReadFile(goModPath)
+	if err != nil {
+		return ""
+	}
+	m := reModule.FindStringSubmatch(string(data))
+	if m == nil {
+		return ""
+	}
+	return m[1]
+}
 
 func parseProto(path string) ([]service, error) {
 	data, err := os.ReadFile(path)
@@ -159,15 +187,89 @@ func genController(svc service) string {
 	return fmt.Sprintf(`package %s
 
 import (
+	"log/slog"
+
 	%spb "%s"
+	"go.uber.org/fx"
 )
+
+// Deps содержит зависимости для %s.
+type Deps struct {
+	fx.In
+
+	Log *slog.Logger
+}
 
 // %s реализует gRPC сервис %s.
 type %s struct {
 	%spb.Unimplemented%sServer
+	log *slog.Logger
 }
-`, svc.DirName, svc.PbAlias, svc.GoPackage,
+
+// New%s создаёт новый %s.
+func New%s(deps Deps) *%s {
+	return &%s{log: deps.Log}
+}
+`, svc.DirName,
+		svc.PbAlias, svc.GoPackage,
+		svc.StructName,
 		svc.StructName, svc.Name,
+		svc.StructName,
+		svc.PbAlias, svc.Name,
+		svc.StructName, svc.StructName,
+		svc.StructName, svc.StructName,
+		svc.StructName)
+}
+
+func genModule(svc service, goModule string) string {
+	serverImport := goModule + "/internal/pkg/server"
+
+	return fmt.Sprintf(`package %s
+
+import (
+	"context"
+
+	"%s"
+	%spb "%s"
+
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"go.uber.org/fx"
+	"google.golang.org/grpc"
+)
+
+// Module возвращает fx.Option для подключения %s.
+func Module() fx.Option {
+	return fx.Options(
+		fx.Provide(New%s),
+		fx.Provide(
+			fx.Annotate(
+				func(srv *%s) server.GRPCRegistrator {
+					return func(s *grpc.Server) {
+						%spb.Register%sServer(s, srv)
+					}
+				},
+				fx.ResultTags(`+"`"+`group:"grpc_registrators"`+"`"+`),
+			),
+		),
+		fx.Provide(
+			fx.Annotate(
+				func(srv *%s) server.GatewayRegistrator {
+					return func(ctx context.Context, mux *runtime.ServeMux, _ *grpc.Server) error {
+						return %spb.Register%sHandlerServer(ctx, mux, srv)
+					}
+				},
+				fx.ResultTags(`+"`"+`group:"gateway_registrators"`+"`"+`),
+			),
+		),
+	)
+}
+`, svc.DirName,
+		serverImport,
+		svc.PbAlias, svc.GoPackage,
+		svc.Name,
+		svc.StructName,
+		svc.StructName,
+		svc.PbAlias, svc.Name,
 		svc.StructName,
 		svc.PbAlias, svc.Name)
 }
