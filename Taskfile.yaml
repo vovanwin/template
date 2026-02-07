@@ -199,10 +199,22 @@ tasks:
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s {{.GOLANGCI_LINT_VERSION}}
         }
 
+  proto:controllers:
+    desc: Генерация stub-контроллеров из proto файлов
+    cmds:
+      - go run ./cmd/protogen
+
   generate-config:
     desc: Генерация конфигов
     cmds:
       - '{{.CONFIGGEN}} --configs={{.CONFIG_CONFIGS}} --output={{.CONFIG_OUTPUT}} --package=config'
+
+  generate:
+    desc: Запуск всех генераторов (proto, контроллеры, конфиги)
+    cmds:
+      - task: proto:gen
+      - task: proto:controllers
+      - task: generate-config
 
   run:
     desc: Сборка и запуск приложения
