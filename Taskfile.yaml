@@ -29,6 +29,10 @@ vars:
     {{$line}}
     {{end}}
 
+  METRICS_COMPOSE_CMD: >-
+    docker-compose
+    -f ./deployments/local/docker-compose.metrics.yml
+
   GO_VERSION: '1.24'
   GOLANGCI_LINT_VERSION: 'v2.3.0'
 
@@ -223,3 +227,23 @@ tasks:
     cmds:
       - go build -o {{.BIN_DIR}}/app ./cmd/template
       - '{{.BIN_DIR}}/app --config={{.CONFIG_CONFIGS}}'
+
+  metrics:
+    desc: "Запуск стека наблюдаемости (Prometheus + Grafana + Tempo + OTEL Collector)"
+    cmds:
+      - "{{.METRICS_COMPOSE_CMD}} up -d {{.CLI_ARGS}}"
+
+  metrics:stop:
+    desc: "Остановка стека наблюдаемости"
+    cmds:
+      - "{{.METRICS_COMPOSE_CMD}} stop"
+
+  metrics:logs:
+    desc: "Логи стека наблюдаемости"
+    cmds:
+      - "{{.METRICS_COMPOSE_CMD}} logs {{.CLI_ARGS}}"
+
+  metrics:status:
+    desc: "Статус стека наблюдаемости"
+    cmds:
+      - "{{.METRICS_COMPOSE_CMD}} ps -a"

@@ -1,0 +1,49 @@
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    volumes:
+      - ./otel-collector/config.yml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus exporter
+    networks:
+      - observability
+
+  prometheus:
+    build:
+      context: ./prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - observability
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+    volumes:
+      - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ./grafana/dashboards:/etc/grafana/dashboards
+    depends_on:
+      - prometheus
+    networks:
+      - observability
+
+  tempo:
+    image: grafana/tempo:latest
+    command: ["-config.file=/etc/tempo/config.yml"]
+    volumes:
+      - ./tempo/config.yml:/etc/tempo/config.yml
+    ports:
+      - "3200:3200"   # Tempo HTTP API
+    networks:
+      - observability
+
+networks:
+  observability:
+    driver: bridge

@@ -1,8 +1,8 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"log/slog"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -10,27 +10,15 @@ import (
 	"github.com/vovanwin/platform/server"
 	"github.com/vovanwin/template/api"
 	"github.com/vovanwin/template/config"
+	"github.com/vovanwin/template/internal/pkg/metrics"
+	appOtel "github.com/vovanwin/template/internal/pkg/otel"
 	postgres2 "github.com/vovanwin/template/internal/pkg/storage/postgres"
 	pkg "github.com/vovanwin/template/pkg"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/fx"
+	"google.golang.org/grpc"
 )
-
-func ProvideConfig(configDir string) func() (*config.Config, error) {
-	return func() (*config.Config, error) {
-		cfg, err := config.Load(&config.LoadOptions{
-			ConfigDir: configDir,
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("=== Конфигурация загружена ===")
-		fmt.Printf("Окружение: %s\n", cfg.GetEnv())
-		fmt.Printf("Уровень логирования: %s\n", cfg.Log.Level)
-		fmt.Println()
-		return cfg, nil
-	}
-}
 
 func ProvideLogger(cfg *config.Config) *slog.Logger {
 	l := logger.NewLogger(logger.Options{
@@ -53,10 +41,55 @@ func ProvideServerConfig(cfg *config.Config) server.Config {
 	}
 }
 
-func ProvideServerModule() fx.Option {
-	return server.NewModule(
+func ProvideOtel(cfg *config.Config, log *slog.Logger) (*appOtel.Provider, error) {
+	provider := &appOtel.Provider{}
+
+	if !cfg.Features.EnableTracing && !cfg.Features.EnableMetrics {
+		log.Info("OTEL отключён (features.enable_tracing=false, features.enable_metrics=false)")
+		return provider, nil
+	}
+
+	endpoint := cfg.Otel.Endpoint
+	serviceName := cfg.App.Name
+
+	if cfg.Features.EnableTracing {
+		tp, err := appOtel.InitTracer(context.Background(), serviceName, endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("init otel tracer: %w", err)
+		}
+		provider.TracerProvider = tp
+		log.Info("OTEL трейсинг включён", slog.String("endpoint", endpoint))
+	}
+
+	if cfg.Features.EnableMetrics {
+		mp, err := appOtel.InitMeter(context.Background(), serviceName, endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("init otel meter: %w", err)
+		}
+		provider.MeterProvider = mp
+		log.Info("OTEL метрики включены", slog.String("endpoint", endpoint))
+	}
+
+	return provider, nil
+}
+
+func ProvideServerModule(cfg *config.Config) fx.Option {
+	opts := []server.Option{
 		server.WithHTTPMiddleware(middleware.Recoverer, middleware.RequestID),
-	)
+	}
+
+	if cfg.Features.EnableMetrics {
+		opts = append(opts, server.WithDebugHandler("/metrics", metrics.Handler()))
+	}
+
+	if cfg.Features.EnableMetrics || cfg.Features.EnableTracing {
+		opts = append(opts,
+			server.WithHTTPMiddleware(appOtel.HTTPMiddleware(cfg.App.Name+"-http")),
+			server.WithGRPCOptions(grpc.StatsHandler(otelgrpc.NewServerHandler())),
+		)
+	}
+
+	return server.NewModule(opts...)
 }
 
 func ProvidePgx(c *config.Config) (*postgres2.Postgres, error) {

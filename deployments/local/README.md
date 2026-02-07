@@ -1,10 +1,8 @@
 # Local infrastructure
 
-Локальная инфраструктура для разработки: Postgres и Jaeger.
-
 ## Подготовка
 
-Создайте файл `.env` рядом с этим README со значениями (пример):
+Создайте файл `.env` рядом с этим README:
 
 ```env
 POSTGRES_VERSION=16
@@ -16,17 +14,26 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 ```
 
-## Запуск
+## Основная инфраструктура (PostgreSQL + Temporal)
 
 ```bash
-docker compose up -d
+task deps          # запуск
+task deps:stop     # остановка
+task deps:logs     # логи
 ```
 
-- Postgres: `localhost:5432`
-- Jaeger UI: `http://localhost:16686`
-
-## Остановка
+## Observability (Prometheus + Grafana + Tempo + OTEL Collector)
 
 ```bash
-docker compose down -v
+task metrics       # запуск
+task metrics:stop  # остановка
+task metrics:logs  # логи
 ```
+
+| Сервис | Адрес |
+|--------|-------|
+| PostgreSQL | `localhost:5432` |
+| Grafana | `http://localhost:3000` (admin/admin) |
+| Prometheus | `http://localhost:9090` |
+| Tempo | `http://localhost:3200` |
+| OTEL Collector | `localhost:4317` (OTLP gRPC) |

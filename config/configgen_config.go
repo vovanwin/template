@@ -25,6 +25,8 @@ type Config struct {
 	// Переключатели функций
 	Features Features `toml:"features"`
 	Log      Log      `toml:"log"`
+	// Настройки OpenTelemetry
+	Otel     Otel     `toml:"otel"`
 	Rabbit   Rabbit   `toml:"rabbit"`
 	Server   Server   `toml:"server"`
 	Temporal Temporal `toml:"temporal"`
@@ -94,6 +96,13 @@ type Log struct {
 	// Формат вывода: text=false , json = true
 	Format bool   `toml:"format"`
 	Level  string `toml:"level"`
+}
+
+// Настройки OpenTelemetry
+// Otel секция конфигурации
+type Otel struct {
+	// Адрес OTEL Collector (gRPC)
+	Endpoint string `toml:"endpoint"`
 }
 
 // Rabbit секция конфигурации

@@ -50,6 +50,11 @@ token_ttl = "15m"
 # Время жизни refresh токена
 refresh_token_ttl = "720h"
 
+# Настройки OpenTelemetry
+[otel]
+# Адрес OTEL Collector (gRPC)
+endpoint = "otel-collector:4317"
+
 # Настройки Temporal
 [temporal]
 # Хост Temporal сервера

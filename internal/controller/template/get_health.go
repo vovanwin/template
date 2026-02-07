@@ -7,6 +7,5 @@ import (
 )
 
 func (s *TemplateGRPCServer) GetHealth(_ context.Context, req *templatepb.GetHealthRequest) (*templatepb.GetHealthResponse, error) {
-	// TODO: implement
-	panic("not implemented")
+	return &templatepb.GetHealthResponse{Status: "ok"}, nil
 }
