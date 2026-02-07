@@ -3,17 +3,17 @@
 # Хост сервера
 host = "0.0.0.0"
 # Основной порт приложения
-port = "8080"
+port = "7001"
 # Окружение: local, dev, prod
 env = "prod"
 # Порт HTTP сервера
-http_port = "8080"
+http_port = "7001"
 # Порт gRPC сервера
-grpc_port = "8081"
+grpc_port = "7000"
 # Порт debug/pprof
-debug_port = "8082"
+debug_port = "7003"
 # Порт Swagger UI
-swagger_port = "8084"
+swagger_port = "7002"
 
 # Уровень логирования: DEBUG, INFO, WARN, ERROR
 [log]

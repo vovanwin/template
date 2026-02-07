@@ -2,22 +2,20 @@ package main
 
 import (
 	"flag"
-	"log/slog"
 
 	"go.uber.org/fx"
 )
 
 func inject(configDir string) fx.Option {
-	options := []fx.Option{
+	return fx.Options(
 		fx.Provide(
 			ProvideConfig(configDir),
 			ProvideLogger,
+			ProvideServerConfig,
 			ProvidePgx,
-		), fx.Invoke(func(log *slog.Logger) {
-			log.Info("test")
-		}),
-	}
-	return fx.Options(options...)
+		),
+		ProvideServerModule(),
+	)
 }
 
 func main() {
