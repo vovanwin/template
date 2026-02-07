@@ -6,10 +6,10 @@ import (
 	"log/slog"
 
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/vovanwin/platform/logger"
+	"github.com/vovanwin/platform/server"
 	"github.com/vovanwin/template/api"
 	"github.com/vovanwin/template/config"
-	"github.com/vovanwin/template/internal/pkg/logger"
-	"github.com/vovanwin/template/internal/pkg/server"
 	postgres2 "github.com/vovanwin/template/internal/pkg/storage/postgres"
 	pkg "github.com/vovanwin/template/pkg"
 

@@ -3,7 +3,7 @@ package template
 import (
 	"context"
 
-	"github.com/vovanwin/template/internal/pkg/server"
+	"github.com/vovanwin/platform/server"
 	templatepb "github.com/vovanwin/template/pkg/template"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"

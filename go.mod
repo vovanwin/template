@@ -16,6 +16,7 @@ require (
 	github.com/knadh/koanf/v2 v2.3.2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
+	github.com/vovanwin/platform v0.1.0
 	go.temporal.io/sdk v1.39.0
 	go.uber.org/fx v1.24.0
 	golang.org/x/crypto v0.47.0

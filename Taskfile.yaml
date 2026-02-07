@@ -17,6 +17,7 @@ vars:
     github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.26.3
     github.com/pressly/goose/v3/cmd/goose@latest
     github.com/vovanwin/configgen/cmd/configgen@v0.1.1
+    github.com/vovanwin/platform/protogen/cmd/protogen@v0.1.0
 
   DOCKER_COMPOSE_PATHS: |
     -f ./deployments/local/docker-compose.yml
@@ -45,6 +46,7 @@ vars:
   MOCKERY: "{{.BIN_DIR}}/mockery"
   GOOSE: "{{.BIN_DIR}}/goose"
   CONFIGGEN: "{{.BIN_DIR}}/configgen"
+  PROTOGEN: "{{.BIN_DIR}}/protogen"
 
   SERVICES: app
 
@@ -202,7 +204,7 @@ tasks:
   proto:controllers:
     desc: Генерация stub-контроллеров из proto файлов
     cmds:
-      - go run ./cmd/protogen
+      - '{{.PROTOGEN}}'
 
   generate-config:
     desc: Генерация конфигов
