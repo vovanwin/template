@@ -1,0 +1,28 @@
+version: v2
+# переписывает старые файлы
+managed:
+  enabled: true
+  disable:
+    - module: buf.build/cludden/protoc-gen-go-temporal
+  override:
+    - file_option: go_package_prefix
+      value: example/gen
+plugins:
+  - local: ../bin/protoc-gen-go
+    out: ../pkg/temporal
+    opt:
+      - paths=source_relative
+  - local: ../bin/protoc-gen-go-grpc
+    out: ../pkg/temporal
+    opt:
+      - paths=source_relative
+  # temporal генератор
+  - local: ../bin/protoc-gen-go_temporal
+    out: ../pkg/temporal
+    strategy: all
+    opt:
+      - cli-categories=true
+      - cli-enabled=true
+      - cli-v3=true
+      - docs-out=../pkg/temporal/README.md
+      - paths=source_relative

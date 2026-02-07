@@ -1,13 +1,21 @@
-version: v1
+version: v2
+clean: true
 plugins:
-  - plugin: go
-    out: ..
-    opt: module=github.com/vovanwin/template
-  - plugin: go-grpc
-    out: ..
-    opt: module=github.com/vovanwin/template
-  - plugin: grpc-gateway
-    out: ..
-    opt: module=github.com/vovanwin/template
-  - plugin: openapiv2
+  - local: ../bin/protoc-gen-go
     out: ../pkg
+    opt:
+      - paths=source_relative
+  - local: ../bin/protoc-gen-go-grpc
+    out: ../pkg
+    opt:
+      - paths=source_relative
+  # Генерация HTTP gateway
+  - local: ../bin/protoc-gen-grpc-gateway
+    out: ../pkg
+    opt:
+      - paths=source_relative
+  # Генерация OpenAPI/Swagger (встраивается в бинарник через go:embed)
+  - local: ../bin/protoc-gen-openapiv2
+    out: ../pkg
+    opt:
+      - json_names_for_fields=false

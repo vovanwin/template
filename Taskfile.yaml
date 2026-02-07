@@ -18,12 +18,13 @@ vars:
     github.com/pressly/goose/v3/cmd/goose@latest
     github.com/vovanwin/configgen/cmd/configgen@v0.1.1
     github.com/vovanwin/platform/protogen/cmd/protogen@v0.1.0
+    github.com/cludden/protoc-gen-go-temporal/cmd/protoc-gen-go_temporal@v1.22.0
 
   DOCKER_COMPOSE_PATHS: |
     -f ./deployments/local/docker-compose.yml
     -f ./deployments/local/docker-compose.temporal.yml
+    -f ./deployments/local/docker-compose.metrics.yml
   #    -f ./deployments/local/docker-compose.jasper.yml
-  #    -f ./deployments/local/docker-compose.metrics.yml
 
   DOCKER_COMPOSE_CMD: docker-compose  {{range $line := .DOCKER_COMPOSE_PATHS | splitLines -}}
     {{$line}}
@@ -46,6 +47,7 @@ vars:
   PROTOC_GEN_GRPC_GATEWAY: '{{.BIN_DIR}}/protoc-gen-grpc-gateway'
   PROTOC_GEN_VALIDATE: '{{.BIN_DIR}}/protoc-gen-validate'
   PROTOC_GEN_OPENAPIV2: '{{.BIN_DIR}}/protoc-gen-openapiv2'
+  PROTOC_GEN_GO_TEMPORAL: '{{.BIN_DIR}}/protoc-gen-go_temporal'
   GRPCURL: '{{.BIN_DIR}}/grpcurl'
   MOCKERY: "{{.BIN_DIR}}/mockery"
   GOOSE: "{{.BIN_DIR}}/goose"

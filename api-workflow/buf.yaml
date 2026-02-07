@@ -1,7 +1,7 @@
 version: v2
 deps:
-  - buf.build/googleapis/googleapis      # google/api/annotations.proto, google/api/http.proto
-#  - buf.build/bufbuild/protovalidate     # buf/validate/validate.proto
+  - buf.build/cludden/protoc-gen-go-temporal
+
 lint:
   use:
     - STANDARD

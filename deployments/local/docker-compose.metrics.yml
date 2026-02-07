@@ -8,7 +8,7 @@ services:
       - "4318:4318"   # OTLP HTTP
       - "8889:8889"   # Prometheus exporter
     networks:
-      - observability
+      - backend
 
   prometheus:
     build:
@@ -16,7 +16,7 @@ services:
     ports:
       - "9090:9090"
     networks:
-      - observability
+      - backend
 
   grafana:
     image: grafana/grafana:latest
@@ -32,7 +32,7 @@ services:
     depends_on:
       - prometheus
     networks:
-      - observability
+      - backend
 
   tempo:
     image: grafana/tempo:latest
@@ -42,8 +42,8 @@ services:
     ports:
       - "3200:3200"   # Tempo HTTP API
     networks:
-      - observability
+      - backend
 
 networks:
-  observability:
-    driver: bridge
+  backend:
+    external: false
