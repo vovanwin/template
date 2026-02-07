@@ -109,9 +109,22 @@ tasks:
       - '{{.BUF}} lint'
 
   proto:gen:
+    cmds:
+      - task: proto-grpc:gen
+      - task: proto-temporal:gen
+
+  proto-grpc:gen:
     deps: []
     desc: Генерация Go-кода из .proto
     dir: api
+    cmds:
+      - '{{.BUF}} mod update'
+      - 'PATH={{.BIN_DIR}}:$PATH {{.BUF}} generate'
+
+  proto-temporal:gen:
+    deps: [ ]
+    desc: Генерация Go-кода из .proto
+    dir: api-workflow
     cmds:
       - '{{.BUF}} mod update'
       - 'PATH={{.BIN_DIR}}:$PATH {{.BUF}} generate'

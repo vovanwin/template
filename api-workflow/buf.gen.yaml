@@ -12,10 +12,6 @@ plugins:
     out: ../pkg/temporal
     opt:
       - paths=source_relative
-  - local: ../bin/protoc-gen-go-grpc
-    out: ../pkg/temporal
-    opt:
-      - paths=source_relative
   # temporal генератор
   - local: ../bin/protoc-gen-go_temporal
     out: ../pkg/temporal

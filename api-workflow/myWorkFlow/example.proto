@@ -10,7 +10,7 @@ service Example {
     task_queue: "example-v1"
   };
 
-  // CreateFoo creates a new foo operation
+  // CreateFoo Создать новую FOO операцию
   rpc CreateFoo(CreateFooRequest) returns (CreateFooResponse) {
     option (temporal.v1.workflow) = {
       execution_timeout: { seconds: 3600 } // foos can take awhile to create
