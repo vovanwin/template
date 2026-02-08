@@ -17,8 +17,11 @@ func inject(configDir string) fx.Option {
 		log.Fatalf("загрузка конфига: %v", err)
 	}
 
+	flags := ProvideFlags()
+
 	return fx.Options(
 		fx.Supply(cfg),
+		fx.Supply(flags),
 		fx.Provide(
 			ProvideLogger,
 			ProvideServerConfig,
@@ -29,7 +32,7 @@ func inject(configDir string) fx.Option {
 		template.Module(),
 
 		// Сервер (автоматически собирает все registrators)
-		ProvideServerModule(cfg),
+		ProvideServerModule(cfg, flags),
 	)
 }
 

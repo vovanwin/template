@@ -1,0 +1,7 @@
+# flags.toml — feature flags для сервиса
+
+[flags]
+new_catalog_ui = { type = "bool", default = false, description = "Включить новый UI каталога" }
+rate_limit = { type = "int", default = 100, description = "Лимит запросов в секунду" }
+score_threshold = { type = "float", default = 0.75, description = "Порог релевантности" }
+banner_text = { type = "string", default = "Welcome!", description = "Текст баннера" }

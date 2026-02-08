@@ -16,8 +16,8 @@ vars:
     github.com/envoyproxy/protoc-gen-validate@v1.2.1
     github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.26.3
     github.com/pressly/goose/v3/cmd/goose@latest
-    github.com/vovanwin/configgen/cmd/configgen@v0.1.1
-    github.com/vovanwin/platform/protogen/cmd/protogen@v0.1.0
+    github.com/vovanwin/configgen/cmd/configgen@v0.2.0
+    github.com/vovanwin/platform/protogen/cmd/protogen@v0.4.0
     github.com/cludden/protoc-gen-go-temporal/cmd/protoc-gen-go_temporal@v1.22.0
 
   DOCKER_COMPOSE_PATHS: |
@@ -226,9 +226,14 @@ tasks:
       - '{{.PROTOGEN}}'
 
   generate-config:
-    desc: Генерация конфигов
+    desc: Генерация конфигов и feature flags
     cmds:
-      - '{{.CONFIGGEN}} --configs={{.CONFIG_CONFIGS}} --output={{.CONFIG_OUTPUT}} --package=config'
+      - '{{.CONFIGGEN}} --configs={{.CONFIG_CONFIGS}} --output={{.CONFIG_OUTPUT}} --package=config --with-flags'
+
+  validate-config:
+    desc: Валидация TOML файлов без генерации кода
+    cmds:
+      - '{{.CONFIGGEN}} --validate --configs={{.CONFIG_CONFIGS}}'
 
   generate:
     desc: Запуск всех генераторов (proto, контроллеры, конфиги)

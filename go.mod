@@ -3,6 +3,7 @@ module github.com/vovanwin/template
 go 1.25.1
 
 require (
+	github.com/BurntSushi/toml v0.3.1
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/cludden/protoc-gen-go-temporal v1.22.0
 	github.com/exaring/otelpgx v0.10.0

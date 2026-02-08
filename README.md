@@ -37,6 +37,7 @@ task run
 | Debug (pprof) | `http://localhost:7003/debug/pprof/` |
 | Health check | `http://localhost:7003/healthz` |
 | Prometheus metrics | `http://localhost:7003/metrics` |
+| Feature Flags UI | `http://localhost:7003/flags` |
 
 ## Observability (Prometheus + Grafana + Tempo)
 
@@ -97,13 +98,32 @@ endpoint = "localhost:4317"
 - `config/value.toml` — общие значения для всех окружений
 - `config/config_local.toml` — настройки для локальной разработки
 - `config/config_prod.toml` — настройки для production
+- `config/flags.toml` — feature flags с дефолтными значениями
 
 Окружение выбирается через `APP_ENV` (default: `dev`).
 
 ```bash
-# Перегенерировать Go-структуры после изменения TOML
+# Перегенерировать Go-структуры и флаги после изменения TOML
 task generate-config
+
+# Проверить валидность конфигов без генерации
+task validate-config
 ```
+
+### Feature Flags
+
+Feature flags определяются в `config/flags.toml` и доступны через типизированные геттеры:
+
+```go
+flags := config.NewFlags(config.NewMemoryStore(config.DefaultFlagValues()))
+
+if flags.NewCatalogUi() {
+    // новый UI
+}
+limit := flags.RateLimit() // int
+```
+
+UI для просмотра флагов доступен на debug-порту: `http://localhost:7003/flags`
 
 ## Task команды
 
@@ -119,7 +139,8 @@ task generate-config
 |---------|----------|
 | `task proto:gen` | Генерация Go-кода из proto |
 | `task proto:controllers` | Генерация stub-контроллеров |
-| `task generate-config` | Генерация Go-структур конфига |
+| `task generate-config` | Генерация Go-структур конфига + feature flags |
+| `task validate-config` | Валидация TOML без генерации (для CI) |
 | `task generate` | Все генераторы разом |
 
 ### База данных

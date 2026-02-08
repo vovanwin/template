@@ -10,6 +10,7 @@ import (
 	"github.com/vovanwin/platform/server"
 	"github.com/vovanwin/template/api"
 	"github.com/vovanwin/template/config"
+	"github.com/vovanwin/template/internal/pkg/flagsui"
 	"github.com/vovanwin/template/internal/pkg/storage/postgres"
 	"github.com/vovanwin/template/pkg"
 
@@ -42,9 +43,16 @@ func ProvideServerConfig(cfg *config.Config) server.Config {
 	}
 }
 
-func ProvideServerModule(cfg *config.Config) fx.Option {
+func ProvideFlags() *config.Flags {
+	store := config.NewMemoryStore(config.DefaultFlagValues())
+	return config.NewFlags(store)
+}
+
+func ProvideServerModule(cfg *config.Config, flags *config.Flags) fx.Option {
 	opts := []server.Option{
 		server.WithHTTPMiddleware(middleware.RequestID),
+		server.WithDebugHandler("/flags", flagsui.Handler(flags)),
+		server.WithDebugHandler("/flags/", flagsui.Handler(flags)),
 	}
 
 	if cfg.Metrics.EnableMetrics {
