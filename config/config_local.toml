@@ -20,6 +20,16 @@ swagger_port = "7002"
 level = "DEBUG"
 # Формат вывода: text=false , json = true
 format = false
+# Включить отправку логов в Loki
+loki_enabled = true
+# URL Loki push API
+loki_url = "http://localhost:3100/loki/api/v1/push"
+
+# Переключатели функций
+[metrics]
+# Включить сбор метрик
+enable_metrics = true
+
 
 # Подключение к PostgreSQL
 [PG]
@@ -54,6 +64,8 @@ refresh_token_ttl = "20000m"
 [otel]
 # Адрес OTEL Collector (gRPC)
 endpoint = "localhost:4317"
+# Процент трейсов для сохранения (0.0–1.0)
+sample_rate = 1.0
 
 # Настройки Temporal
 [temporal]

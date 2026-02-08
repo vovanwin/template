@@ -21,11 +21,9 @@ type Config struct {
 	JWT JWT         `toml:"JWT"`
 	PG  PG          `toml:"PG"`
 	// Информация о приложении
-	App App `toml:"app"`
-	// Переключатели функций
-	Features Features `toml:"features"`
+	App      App      `toml:"app"`
 	Log      Log      `toml:"log"`
-	// Настройки OpenTelemetry
+	Metrics  Metrics  `toml:"metrics"`
 	Otel     Otel     `toml:"otel"`
 	Rabbit   Rabbit   `toml:"rabbit"`
 	Server   Server   `toml:"server"`
@@ -82,27 +80,29 @@ type App struct {
 	Version string `toml:"version"`
 }
 
-// Переключатели функций
-// Features секция конфигурации
-type Features struct {
-	// Включить сбор метрик
-	EnableMetrics bool `toml:"enable_metrics"`
-	// Включить трейсинг
-	EnableTracing bool `toml:"enable_tracing"`
-}
-
 // Log секция конфигурации
 type Log struct {
 	// Формат вывода: text=false , json = true
 	Format bool   `toml:"format"`
 	Level  string `toml:"level"`
+	// Включить отправку логов в Loki
+	LokiEnabled bool `toml:"loki_enabled"`
+	// URL Loki push API
+	LokiUrl string `toml:"loki_url"`
 }
 
-// Настройки OpenTelemetry
+// Metrics секция конфигурации
+type Metrics struct {
+	// Включить сбор метрик
+	EnableMetrics bool `toml:"enable_metrics"`
+}
+
 // Otel секция конфигурации
 type Otel struct {
 	// Адрес OTEL Collector (gRPC)
 	Endpoint string `toml:"endpoint"`
+	// Процент трейсов для сохранения (0.0–1.0)
+	SampleRate float64 `toml:"sample_rate"`
 }
 
 // Rabbit секция конфигурации

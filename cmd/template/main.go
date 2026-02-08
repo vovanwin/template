@@ -1,13 +1,11 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 
 	"github.com/vovanwin/template/config"
 	"github.com/vovanwin/template/internal/controller/template"
-	appOtel "github.com/vovanwin/template/internal/pkg/otel"
 
 	"go.uber.org/fx"
 )
@@ -24,7 +22,6 @@ func inject(configDir string) fx.Option {
 		fx.Provide(
 			ProvideLogger,
 			ProvideServerConfig,
-			ProvideOtel,
 			ProvidePgx,
 		),
 
@@ -33,15 +30,6 @@ func inject(configDir string) fx.Option {
 
 		// Сервер (автоматически собирает все registrators)
 		ProvideServerModule(cfg),
-
-		// Graceful shutdown OTEL при остановке приложения
-		fx.Invoke(func(lc fx.Lifecycle, provider *appOtel.Provider) {
-			lc.Append(fx.Hook{
-				OnStop: func(ctx context.Context) error {
-					return provider.Shutdown(ctx)
-				},
-			})
-		}),
 	)
 }
 

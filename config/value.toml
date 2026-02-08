@@ -7,10 +7,3 @@
 name = "template"
 # Версия приложения
 version = "1.0.0"
-
-# Переключатели функций
-[features]
-# Включить сбор метрик
-enable_metrics = true
-# Включить трейсинг
-enable_tracing = true

@@ -8,31 +8,25 @@ services:
       - "4318:4318"   # OTLP HTTP
       - "8889:8889"   # Prometheus exporter
     networks:
-      - backend
+      - metrics
 
   prometheus:
     build:
       context: ./prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "9090:9090"
     networks:
-      - backend
+      - metrics
 
-  grafana:
-    image: grafana/grafana:latest
+  loki:
+    image: grafana/loki:latest
+    command: ["-config.file=/etc/loki/local-config.yaml"]
     ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_SECURITY_ADMIN_USER=admin
-    volumes:
-      - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
-      - ./grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
-      - ./grafana/dashboards:/etc/grafana/dashboards
-    depends_on:
-      - prometheus
+      - "3100:3100"
     networks:
-      - backend
+      - metrics
 
   tempo:
     image: grafana/tempo:latest
@@ -42,8 +36,28 @@ services:
     ports:
       - "3200:3200"   # Tempo HTTP API
     networks:
-      - backend
+      - metrics
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ./grafana/dashboards:/etc/grafana/dashboards
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    networks:
+      - metrics
 
 networks:
-  backend:
-    external: false
+  metrics:
+    driver: bridge

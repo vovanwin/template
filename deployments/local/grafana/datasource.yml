@@ -1,7 +1,7 @@
 apiVersion: 1
 
 datasources:
-  - name: "Prometheus"
+  - name: Prometheus
     type: prometheus
     access: proxy
     orgId: 1
@@ -14,7 +14,7 @@ datasources:
         - datasourceUid: tempo
           name: trace_id
 
-  - name: "Tempo"
+  - name: Tempo
     type: tempo
     access: proxy
     orgId: 1
@@ -22,10 +22,28 @@ datasources:
     uid: tempo
     jsonData:
       httpMethod: GET
-      grpcAddress: tempo:9096
+      tracesToLogsV2:
+        datasourceUid: loki
+        filterByTraceID: true
+        filterBySpanID: false
+      tracesToMetrics:
+        datasourceUid: prometheus
       nodeGraph:
         enabled: false
       serviceMap:
-        datasourceUid: ""
+        datasourceUid: prometheus
       search:
         hide: false
+
+  - name: Loki
+    type: loki
+    access: proxy
+    orgId: 1
+    url: http://loki:3100
+    uid: loki
+    jsonData:
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: '"trace_id":"(\w+)"'
+          name: TraceID
+          url: "$${__value.raw}"
