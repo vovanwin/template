@@ -17,7 +17,7 @@ func inject(configDir string) fx.Option {
 		log.Fatalf("загрузка конфига: %v", err)
 	}
 
-	flags := ProvideFlags()
+	flags, closeFn := ProvideFlags(cfg)
 
 	return fx.Options(
 		fx.Supply(cfg),
@@ -27,6 +27,9 @@ func inject(configDir string) fx.Option {
 			ProvideServerConfig,
 			ProvidePgx,
 		),
+		fx.Invoke(func(lc fx.Lifecycle) {
+			lc.Append(fx.StopHook(closeFn))
+		}),
 
 		// gRPC сервисы
 		template.Module(),

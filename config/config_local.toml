@@ -67,6 +67,13 @@ endpoint = "localhost:4317"
 # Процент трейсов для сохранения (0.0–1.0)
 sample_rate = 1.0
 
+# Настройки etcd для feature flags
+[etcd]
+# Адреса etcd серверов
+endpoints = "localhost:2379"
+# Префикс ключей флагов
+prefix = "/flags/"
+
 # Настройки Temporal
 [temporal]
 # Хост Temporal сервера

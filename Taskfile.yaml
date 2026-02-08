@@ -22,6 +22,7 @@ vars:
 
   DOCKER_COMPOSE_PATHS: |
     -f ./deployments/local/docker-compose.yml
+    -f ./deployments/local/docker-compose.etcd.yml
     -f ./deployments/local/docker-compose.temporal.yml
     -f ./deployments/local/docker-compose.metrics.yml
   #    -f ./deployments/local/docker-compose.jasper.yml

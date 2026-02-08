@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  etcd:
+    image: bitnami/etcd:3.5
+    ports:
+      - "${ETCD_PORT:-2379}:2379"
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://0.0.0.0:2379
+    volumes:
+      - ${DATA_PATH_HOST}/etcd:/bitnami/etcd/data
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge

@@ -66,6 +66,13 @@ endpoint = "otel-collector:4317"
 # Процент трейсов для сохранения (0.0–1.0)
 sample_rate = 0.1
 
+# Настройки etcd для feature flags
+[etcd]
+# Адреса etcd серверов
+endpoints = "etcd:2379"
+# Префикс ключей флагов
+prefix = "/flags/"
+
 # Настройки Temporal
 [temporal]
 # Хост Temporal сервера

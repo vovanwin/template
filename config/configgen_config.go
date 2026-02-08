@@ -22,6 +22,7 @@ type Config struct {
 	PG  PG          `toml:"PG"`
 	// Информация о приложении
 	App      App      `toml:"app"`
+	Etcd     Etcd     `toml:"etcd"`
 	Log      Log      `toml:"log"`
 	Metrics  Metrics  `toml:"metrics"`
 	Otel     Otel     `toml:"otel"`
@@ -78,6 +79,14 @@ type App struct {
 	Name string `toml:"name"`
 	// Версия приложения
 	Version string `toml:"version"`
+}
+
+// Etcd секция конфигурации
+type Etcd struct {
+	// Адреса etcd серверов
+	Endpoints string `toml:"endpoints"`
+	// Префикс ключей флагов
+	Prefix string `toml:"prefix"`
 }
 
 // Log секция конфигурации

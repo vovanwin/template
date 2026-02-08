@@ -28,11 +28,6 @@ func NewFlags(store FlagStore) *Flags {
 	return &Flags{store: store}
 }
 
-// Store возвращает бэкенд для прямого доступа (используется в UI и тестах)
-func (f *Flags) Store() FlagStore {
-	return f.store
-}
-
 // BannerText — Текст баннера
 func (f *Flags) BannerText() string {
 	return f.store.GetString("banner_text", "Welcome!")
