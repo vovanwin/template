@@ -1,0 +1,259 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "github.com/vovanwin/template/pkg/auth;auth";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// AuthService — SSO/Identity Provider
+service AuthService {
+  // Auth — регистрация и аутентификация
+  rpc Register(RegisterRequest) returns (AuthResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/register"
+      body: "*"
+    };
+  }
+
+  rpc Login(LoginRequest) returns (AuthResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/login"
+      body: "*"
+    };
+  }
+
+  rpc Logout(LogoutRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/logout"
+      body: "*"
+    };
+  }
+
+  rpc RefreshToken(RefreshTokenRequest) returns (AuthResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/refresh"
+      body: "*"
+    };
+  }
+
+  // OAuth — вход через внешних провайдеров
+  rpc OAuthURL(OAuthURLRequest) returns (OAuthURLResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/oauth/{provider}/url"
+    };
+  }
+
+  rpc OAuthCallback(OAuthCallbackRequest) returns (AuthResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/oauth/{provider}/callback"
+      body: "*"
+    };
+  }
+
+  // Account linking — привязка внешних аккаунтов (authenticated)
+  rpc LinkOAuth(OAuthCallbackRequest) returns (LinkResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/account/link/{provider}"
+      body: "*"
+    };
+  }
+
+  rpc UnlinkOAuth(UnlinkRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/api/v1/account/link/{provider}"
+    };
+  }
+
+  rpc GetLinkedAccounts(google.protobuf.Empty) returns (LinkedAccountsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/account/links"
+    };
+  }
+
+  // Profile — профиль пользователя
+  rpc GetProfile(google.protobuf.Empty) returns (ProfileResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/profile"
+    };
+  }
+
+  rpc UpdateProfile(UpdateProfileRequest) returns (ProfileResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/profile"
+      body: "*"
+    };
+  }
+
+  // Sessions — управление сессиями
+  rpc ListSessions(google.protobuf.Empty) returns (SessionsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/sessions"
+    };
+  }
+
+  rpc RevokeSession(RevokeSessionRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/api/v1/sessions/{session_id}"
+    };
+  }
+
+  // Roles & permissions — управление ролями (admin)
+  rpc AssignRole(AssignRoleRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/api/v1/roles/assign"
+      body: "*"
+    };
+  }
+
+  rpc RemoveRole(RemoveRoleRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/api/v1/roles/remove"
+      body: "*"
+    };
+  }
+
+  rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/roles/check"
+      body: "*"
+    };
+  }
+
+}
+
+// ===== Auth messages =====
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string name = 3;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message AuthResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  UserInfo user = 3;
+}
+
+// ===== OAuth messages =====
+
+message OAuthURLRequest {
+  string provider = 1;
+}
+
+message OAuthURLResponse {
+  string url = 1;
+}
+
+message OAuthCallbackRequest {
+  string provider = 1;
+  string code = 2;
+  string state = 3;
+}
+
+message LinkResponse {
+  string provider = 1;
+  string provider_id = 2;
+}
+
+message UnlinkRequest {
+  string provider = 1;
+}
+
+message LinkedAccountsResponse {
+  repeated LinkedAccount accounts = 1;
+}
+
+message LinkedAccount {
+  string provider = 1;
+  string provider_id = 2;
+  string email = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+// ===== Profile messages =====
+
+message ProfileResponse {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  string avatar_url = 4;
+  bool is_active = 5;
+  repeated string roles = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message UpdateProfileRequest {
+  string name = 1;
+  string avatar_url = 2;
+}
+
+message UserInfo {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  string avatar_url = 4;
+}
+
+// ===== Sessions messages =====
+
+message SessionsResponse {
+  repeated SessionInfo sessions = 1;
+}
+
+message SessionInfo {
+  string id = 1;
+  string ip = 2;
+  string user_agent = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp expires_at = 5;
+}
+
+message RevokeSessionRequest {
+  string session_id = 1;
+}
+
+// ===== RBAC messages =====
+
+message AssignRoleRequest {
+  string user_id = 1;
+  string role_name = 2;
+}
+
+message RemoveRoleRequest {
+  string user_id = 1;
+  string role_name = 2;
+}
+
+message CheckPermissionRequest {
+  string user_id = 1;
+  string service = 2;
+  string action = 3;
+}
+
+message CheckPermissionResponse {
+  bool allowed = 1;
+}
+
+// ===== Health messages =====
+
+message HealthResponse {
+  string status = 1;
+}

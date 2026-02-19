@@ -8,4 +8,5 @@ import (
 
 func (s *TemplateGRPCServer) GetHealth(_ context.Context, req *templatepb.GetHealthRequest) (*templatepb.GetHealthResponse, error) {
 	return &templatepb.GetHealthResponse{Status: "ok"}, nil
+
 }

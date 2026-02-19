@@ -5,7 +5,11 @@ import (
 	"log"
 
 	"github.com/vovanwin/template/config"
+	"github.com/vovanwin/template/internal/controller/auth"
 	"github.com/vovanwin/template/internal/controller/template"
+	"github.com/vovanwin/template/internal/pkg/jwt"
+	"github.com/vovanwin/template/internal/repository"
+	"github.com/vovanwin/template/internal/service"
 
 	"go.uber.org/fx"
 )
@@ -18,6 +22,7 @@ func inject(configDir string) fx.Option {
 	}
 
 	flags, closeFn := ProvideFlags(cfg)
+	jwtService := jwt.NewJWTService(cfg.JWT.SignKey, cfg.JWT.TokenTtl, cfg.JWT.RefreshTokenTtl)
 
 	return fx.Options(
 		fx.Supply(cfg),
@@ -26,16 +31,21 @@ func inject(configDir string) fx.Option {
 			ProvideLogger,
 			ProvideServerConfig,
 			ProvidePgx,
+			repository.NewUserRepo,
+			repository.NewSessionRepo,
+			service.NewAuthService,
 		),
+		fx.Supply(jwtService),
 		fx.Invoke(func(lc fx.Lifecycle) {
 			lc.Append(fx.StopHook(closeFn))
 		}),
 
 		// gRPC сервисы
 		template.Module(),
+		auth.Module(),
 
 		// Сервер (автоматически собирает все registrators)
-		ProvideServerModule(cfg, flags),
+		ProvideServerModule(cfg, flags, jwtService),
 	)
 }
 

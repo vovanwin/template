@@ -14,10 +14,13 @@ import (
 	"github.com/vovanwin/template/config"
 	"github.com/vovanwin/template/internal/pkg/etcdstore"
 	"github.com/vovanwin/template/internal/pkg/flagsui"
+	"github.com/vovanwin/template/internal/pkg/jwt"
+	authmw "github.com/vovanwin/template/internal/pkg/middleware"
 	"github.com/vovanwin/template/internal/pkg/storage/postgres"
 	"github.com/vovanwin/template/pkg"
 
 	"go.uber.org/fx"
+	"google.golang.org/grpc"
 )
 
 func ProvideLogger(cfg *config.Config, lc fx.Lifecycle) (*slog.Logger, error) {
@@ -74,11 +77,12 @@ func ProvideFlags(cfg *config.Config) (*config.Flags, func()) {
 	return config.NewFlags(config.NewMemoryStore(config.DefaultFlagValues())), func() {}
 }
 
-func ProvideServerModule(cfg *config.Config, flags *config.Flags) fx.Option {
+func ProvideServerModule(cfg *config.Config, flags *config.Flags, jwtService jwt.JWTService) fx.Option {
 	opts := []server.Option{
 		server.WithHTTPMiddleware(middleware.RequestID),
 		server.WithDebugHandler("/flags", flagsui.Handler(flags)),
 		server.WithDebugHandler("/flags/", flagsui.Handler(flags)),
+		server.WithGRPCOptions(grpc.ChainUnaryInterceptor(authmw.AuthInterceptor(jwtService))),
 	}
 
 	if cfg.Metrics.EnableMetrics {
