@@ -14,6 +14,8 @@ grpc_port = "7000"
 debug_port = "7003"
 # Порт Swagger UI
 swagger_port = "7002"
+# Разрешить обход авторизации (только для локальной разработки)
+auth_bypass = true
 
 # Уровень логирования: DEBUG, INFO, WARN, ERROR
 [log]
@@ -21,7 +23,7 @@ level = "DEBUG"
 # Формат вывода: text=false , json = true
 format = false
 # Включить отправку логов в Loki
-loki_enabled = true
+loki_enabled = false
 # URL Loki push API
 loki_url = "http://localhost:3100/loki/api/v1/push"
 

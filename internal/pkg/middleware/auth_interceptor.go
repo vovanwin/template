@@ -13,13 +13,17 @@ import (
 
 // publicMethods — методы, не требующие авторизации.
 var publicMethods = map[string]bool{
-	"/auth.AuthService/Register":     true,
-	"/auth.AuthService/Login":        true,
-	"/auth.AuthService/RefreshToken": true,
+	"/auth.v1.AuthService/Register":          true,
+	"/auth.v1.AuthService/Login":             true,
+	"/auth.v1.AuthService/RefreshToken":      true,
+	"/auth.v1.AuthService/Logout":            true,
+	"/auth.v1.AuthService/OAuthURL":          true,
+	"/auth.v1.AuthService/OAuthCallback":     true,
+	"/template.v1.TemplateService/GetHealth": true,
 }
 
 // AuthInterceptor создаёт unary gRPC interceptor для JWT авторизации.
-func AuthInterceptor(jwtService jwt.JWTService) grpc.UnaryServerInterceptor {
+func AuthInterceptor(jwtService jwt.JWTService, authBypass bool) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req interface{},
@@ -27,6 +31,13 @@ func AuthInterceptor(jwtService jwt.JWTService) grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
 		if publicMethods[info.FullMethod] {
+			return handler(ctx, req)
+		}
+
+		if authBypass {
+			// В режиме обхода авторизации прокидываем тестового пользователя
+			ctx = context.WithValue(ctx, "user_id", "00000000-0000-0000-0000-000000000000")
+			ctx = context.WithValue(ctx, "user_email", "dev@local")
 			return handler(ctx, req)
 		}
 

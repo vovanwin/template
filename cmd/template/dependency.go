@@ -82,7 +82,7 @@ func ProvideServerModule(cfg *config.Config, flags *config.Flags, jwtService jwt
 		server.WithHTTPMiddleware(middleware.RequestID),
 		server.WithDebugHandler("/flags", flagsui.Handler(flags)),
 		server.WithDebugHandler("/flags/", flagsui.Handler(flags)),
-		server.WithGRPCOptions(grpc.ChainUnaryInterceptor(authmw.AuthInterceptor(jwtService))),
+		server.WithGRPCOptions(grpc.ChainUnaryInterceptor(authmw.AuthInterceptor(jwtService, cfg.Server.AuthBypass))),
 	}
 
 	if cfg.Metrics.EnableMetrics {

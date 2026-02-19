@@ -34,8 +34,10 @@ func inject(configDir string) fx.Option {
 			repository.NewUserRepo,
 			repository.NewSessionRepo,
 			service.NewAuthService,
+			func() jwt.JWTService {
+				return jwtService
+			},
 		),
-		fx.Supply(jwtService),
 		fx.Invoke(func(lc fx.Lifecycle) {
 			lc.Append(fx.StopHook(closeFn))
 		}),

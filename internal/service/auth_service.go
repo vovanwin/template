@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vovanwin/template/internal/pkg/jwt"
-	"github.com/vovanwin/template/internal/pkg/oauth"
 	"github.com/vovanwin/template/internal/pkg/utils/hasher"
 	"github.com/vovanwin/template/internal/repository"
 )
@@ -50,8 +49,6 @@ type LinkedAccount struct {
 type AuthService struct {
 	userRepo    *repository.UserRepo
 	sessionRepo *repository.SessionRepo
-	oauthRepo   *repository.OAuthRepo
-	oauthReg    *oauth.Registry
 	jwt         jwt.JWTService
 	log         *slog.Logger
 }
@@ -59,16 +56,12 @@ type AuthService struct {
 func NewAuthService(
 	userRepo *repository.UserRepo,
 	sessionRepo *repository.SessionRepo,
-	oauthRepo *repository.OAuthRepo,
-	oauthReg *oauth.Registry,
 	jwtService jwt.JWTService,
 	log *slog.Logger,
 ) *AuthService {
 	return &AuthService{
 		userRepo:    userRepo,
 		sessionRepo: sessionRepo,
-		oauthRepo:   oauthRepo,
-		oauthReg:    oauthReg,
 		jwt:         jwtService,
 		log:         log,
 	}
@@ -297,155 +290,6 @@ func (s *AuthService) RevokeSession(ctx context.Context, userID, sessionID uuid.
 	}
 
 	return s.sessionRepo.Delete(ctx, sessionID)
-}
-
-// OAuthLogin выполняет вход/регистрацию через OAuth провайдера.
-// Если пользователь с таким провайдер-аккаунтом уже существует — авторизует.
-// Если нет — создаёт нового пользователя и привязывает аккаунт.
-func (s *AuthService) OAuthLogin(ctx context.Context, providerName, code, ip, userAgent string) (*AuthResult, error) {
-	provider, err := s.oauthReg.Get(providerName)
-	if err != nil {
-		return nil, fmt.Errorf("get provider: %w", err)
-	}
-
-	info, err := provider.ExchangeCode(ctx, code)
-	if err != nil {
-		return nil, fmt.Errorf("exchange code: %w", err)
-	}
-
-	// Ищем существующую привязку
-	oauthAcc, err := s.oauthRepo.GetByProvider(ctx, providerName, info.ID)
-	if err != nil {
-		return nil, fmt.Errorf("get oauth account: %w", err)
-	}
-
-	var user *repository.User
-
-	if oauthAcc != nil {
-		// Уже есть — берём пользователя
-		user, err = s.userRepo.GetByID(ctx, oauthAcc.UserID)
-		if err != nil {
-			return nil, fmt.Errorf("get user: %w", err)
-		}
-		if user == nil {
-			return nil, fmt.Errorf("user not found")
-		}
-		if !user.IsActive {
-			return nil, fmt.Errorf("user is deactivated")
-		}
-	} else {
-		// Пытаемся найти по email
-		if info.Email != "" {
-			user, err = s.userRepo.GetByEmail(ctx, info.Email)
-			if err != nil {
-				return nil, fmt.Errorf("get user by email: %w", err)
-			}
-		}
-
-		if user == nil {
-			// Регистрируем нового пользователя без пароля
-			user, err = s.userRepo.CreateOAuth(ctx, info.Email, info.Name)
-			if err != nil {
-				return nil, fmt.Errorf("create oauth user: %w", err)
-			}
-		}
-
-		// Привязываем OAuth аккаунт
-		if _, err = s.oauthRepo.Create(ctx, user.ID, providerName, info.ID, info.Email); err != nil {
-			return nil, fmt.Errorf("create oauth account: %w", err)
-		}
-	}
-
-	tokens, err := s.jwt.GenerateTokenPair(user.ID.String(), user.Email)
-	if err != nil {
-		return nil, fmt.Errorf("generate tokens: %w", err)
-	}
-
-	refreshHash := hashToken(tokens.RefreshToken)
-	if _, err = s.sessionRepo.Create(ctx, user.ID, refreshHash, ip, userAgent, time.Now().Add(30*24*time.Hour)); err != nil {
-		return nil, fmt.Errorf("create session: %w", err)
-	}
-
-	return &AuthResult{
-		AccessToken:  tokens.AccessToken,
-		RefreshToken: tokens.RefreshToken,
-		User:         user,
-	}, nil
-}
-
-// OAuthURL возвращает URL для редиректа на OAuth провайдера.
-func (s *AuthService) OAuthURL(providerName, state string) (string, error) {
-	provider, err := s.oauthReg.Get(providerName)
-	if err != nil {
-		return "", fmt.Errorf("get provider: %w", err)
-	}
-	return provider.GetAuthURL(state), nil
-}
-
-// OAuthLink привязывает OAuth аккаунт к существующему пользователю.
-func (s *AuthService) OAuthLink(ctx context.Context, userID uuid.UUID, providerName, code string) (*LinkedAccount, error) {
-	provider, err := s.oauthReg.Get(providerName)
-	if err != nil {
-		return nil, fmt.Errorf("get provider: %w", err)
-	}
-
-	info, err := provider.ExchangeCode(ctx, code)
-	if err != nil {
-		return nil, fmt.Errorf("exchange code: %w", err)
-	}
-
-	// Проверяем, не привязан ли уже этот провайдер к другому пользователю
-	existing, err := s.oauthRepo.GetByProvider(ctx, providerName, info.ID)
-	if err != nil {
-		return nil, fmt.Errorf("check existing link: %w", err)
-	}
-	if existing != nil {
-		if existing.UserID == userID {
-			return &LinkedAccount{
-				Provider:   existing.Provider,
-				ProviderID: existing.ProviderID,
-				Email:      existing.Email,
-				CreatedAt:  existing.CreatedAt,
-			}, nil
-		}
-		return nil, fmt.Errorf("provider account already linked to another user")
-	}
-
-	acc, err := s.oauthRepo.Create(ctx, userID, providerName, info.ID, info.Email)
-	if err != nil {
-		return nil, fmt.Errorf("create oauth account: %w", err)
-	}
-
-	return &LinkedAccount{
-		Provider:   acc.Provider,
-		ProviderID: acc.ProviderID,
-		Email:      acc.Email,
-		CreatedAt:  acc.CreatedAt,
-	}, nil
-}
-
-// OAuthUnlink отвязывает OAuth аккаунт от пользователя.
-func (s *AuthService) OAuthUnlink(ctx context.Context, userID uuid.UUID, providerName string) error {
-	return s.oauthRepo.DeleteByUserAndProvider(ctx, userID, providerName)
-}
-
-// GetLinkedAccounts возвращает список привязанных OAuth аккаунтов.
-func (s *AuthService) GetLinkedAccounts(ctx context.Context, userID uuid.UUID) ([]LinkedAccount, error) {
-	accounts, err := s.oauthRepo.ListByUserID(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("list accounts: %w", err)
-	}
-
-	result := make([]LinkedAccount, 0, len(accounts))
-	for _, a := range accounts {
-		result = append(result, LinkedAccount{
-			Provider:   a.Provider,
-			ProviderID: a.ProviderID,
-			Email:      a.Email,
-			CreatedAt:  a.CreatedAt,
-		})
-	}
-	return result, nil
 }
 
 func (s *AuthService) AssignRole(ctx context.Context, targetUserID uuid.UUID, roleName string) error {

@@ -122,6 +122,8 @@ type Rabbit struct {
 
 // Server секция конфигурации
 type Server struct {
+	// Разрешить обход авторизации (только для локальной разработки)
+	AuthBypass bool `toml:"auth_bypass"`
 	// Порт debug/pprof
 	DebugPort string `toml:"debug_port"`
 	// Окружение: local, dev, prod
