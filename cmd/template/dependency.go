@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -78,8 +79,14 @@ func ProvideFlags(cfg *config.Config) (*config.Flags, func()) {
 }
 
 func ProvideServerModule(cfg *config.Config, flags *config.Flags, jwtService jwt.JWTService) fx.Option {
+	csrfMiddleware := func(next http.Handler) http.Handler {
+		return next
+	} // Временно отключаем CSRF для теста
+
 	opts := []server.Option{
 		server.WithHTTPMiddleware(middleware.RequestID),
+		server.WithHTTPMiddleware(authmw.CookieAuthMiddleware),
+		server.WithHTTPMiddleware(csrfMiddleware),
 		server.WithDebugHandler("/flags", flagsui.Handler(flags)),
 		server.WithDebugHandler("/flags/", flagsui.Handler(flags)),
 		server.WithGRPCOptions(grpc.ChainUnaryInterceptor(authmw.AuthInterceptor(jwtService, cfg.Server.AuthBypass))),

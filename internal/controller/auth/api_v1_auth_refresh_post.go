@@ -42,7 +42,7 @@ func (s *AuthGRPCServer) RefreshToken(ctx context.Context, req *authpb.RefreshTo
 		User: &authpb.UserInfo{
 			Id:    result.User.ID.String(),
 			Email: result.User.Email,
-			Name:  result.User.Name,
+			Name:  result.User.FirstName,
 		},
 	}, nil
 }

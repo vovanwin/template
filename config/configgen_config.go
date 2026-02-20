@@ -124,6 +124,8 @@ type Rabbit struct {
 type Server struct {
 	// Разрешить обход авторизации (только для локальной разработки)
 	AuthBypass bool `toml:"auth_bypass"`
+	// Ключ для CSRF защиты (32 байта для продакшена)
+	CsrfKey string `toml:"csrf_key"`
 	// Порт debug/pprof
 	DebugPort string `toml:"debug_port"`
 	// Окружение: local, dev, prod

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/vovanwin/template/internal/pkg/events"
 	"github.com/vovanwin/template/internal/pkg/jwt"
 	"github.com/vovanwin/template/internal/pkg/utils/hasher"
 	"github.com/vovanwin/template/internal/repository"
@@ -50,6 +51,7 @@ type AuthService struct {
 	userRepo    *repository.UserRepo
 	sessionRepo *repository.SessionRepo
 	jwt         jwt.JWTService
+	bus         *events.Bus
 	log         *slog.Logger
 }
 
@@ -57,12 +59,14 @@ func NewAuthService(
 	userRepo *repository.UserRepo,
 	sessionRepo *repository.SessionRepo,
 	jwtService jwt.JWTService,
+	bus *events.Bus,
 	log *slog.Logger,
 ) *AuthService {
 	return &AuthService{
 		userRepo:    userRepo,
 		sessionRepo: sessionRepo,
 		jwt:         jwtService,
+		bus:         bus,
 		log:         log,
 	}
 }
@@ -134,6 +138,13 @@ func (s *AuthService) Login(ctx context.Context, email, password, ip, userAgent 
 	if err != nil {
 		return nil, fmt.Errorf("create session: %w", err)
 	}
+
+	// Отправляем уведомление пользователю
+	_ = s.bus.Publish(events.Event{
+		UserID:  user.ID.String(),
+		Message: fmt.Sprintf("👋 Привет, %s! Успешный вход в систему.", user.FirstName),
+		Type:    "success",
+	})
 
 	return &AuthResult{
 		AccessToken:  tokens.AccessToken,
@@ -214,7 +225,7 @@ func (s *AuthService) GetProfile(ctx context.Context, userID uuid.UUID) (*Profil
 	return &Profile{
 		ID:        user.ID,
 		Email:     user.Email,
-		Name:      user.Name,
+		Name:      user.FirstName,
 		AvatarURL: user.AvatarURL,
 		Role:      user.Role,
 		IsActive:  user.IsActive,
@@ -243,7 +254,7 @@ func (s *AuthService) UpdateProfile(ctx context.Context, userID uuid.UUID, name,
 	return &Profile{
 		ID:        user.ID,
 		Email:     user.Email,
-		Name:      user.Name,
+		Name:      user.FirstName,
 		AvatarURL: user.AvatarURL,
 		Role:      user.Role,
 		IsActive:  user.IsActive,

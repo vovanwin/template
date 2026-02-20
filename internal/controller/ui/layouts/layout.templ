@@ -1,0 +1,71 @@
+package layouts
+
+templ Layout(title string, content templ.Component, csrfToken string) {
+	<!DOCTYPE html>
+	<html lang="ru">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title }</title>
+			
+			<!-- HTMX -->
+			<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+			<script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
+			<script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+			
+			<!-- Tailwind CSS -->
+			<script src="https://cdn.tailwindcss.com"></script>
+			
+			<meta name="csrf-token" content={ csrfToken }/>
+		</head>
+		<body class="bg-gray-50 font-sans">
+			<nav class="bg-white shadow-sm mb-8 border-b">
+				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+					<div class="flex justify-between h-16">
+						<div class="flex items-center">
+							<a href="/" class="text-xl font-bold text-indigo-600 tracking-tight">Template App</a>
+						</div>
+						<div class="flex items-center space-x-4">
+							<a href="/login" class="text-gray-600 hover:text-gray-900 font-medium">Войти</a>
+							<a href="/register" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all shadow-sm">Регистрация</a>
+						</div>
+					</div>
+				</div>
+			</nav>
+
+			<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+				@content
+			</main>
+
+			<!-- Глобальный контейнер для уведомлений (включая SSE) -->
+			<div id="notifications" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2">
+				<div id="sse-status" hx-ext="sse" sse-connect="/api/v1/events" sse-swap="message">
+					<!-- Сюда будут падать сообщения от сервера -->
+				</div>
+			</div>
+
+			<script>
+				// 1. Прокидываем CSRF во все запросы HTMX
+				document.addEventListener('htmx:configRequest', (event) => {
+					const meta = document.querySelector('meta[name="csrf-token"]');
+					if (meta) {
+						event.detail.headers['X-CSRF-Token'] = meta.content;
+					}
+				});
+
+				// 2. Глобальная обработка ошибок
+				document.addEventListener('htmx:responseError', (event) => {
+					const status = event.detail.xhr.status;
+					const target = event.detail.target;
+					const errorMsg = event.detail.xhr.responseText || "Ошибка";
+					
+					console.error("HTMX Error:", status, errorMsg);
+
+					if (target && target.id === 'login-message') {
+						target.innerHTML = `<div class='text-red-600 bg-red-50 p-3 rounded-lg border border-red-200'>❌ ${errorMsg}</div>`;
+					}
+				});
+			</script>
+		</body>
+	</html>
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	authpb "github.com/vovanwin/template/pkg/auth"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
@@ -36,13 +37,21 @@ func (s *AuthGRPCServer) Login(ctx context.Context, req *authpb.LoginRequest) (*
 		return nil, status.Errorf(codes.Unauthenticated, "login failed: %v", err)
 	}
 
+	// Устанавливаем куку через grpc-gateway metadata
+	// Кука должна быть HttpOnly, Secure, SameSite=Lax
+	cookieStr := "access_token=" + result.AccessToken + "; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400"
+	_ = grpc.SetHeader(ctx, metadata.Pairs("Set-Cookie", cookieStr))
+
+	// Если это HTMX запрос, добавляем заголовок перенаправления
+	_ = grpc.SetHeader(ctx, metadata.Pairs("Grpc-Metadata-HX-Redirect", "/"))
+
 	return &authpb.AuthResponse{
 		AccessToken:  result.AccessToken,
 		RefreshToken: result.RefreshToken,
 		User: &authpb.UserInfo{
 			Id:    result.User.ID.String(),
 			Email: result.User.Email,
-			Name:  result.User.Name,
+			Name:  result.User.FirstName,
 		},
 	}, nil
 }

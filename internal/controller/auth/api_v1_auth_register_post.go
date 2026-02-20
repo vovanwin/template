@@ -25,7 +25,7 @@ func (s *AuthGRPCServer) Register(ctx context.Context, req *authpb.RegisterReque
 		User: &authpb.UserInfo{
 			Id:    result.User.ID.String(),
 			Email: result.User.Email,
-			Name:  result.User.Name,
+			Name:  result.User.FirstName,
 		},
 	}, nil
 }

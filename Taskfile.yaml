@@ -19,6 +19,7 @@ vars:
     github.com/vovanwin/configgen/cmd/configgen@v0.2.0
     github.com/vovanwin/platform/protogen/cmd/protogen@v0.4.2
     github.com/cludden/protoc-gen-go-temporal/cmd/protoc-gen-go_temporal@v1.22.0
+    github.com/a-h/templ/cmd/templ@latest
 
   DOCKER_COMPOSE_PATHS: |
     -f ./deployments/local/docker-compose.yml
@@ -54,6 +55,7 @@ vars:
   GOOSE: "{{.BIN_DIR}}/goose"
   CONFIGGEN: "{{.BIN_DIR}}/configgen"
   PROTOGEN: "{{.BIN_DIR}}/protogen"
+  TEMPL: "{{.BIN_DIR}}/templ"
 
   SERVICES: app
 
@@ -62,7 +64,7 @@ vars:
   DB_PORT: '{{.APP_PORT_PG | default "5432"}}'
   DB_USER: '{{.APP_USER_PG | default "postgres"}}'
   DB_PASSWORD: '{{.APP_PASSWORD_PG | default "postgres"}}'
-  DB_NAME: '{{.APP_DBNAME_PG | default "mymeetbot"}}'
+  DB_NAME: '{{.APP_DBNAME_PG | default "template"}}'
   DB_SCHEMA: '{{.APP_SCHEME_PG | default "public"}}'
   DB_DSN: 'postgres://{{.DB_USER}}:{{.DB_PASSWORD}}@{{.DB_HOST}}:{{.DB_PORT}}/{{.DB_NAME}}?sslmode=disable&search_path={{.DB_SCHEMA}}'
 
@@ -242,6 +244,12 @@ tasks:
       - task: proto:gen
       - task: proto:controllers
       - task: generate-config
+      - task: templ:gen
+
+  templ:gen:
+    desc: Генерация Go-кода из templ файлов
+    cmds:
+      - '{{.TEMPL}} generate'
 
   run:
     desc: Сборка и запуск приложения

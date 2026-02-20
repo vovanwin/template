@@ -15,7 +15,7 @@ type User struct {
 	ID           uuid.UUID
 	Email        string
 	PasswordHash string
-	Name         string
+	FirstName    string
 	AvatarURL    string
 	Role         string
 	IsActive     bool
@@ -44,7 +44,7 @@ func (r *UserRepo) Create(ctx context.Context, email, passwordHash, name string)
 
 	var u User
 	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(
-		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.AvatarURL,
+		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.AvatarURL,
 		&u.Role, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
@@ -67,7 +67,7 @@ func (r *UserRepo) CreateOAuth(ctx context.Context, email, name string) (*User, 
 
 	var u User
 	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(
-		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.AvatarURL,
+		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.AvatarURL,
 		&u.Role, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
@@ -78,7 +78,7 @@ func (r *UserRepo) CreateOAuth(ctx context.Context, email, name string) (*User, 
 
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*User, error) {
 	query, args, err := r.pg.Builder.
-		Select("id", "email", "password_hash", "COALESCE(name, '')", "COALESCE(avatar_url, '')", "role", "is_active", "created_at", "updated_at").
+		Select("id", "email", "password_hash", "COALESCE(first_name, '')", "role", "is_active", "created_at", "updated_at").
 		From("users").
 		Where(squirrel.Eq{"email": email}).
 		ToSql()
@@ -88,7 +88,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*User, error) 
 
 	var u User
 	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(
-		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.AvatarURL,
+		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName,
 		&u.Role, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
@@ -102,7 +102,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*User, error) 
 
 func (r *UserRepo) GetByID(ctx context.Context, id uuid.UUID) (*User, error) {
 	query, args, err := r.pg.Builder.
-		Select("id", "email", "password_hash", "COALESCE(name, '')", "COALESCE(avatar_url, '')", "role", "is_active", "created_at", "updated_at").
+		Select("id", "email", "password_hash", "COALESCE(name, '')", "role", "is_active", "created_at", "updated_at").
 		From("users").
 		Where(squirrel.Eq{"id": id}).
 		ToSql()
@@ -112,7 +112,7 @@ func (r *UserRepo) GetByID(ctx context.Context, id uuid.UUID) (*User, error) {
 
 	var u User
 	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(
-		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.AvatarURL,
+		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName,
 		&u.Role, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
@@ -138,7 +138,7 @@ func (r *UserRepo) SetRole(ctx context.Context, id uuid.UUID, role string) (*Use
 
 	var u User
 	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(
-		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.AvatarURL,
+		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.AvatarURL,
 		&u.Role, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
@@ -165,7 +165,7 @@ func (r *UserRepo) Update(ctx context.Context, id uuid.UUID, fields map[string]i
 
 	var u User
 	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(
-		&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.AvatarURL,
+		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.AvatarURL,
 		&u.Role, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {

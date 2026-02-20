@@ -16,6 +16,8 @@ debug_port = "7003"
 swagger_port = "7002"
 # Разрешить обход авторизации (только для локальной разработки)
 auth_bypass = false
+# Ключ для CSRF защиты (32 байта для продакшена)
+csrf_key = "change-me-in-production-env-32bt"
 
 # Уровень логирования: DEBUG, INFO, WARN, ERROR
 [log]

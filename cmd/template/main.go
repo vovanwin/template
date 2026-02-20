@@ -7,6 +7,8 @@ import (
 	"github.com/vovanwin/template/config"
 	"github.com/vovanwin/template/internal/controller/auth"
 	"github.com/vovanwin/template/internal/controller/template"
+	"github.com/vovanwin/template/internal/controller/ui"
+	"github.com/vovanwin/template/internal/pkg/events"
 	"github.com/vovanwin/template/internal/pkg/jwt"
 	"github.com/vovanwin/template/internal/repository"
 	"github.com/vovanwin/template/internal/service"
@@ -23,10 +25,12 @@ func inject(configDir string) fx.Option {
 
 	flags, closeFn := ProvideFlags(cfg)
 	jwtService := jwt.NewJWTService(cfg.JWT.SignKey, cfg.JWT.TokenTtl, cfg.JWT.RefreshTokenTtl)
+	eventBus := events.NewBus()
 
 	return fx.Options(
 		fx.Supply(cfg),
 		fx.Supply(flags),
+		fx.Supply(eventBus),
 		fx.Provide(
 			ProvideLogger,
 			ProvideServerConfig,
@@ -45,6 +49,7 @@ func inject(configDir string) fx.Option {
 		// gRPC сервисы
 		template.Module(),
 		auth.Module(),
+		ui.Module(),
 
 		// Сервер (автоматически собирает все registrators)
 		ProvideServerModule(cfg, flags, jwtService),

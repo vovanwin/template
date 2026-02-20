@@ -1,32 +1,54 @@
+# Константные значения общие для всех окружений
+app:
+  name: "template"
+  version: "1.0.0"
 
 server:
-  host: localhost
-  port: 8080
-  env: dev # prod dev local
-  context_timeout: 1m
-  read_header_timeout: 60s
-  grace_ful_timeout: 8s
+  host: "localhost"
+  port: "7001"
+  env: "local"
+  http_port: "7001"
+  grpc_port: "7000"
+  debug_port: "7003"
+  swagger_port: "7002"
+  auth_bypass: true
+  csrf_key: "32-byte-long-auth-key-for-local-dev"
 
 log:
-  level: 'DEBUG' # DEBUG INFO WARN ERROR
+  level: "DEBUG"
+  format: false
+  loki_enabled: true
+  loki_url: "http://localhost:3100/loki/api/v1/push"
+
+metrics:
+  enable_metrics: true
 
 PG:
-  host: localhost
-  port: 5432
-  user: default
-  password: secret
-  scheme: public
-  db: rcomv
+  host: "localhost"
+  port: "5432"
+  user: "postgres"
+  password: "password"
+  scheme: "public"
+  db: "template"
 
 rabbit:
-  amqp_url: amqp://guest:guest@localhost:5672
+  amqp_url: "amqp://guest:guest@localhost:5672"
 
 JWT:
-  token_ttl: 20000m
-  refresh_token_ttl: 20000m
-  sign_key: secret
+  sign_key: "secret"
+  token_ttl: "20000m"
+  refresh_token_ttl: "20000m"
 
-jasperAPI:
-  host: http://localhost:80
-  login: jasperadmin1
-  password: bitnami
+otel:
+  endpoint: "localhost:4317"
+  sample_rate: 1.0
+
+etcd:
+  endpoints: "localhost:2379"
+  prefix: "/flags/"
+
+temporal:
+  host: "localhost"
+  port: 7233
+  namespace: "default"
+  task_queue: "default-task-queue"

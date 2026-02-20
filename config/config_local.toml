@@ -15,7 +15,9 @@ debug_port = "7003"
 # Порт Swagger UI
 swagger_port = "7002"
 # Разрешить обход авторизации (только для локальной разработки)
-auth_bypass = true
+auth_bypass = false
+# Ключ для CSRF защиты (32 байта для продакшена)
+csrf_key = "01234567890123456789012345678901"
 
 # Уровень логирования: DEBUG, INFO, WARN, ERROR
 [log]
@@ -30,7 +32,7 @@ loki_url = "http://localhost:3100/loki/api/v1/push"
 # Переключатели функций
 [metrics]
 # Включить сбор метрик
-enable_metrics = true
+enable_metrics = false
 
 
 # Подключение к PostgreSQL
