@@ -10,7 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "github.com/vovanwin/template/internal/controller/ui/layouts"
 
-func LoginPage(csrfToken string) templ.Component {
+func SettingsPage(csrfToken string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -31,7 +31,7 @@ func LoginPage(csrfToken string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = layouts.Layout("Вход в систему", loginForm(), csrfToken).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layouts.AuthedLayout("Настройки", "/settings", settingsContent(), csrfToken).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -39,7 +39,7 @@ func LoginPage(csrfToken string) templ.Component {
 	})
 }
 
-func loginForm() templ.Component {
+func settingsContent() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -60,7 +60,7 @@ func loginForm() templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-md mx-auto bg-white p-8 border border-gray-200 rounded-xl shadow-lg\"><h2 class=\"text-2xl font-bold mb-6 text-center text-gray-800\">Вход в аккаунт</h2><form hx-post=\"/login\" hx-target=\"#login-message\" hx-swap=\"innerHTML\" hx-ext=\"json-enc\" class=\"space-y-4\"><div><label class=\"block text-sm font-medium text-gray-700 mb-1\">Email</label> <input type=\"email\" name=\"email\" placeholder=\"your@email.com\" required class=\"w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all\"></div><div><label class=\"block text-sm font-medium text-gray-700 mb-1\">Пароль</label> <input type=\"password\" name=\"password\" placeholder=\"********\" required class=\"w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all\"></div><button type=\"submit\" class=\"w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors shadow-sm\">Войти</button><div id=\"login-message\" class=\"mt-4 text-center\"></div></form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-2xl space-y-6\"><div class=\"bg-white rounded-xl shadow-sm p-6 border border-gray-200\"><h2 class=\"text-lg font-semibold text-gray-800 mb-2\">Настройки</h2><p class=\"text-gray-500 text-sm\">Раздел в разработке.</p></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

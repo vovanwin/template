@@ -49,7 +49,7 @@ func Layout(title string, content templ.Component, csrfToken string) templ.Compo
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(csrfToken)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/layouts/layout.templ`, Line: 18, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/layouts/layout.templ`, Line: 19, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -63,7 +63,7 @@ func Layout(title string, content templ.Component, csrfToken string) templ.Compo
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</main><!-- Глобальный контейнер для уведомлений (включая SSE) --><div id=\"notifications\" class=\"fixed bottom-4 right-4 z-50 flex flex-col space-y-2\"><div id=\"sse-status\" hx-ext=\"sse\" sse-connect=\"/api/v1/events\" sse-swap=\"message\"><!-- Сюда будут падать сообщения от сервера --></div></div><script>\n\t\t\t\t// 1. Прокидываем CSRF во все запросы HTMX\n\t\t\t\tdocument.addEventListener('htmx:configRequest', (event) => {\n\t\t\t\t\tconst meta = document.querySelector('meta[name=\"csrf-token\"]');\n\t\t\t\t\tif (meta && meta.content) {\n\t\t\t\t\t\tevent.detail.headers['X-CSRF-Token'] = meta.content;\n\t\t\t\t\t} else {\n\t\t\t\t\t\tconsole.warn(\"CSRF Token meta tag not found!\");\n\t\t\t\t\t}\n\t\t\t\t});\n\n\t\t\t\t// 2. Глобальная обработка ошибок\n\t\t\t\tdocument.addEventListener('htmx:responseError', (event) => {\n\t\t\t\t\tconst status = event.detail.xhr.status;\n\t\t\t\t\tconst target = event.detail.target;\n\t\t\t\t\tconst errorMsg = event.detail.xhr.responseText || \"Ошибка на сервере\";\n\t\t\t\t\t\n\t\t\t\t\tconsole.error(\"HTMX Error:\", status, errorMsg);\n\n\t\t\t\t\tif (target && target.id === 'login-message') {\n\t\t\t\t\t\ttarget.innerHTML = `<div class='text-red-600 bg-red-50 p-3 rounded-lg border border-red-200'>❌ ${errorMsg}</div>`;\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t</script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</main><!-- Глобальный контейнер для уведомлений (включая SSE) --><div id=\"notifications\" class=\"fixed bottom-4 right-4 z-50 flex flex-col space-y-2\"><div id=\"sse-status\" hx-ext=\"sse\" sse-connect=\"/api/v1/events\" sse-swap=\"message\"><!-- Сюда будут падать сообщения от сервера --></div></div><script>\n\t\t\t\t// 1. Прокидываем CSRF во все запросы HTMX\n\t\t\t\tdocument.addEventListener('htmx:configRequest', (event) => {\n\t\t\t\t\tconst meta = document.querySelector('meta[name=\"csrf-token\"]');\n\t\t\t\t\tif (meta) {\n\t\t\t\t\t\tevent.detail.headers['X-CSRF-Token'] = meta.content;\n\t\t\t\t\t}\n\t\t\t\t});\n\n\t\t\t\t// 2. Глобальная обработка ошибок\n\t\t\t\tdocument.addEventListener('htmx:responseError', (event) => {\n\t\t\t\t\tconst status = event.detail.xhr.status;\n\t\t\t\t\tconst target = event.detail.target;\n\t\t\t\t\tconst errorMsg = event.detail.xhr.responseText || \"Ошибка\";\n\t\t\t\t\t\n\t\t\t\t\tconsole.error(\"HTMX Error:\", status, errorMsg);\n\n\t\t\t\t\tif (target && target.id === 'login-message') {\n\t\t\t\t\t\ttarget.innerHTML = `<div class='text-red-600 bg-red-50 p-3 rounded-lg border border-red-200'>❌ ${errorMsg}</div>`;\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t</script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

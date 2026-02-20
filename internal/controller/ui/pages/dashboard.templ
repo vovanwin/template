@@ -1,0 +1,43 @@
+package pages
+
+import "github.com/vovanwin/template/internal/controller/ui/layouts"
+
+templ DashboardPage(csrfToken string) {
+	@layouts.AuthedLayout("Дашборд", "/dashboard", dashboardContent(), csrfToken)
+}
+
+templ dashboardContent() {
+	<div class="space-y-6">
+		<!-- Карточки со статистикой (заглушки) -->
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+			@statCard("Пользователей", "—", "👥", "indigo")
+			@statCard("Активных сессий", "—", "🔐", "green")
+			@statCard("SSE-подписчиков", "—", "📡", "purple")
+		</div>
+		<!-- Приветственный блок -->
+		<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+			<h2 class="text-lg font-semibold text-gray-800 mb-2">Добро пожаловать!</h2>
+			<p class="text-gray-500 text-sm">
+				Это главная страница вашего приложения. Здесь будут отображаться
+				ключевые метрики и последние события.
+			</p>
+		</div>
+		<!-- Заглушка последних событий -->
+		<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+			<h2 class="text-lg font-semibold text-gray-800 mb-4">Последние события</h2>
+			<div class="text-gray-400 text-sm text-center py-8">
+				Нет событий для отображения
+			</div>
+		</div>
+	</div>
+}
+
+templ statCard(label, value, icon, color string) {
+	<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 flex items-center gap-4">
+		<div class="text-4xl">{ icon }</div>
+		<div>
+			<p class="text-sm text-gray-500">{ label }</p>
+			<p class="text-2xl font-bold text-gray-800">{ value }</p>
+		</div>
+	</div>
+}

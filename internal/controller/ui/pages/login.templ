@@ -10,9 +10,9 @@ templ loginForm() {
 	<div class="max-w-md mx-auto bg-white p-8 border border-gray-200 rounded-xl shadow-lg">
 		<h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Вход в аккаунт</h2>
 		
-		<form 
-			hx-post="/api/v1/auth/login" 
-			hx-target="#login-message" 
+		<form
+			hx-post="/login"
+			hx-target="#login-message"
 			hx-swap="innerHTML"
 			hx-ext="json-enc"
 			class="space-y-4"

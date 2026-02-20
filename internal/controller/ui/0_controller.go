@@ -2,56 +2,204 @@ package ui
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 
 	"github.com/a-h/templ"
+	"github.com/google/uuid"
 	"github.com/gorilla/csrf"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/vovanwin/platform/server"
-	"github.com/vovanwin/template/internal/controller/ui/layouts"
 	"github.com/vovanwin/template/internal/controller/ui/pages"
 	"github.com/vovanwin/template/internal/pkg/events"
+	"github.com/vovanwin/template/internal/pkg/jwt"
+	"github.com/vovanwin/template/internal/service"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 )
 
 type UIController struct {
-	bus *events.Bus
+	bus         *events.Bus
+	authService *service.AuthService
+	jwtService  jwt.JWTService
+	log         *slog.Logger
 }
 
-func NewUIController(bus *events.Bus) *UIController {
+type Deps struct {
+	fx.In
+	Bus         *events.Bus
+	AuthService *service.AuthService
+	JWTService  jwt.JWTService
+	Log         *slog.Logger
+}
+
+func NewUIController(deps Deps) *UIController {
 	return &UIController{
-		bus: bus,
+		bus:         deps.Bus,
+		authService: deps.AuthService,
+		jwtService:  deps.JWTService,
+		log:         deps.Log,
 	}
 }
 
+// extractUser достаёт userID и email из JWT-куки. Возвращает false если не авторизован.
+func (c *UIController) extractUser(r *http.Request) (userID, email string, ok bool) {
+	cookie, err := r.Cookie("access_token")
+	if err != nil || cookie.Value == "" {
+		return "", "", false
+	}
+	claims, err := c.jwtService.ValidateToken(cookie.Value)
+	if err != nil || claims.TokenType != "access" {
+		return "", "", false
+	}
+	return claims.UserID, claims.UserEmail, true
+}
+
+// requireAuth редиректит на /login если пользователь не авторизован.
+// Возвращает true если обработчик должен прекратить работу.
+func (c *UIController) requireAuth(w http.ResponseWriter, r *http.Request) (userID string, stop bool) {
+	uid, _, ok := c.extractUser(r)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return "", true
+	}
+	return uid, false
+}
+
 func (c *UIController) RegisterRoutes(ctx context.Context, mux *runtime.ServeMux, _ *grpc.Server) error {
-	// SSE события
 	if err := c.RegisterEvents(mux); err != nil {
 		return err
 	}
 
-	// Маршруты для страниц (через стандартный Handle)
-	err := mux.HandlePath("GET", "/login", func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
-		token := csrf.Token(r)
-		slog.Debug("Generated CSRF Token", slog.String("path", "/login"), slog.Int("token_len", len(token)))
-		templ.Handler(pages.LoginPage(token)).ServeHTTP(w, r)
-	})
-	if err != nil {
-		return err
+	routes := []struct {
+		method  string
+		pattern string
+		handler func(http.ResponseWriter, *http.Request, map[string]string)
+	}{
+		{"GET", "/", c.handleIndex},
+		{"GET", "/login", c.handleLoginPage},
+		{"POST", "/login", c.handleLoginSubmit},
+		{"GET", "/logout", c.handleLogout},
+		{"GET", "/dashboard", c.handleDashboard},
+		{"GET", "/profile", c.handleProfile},
+		{"GET", "/settings", c.handleSettings},
 	}
 
-	err = mux.HandlePath("GET", "/", func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
-		// Главная страница
-		token := csrf.Token(r)
-		templ.Handler(layouts.Layout("Главная", templ.Raw("<h1 class='text-3xl font-bold text-gray-800'>Добро пожаловать в Template App!</h1>"), token)).ServeHTTP(w, r)
-	})
-	if err != nil {
-		return err
+	for _, r := range routes {
+		r := r // захват для замыкания
+		if err := mux.HandlePath(r.method, r.pattern, r.handler); err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+// handleIndex — редирект в зависимости от состояния авторизации.
+func (c *UIController) handleIndex(w http.ResponseWriter, r *http.Request, _ map[string]string) {
+	if _, _, ok := c.extractUser(r); ok {
+		http.Redirect(w, r, "/dashboard", http.StatusFound)
+	} else {
+		http.Redirect(w, r, "/login", http.StatusFound)
+	}
+}
+
+// handleLoginPage — форма входа (GET /login).
+func (c *UIController) handleLoginPage(w http.ResponseWriter, r *http.Request, _ map[string]string) {
+	if _, _, ok := c.extractUser(r); ok {
+		http.Redirect(w, r, "/dashboard", http.StatusFound)
+		return
+	}
+	templ.Handler(pages.LoginPage(csrf.Token(r))).ServeHTTP(w, r)
+}
+
+// handleLoginSubmit — POST /login: прямой вызов сервиса, установка куки, HTMX-редирект.
+func (c *UIController) handleLoginSubmit(w http.ResponseWriter, r *http.Request, _ map[string]string) {
+	var req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		return
+	}
+
+	result, err := c.authService.Login(r.Context(), req.Email, req.Password, r.RemoteAddr, r.UserAgent())
+	if err != nil {
+		c.log.Debug("login failed", slog.String("email", req.Email), slog.Any("err", err))
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte("Неверный email или пароль"))
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    result.AccessToken,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   86400,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    result.RefreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   30 * 24 * 3600,
+	})
+
+	w.Header().Set("HX-Redirect", "/dashboard")
+	w.WriteHeader(http.StatusOK)
+}
+
+// handleLogout — сбрасывает куки и редиректит на /login.
+func (c *UIController) handleLogout(w http.ResponseWriter, r *http.Request, _ map[string]string) {
+	for _, name := range []string{"access_token", "refresh_token"} {
+		http.SetCookie(w, &http.Cookie{Name: name, Value: "", Path: "/", MaxAge: -1})
+	}
+	http.Redirect(w, r, "/login", http.StatusFound)
+}
+
+// handleDashboard — главная страница пользователя (GET /dashboard).
+func (c *UIController) handleDashboard(w http.ResponseWriter, r *http.Request, _ map[string]string) {
+	if _, stop := c.requireAuth(w, r); stop {
+		return
+	}
+	templ.Handler(pages.DashboardPage(csrf.Token(r))).ServeHTTP(w, r)
+}
+
+// handleProfile — страница профиля (GET /profile).
+func (c *UIController) handleProfile(w http.ResponseWriter, r *http.Request, _ map[string]string) {
+	userIDStr, stop := c.requireAuth(w, r)
+	if stop {
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Ошибка авторизации", http.StatusInternalServerError)
+		return
+	}
+
+	profile, err := c.authService.GetProfile(r.Context(), userID)
+	if err != nil {
+		c.log.Error("get profile", slog.Any("err", err))
+		http.Error(w, "Ошибка загрузки профиля", http.StatusInternalServerError)
+		return
+	}
+
+	templ.Handler(pages.ProfilePage(profile, csrf.Token(r))).ServeHTTP(w, r)
+}
+
+// handleSettings — страница настроек (GET /settings).
+func (c *UIController) handleSettings(w http.ResponseWriter, r *http.Request, _ map[string]string) {
+	if _, stop := c.requireAuth(w, r); stop {
+		return
+	}
+	templ.Handler(pages.SettingsPage(csrf.Token(r))).ServeHTTP(w, r)
 }
 
 // Module возвращает fx.Option для подключения UI контроллера.

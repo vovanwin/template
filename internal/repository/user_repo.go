@@ -78,7 +78,7 @@ func (r *UserRepo) CreateOAuth(ctx context.Context, email, name string) (*User, 
 
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*User, error) {
 	query, args, err := r.pg.Builder.
-		Select("id", "email", "password_hash", "COALESCE(first_name, '')", "role", "is_active", "created_at", "updated_at").
+		Select("id", "email", "password_hash", "COALESCE(name, '')", "COALESCE(avatar_url, '')", "role", "is_active", "created_at", "updated_at").
 		From("users").
 		Where(squirrel.Eq{"email": email}).
 		ToSql()
@@ -88,7 +88,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*User, error) 
 
 	var u User
 	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(
-		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName,
+		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.AvatarURL,
 		&u.Role, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
