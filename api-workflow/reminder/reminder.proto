@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package reminder.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "temporal/v1/temporal.proto";
+
+// Reminder сервис напоминаний через Temporal
+service Reminder {
+  option (temporal.v1.service) = {
+    task_queue: "reminder-v1"
+  };
+
+  // ScheduleReminder запускает workflow, который ждёт до remind_at и отправляет уведомление
+  rpc ScheduleReminder(ScheduleReminderRequest) returns (ScheduleReminderResponse) {
+    option (temporal.v1.workflow) = {
+      execution_timeout: { seconds: 2592000 }
+      id: 'reminder/${! id }'
+      signal: { ref: "CancelReminder" }
+      query: { ref: "GetReminderStatus" }
+    };
+  }
+
+  // SendTelegramNotification activity — отправляет сообщение в Telegram
+  rpc SendTelegramNotification(SendTelegramNotificationRequest) returns (google.protobuf.Empty) {
+    option (temporal.v1.activity) = {
+      start_to_close_timeout: { seconds: 30 }
+      retry_policy: {
+        max_attempts: 5
+      }
+    };
+  }
+
+  // CancelReminder сигнал для отмены напоминания
+  rpc CancelReminder(google.protobuf.Empty) returns (google.protobuf.Empty) {
+    option (temporal.v1.signal) = {};
+  }
+
+  // GetReminderStatus запрос текущего статуса напоминания
+  rpc GetReminderStatus(google.protobuf.Empty) returns (GetReminderStatusResponse) {
+    option (temporal.v1.query) = {};
+  }
+}
+
+// ScheduleReminderRequest входные данные для создания напоминания
+message ScheduleReminderRequest {
+  // Уникальный ID напоминания
+  string id = 1;
+  // ID пользователя
+  string user_id = 2;
+  // Заголовок напоминания
+  string title = 3;
+  // Описание напоминания
+  string description = 4;
+  // Время, когда нужно напомнить
+  google.protobuf.Timestamp remind_at = 5;
+  // Chat ID в Telegram для отправки уведомления
+  int64 telegram_chat_id = 6;
+}
+
+// ScheduleReminderResponse результат создания напоминания
+message ScheduleReminderResponse {
+  // ID workflow в Temporal
+  string workflow_id = 1;
+  // Текущий статус
+  string status = 2;
+}
+
+// SendTelegramNotificationRequest входные данные для отправки уведомления
+message SendTelegramNotificationRequest {
+  // Chat ID в Telegram
+  int64 chat_id = 1;
+  // Заголовок
+  string title = 2;
+  // Описание
+  string description = 3;
+}
+
+// GetReminderStatusResponse текущий статус напоминания
+message GetReminderStatusResponse {
+  // Статус: pending, sent, cancelled
+  string status = 1;
+}

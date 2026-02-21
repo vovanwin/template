@@ -3,6 +3,7 @@ services:
   temporal:
     image: temporalio/auto-setup:1.24.2
     environment:
+      - TZ=Europe/Moscow
       - DB=postgres12_pgx
       - DB_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -20,6 +21,7 @@ services:
   temporal-ui:
     image: temporalio/ui:2.26.0
     environment:
+      - TZ=Europe/Moscow
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_CORS_ORIGINS=http://localhost:8084,http://localhost:8090
     depends_on:

@@ -55,6 +55,11 @@ func (w *Worker) RegisterActivityWithName(activity interface{}, name string) {
 
 }
 
+// GetRegistry возвращает реестр для регистрации воркфлоу и активностей
+func (w *Worker) GetRegistry() worker.Worker {
+	return w.temporalWorker
+}
+
 // Start запускает воркер
 func (w *Worker) Start(ctx context.Context) error {
 

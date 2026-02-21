@@ -1,6 +1,6 @@
 # Template
 
-Шаблон Go-сервиса: gRPC + HTTP gateway, PostgreSQL, OpenTelemetry (трейсы + метрики), Temporal workflows.
+Шаблон Go-сервиса: gRPC + HTTP gateway + Web UI (HTMX + Templ), PostgreSQL, OpenTelemetry (трейсы + метрики), Temporal workflows.
 
 ## Требования
 
@@ -11,11 +11,11 @@
 ## Быстрый старт
 
 ```bash
-# 1. Установить инструменты (buf, goose, configgen, protogen и т.д.)
+# 1. Установить инструменты (buf, goose, templ, configgen, protogen и т.д.)
 task install
 
-# 2. Создать .env в deployments/local/
-cp deployments/local/.env.example deployments/local/.env
+# 2. Создать .env файл для docker-compose
+cp .env_example .env
 
 # 3. Поднять PostgreSQL + Temporal
 task deps
@@ -31,7 +31,7 @@ task run
 
 | Сервис | Адрес |
 |--------|-------|
-| HTTP gateway | `http://localhost:7001` |
+| Web UI | `http://localhost:7001` |
 | gRPC | `localhost:7000` |
 | Swagger UI | `http://localhost:7002` |
 | Debug (pprof) | `http://localhost:7003/debug/pprof/` |
@@ -76,17 +76,20 @@ endpoint = "localhost:4317"
 ## Структура проекта
 
 ```
-├── api/                    # Proto-файлы и buf конфигурация
+├── api/                    # Proto-файлы для gRPC API (buf)
+├── api-workflow/           # Proto-файлы для Temporal Workflows
 ├── cmd/template/           # Точка входа: main.go, dependency.go
 ├── config/                 # TOML конфиги + сгенерированные Go-структуры
-├── deployments/local/      # Docker Compose, Prometheus, Grafana, Tempo
+├── deployments/local/      # Docker Compose для локального окружения
 ├── internal/
-│   ├── controller/         # gRPC контроллеры
-│   └── pkg/
-│       ├── metrics/        # Prometheus handler
-│       ├── otel/           # Инициализация OpenTelemetry
-│       ├── storage/postgres/ # PgX пул + транзакции
-│       └── ...
+│   ├── controller/         # gRPC и HTTP контроллеры
+│   │   ├── auth/           # Контроллеры аутентификации
+│   │   ├── ui/             # Контроллеры для Web UI (HTMX/Templ)
+│   │   └── ...
+│   ├── pkg/                # Вспомогательные пакеты
+│   ├── repository/         # Слой доступа к данным (PostgreSQL)
+│   ├── service/            # Бизнес-логика
+│   └── workflows/          # Temporal Workflows и Activities
 ├── migrations/             # SQL миграции (goose)
 └── pkg/                    # Сгенерированный proto-код + Swagger embed
 ```
@@ -100,7 +103,7 @@ endpoint = "localhost:4317"
 - `config/config_prod.toml` — настройки для production
 - `config/flags.toml` — feature flags с дефолтными значениями
 
-Окружение выбирается через `APP_ENV` (default: `dev`).
+Окружение выбирается через `APP_ENV` (default: `local`).
 
 ```bash
 # Перегенерировать Go-структуры и флаги после изменения TOML
@@ -137,11 +140,13 @@ UI для просмотра флагов доступен на debug-порту
 ### Кодогенерация
 | Команда | Описание |
 |---------|----------|
-| `task proto:gen` | Генерация Go-кода из proto |
-| `task proto:controllers` | Генерация stub-контроллеров |
+| `task generate` | Все генераторы разом (proto, templ, config) |
+| `task proto:gen` | Генерация Go-кода из proto (gRPC и Temporal) |
+| `task templ:gen` | Генерация Go-кода из .templ файлов |
 | `task generate-config` | Генерация Go-структур конфига + feature flags |
+| `task proto:controllers` | Генерация stub-контроллеров |
 | `task validate-config` | Валидация TOML без генерации (для CI) |
-| `task generate` | Все генераторы разом |
+
 
 ### База данных
 | Команда | Описание |
@@ -162,6 +167,7 @@ UI для просмотра флагов доступен на debug-порту
 ## Технологии
 
 - **Сервер**: [platform](https://github.com/vovanwin/platform) (gRPC + HTTP gateway + Swagger + Debug)
+- **Web UI**: [HTMX](https://htmx.org/) + [Templ](https://templ.guide/)
 - **DI**: uber/fx
 - **БД**: PostgreSQL (pgx/v5), миграции goose
 - **Proto**: buf, grpc-gateway

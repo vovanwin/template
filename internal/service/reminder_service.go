@@ -1,0 +1,118 @@
+package service
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/vovanwin/template/config"
+	"github.com/vovanwin/template/internal/pkg/temporal"
+	"github.com/vovanwin/template/internal/repository"
+	reminderv1 "github.com/vovanwin/template/pkg/temporal/reminder"
+	"go.temporal.io/sdk/client"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+type ReminderService struct {
+	repo      *repository.ReminderRepo
+	temporal  *temporal.Service
+	taskQueue string
+	log       *slog.Logger
+}
+
+func NewReminderService(
+	repo *repository.ReminderRepo,
+	temporalSvc *temporal.Service,
+	cfg *config.Config,
+	log *slog.Logger,
+) *ReminderService {
+	return &ReminderService{
+		repo:      repo,
+		temporal:  temporalSvc,
+		taskQueue: cfg.Temporal.TaskQueue,
+		log:       log,
+	}
+}
+
+func (s *ReminderService) CreateReminder(ctx context.Context, userID uuid.UUID, title, description string, remindAt time.Time, telegramChatID int64) (*repository.Reminder, error) {
+	rem, err := s.repo.Create(ctx, userID, title, description, remindAt)
+	if err != nil {
+		return nil, fmt.Errorf("create reminder in db: %w", err)
+	}
+
+	// Запускаем Temporal workflow
+	workflowID := fmt.Sprintf("reminder/%s", rem.ID.String())
+	opts := client.StartWorkflowOptions{
+		ID:        workflowID,
+		TaskQueue: s.taskQueue,
+	}
+
+	req := &reminderv1.ScheduleReminderRequest{
+		Id:             rem.ID.String(),
+		UserId:         userID.String(),
+		Title:          title,
+		Description:    description,
+		RemindAt:       timestamppb.New(remindAt),
+		TelegramChatId: telegramChatID,
+	}
+
+	run, err := s.temporal.GetClient().ExecuteWorkflow(ctx, opts, reminderv1.ScheduleReminderWorkflowName, req)
+	if err != nil {
+		s.log.Error("failed to start reminder workflow", slog.Any("err", err), slog.String("reminder_id", rem.ID.String()))
+		// Не возвращаем ошибку — напоминание создано в БД, workflow можно перезапустить
+	} else {
+		_ = s.repo.UpdateWorkflowID(ctx, rem.ID, run.GetID())
+		rem.WorkflowID = run.GetID()
+	}
+
+	return rem, nil
+}
+
+func (s *ReminderService) ListReminders(ctx context.Context, userID uuid.UUID) ([]repository.Reminder, error) {
+	return s.repo.ListByUserID(ctx, userID)
+}
+
+func (s *ReminderService) CancelReminder(ctx context.Context, userID, reminderID uuid.UUID) error {
+	rem, err := s.repo.GetByID(ctx, reminderID)
+	if err != nil {
+		return fmt.Errorf("get reminder: %w", err)
+	}
+	if rem == nil {
+		return fmt.Errorf("reminder not found")
+	}
+	if rem.UserID != userID {
+		return fmt.Errorf("forbidden")
+	}
+
+	// Отправляем сигнал отмены в workflow
+	if rem.WorkflowID != "" {
+		err = s.temporal.GetClient().GetClient().SignalWorkflow(ctx, rem.WorkflowID, "", reminderv1.CancelReminderSignalName, nil)
+		if err != nil {
+			s.log.Warn("failed to cancel workflow", slog.Any("err", err), slog.String("workflow_id", rem.WorkflowID))
+		}
+	}
+
+	return s.repo.UpdateStatus(ctx, reminderID, "cancelled")
+}
+
+func (s *ReminderService) DeleteReminder(ctx context.Context, userID, reminderID uuid.UUID) error {
+	rem, err := s.repo.GetByID(ctx, reminderID)
+	if err != nil {
+		return fmt.Errorf("get reminder: %w", err)
+	}
+	if rem == nil {
+		return fmt.Errorf("reminder not found")
+	}
+	if rem.UserID != userID {
+		return fmt.Errorf("forbidden")
+	}
+
+	// Если workflow активен — пробуем отменить
+	if rem.WorkflowID != "" && rem.Status == "pending" {
+		_ = s.temporal.GetClient().GetClient().SignalWorkflow(ctx, rem.WorkflowID, "", reminderv1.CancelReminderSignalName, nil)
+	}
+
+	return s.repo.Delete(ctx, reminderID)
+}

@@ -12,15 +12,16 @@ import (
 )
 
 type User struct {
-	ID           uuid.UUID
-	Email        string
-	PasswordHash string
-	FirstName    string
-	AvatarURL    string
-	Role         string
-	IsActive     bool
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID             uuid.UUID
+	Email          string
+	PasswordHash   string
+	FirstName      string
+	AvatarURL      string
+	Role           string
+	IsActive       bool
+	TelegramChatID int64
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type UserRepo struct {
@@ -146,6 +147,30 @@ func (r *UserRepo) SetRole(ctx context.Context, id uuid.UUID, role string) (*Use
 			return nil, nil
 		}
 		return nil, fmt.Errorf("set role: %w", err)
+	}
+	return &u, nil
+}
+
+func (r *UserRepo) GetByChatID(ctx context.Context, chatID int64) (*User, error) {
+	query, args, err := r.pg.Builder.
+		Select("id", "email", "password_hash", "COALESCE(name, '')", "COALESCE(avatar_url, '')", "role", "is_active", "COALESCE(telegram_chat_id, 0)", "created_at", "updated_at").
+		From("users").
+		Where(squirrel.Eq{"telegram_chat_id": chatID}).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("build query: %w", err)
+	}
+
+	var u User
+	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(
+		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.AvatarURL,
+		&u.Role, &u.IsActive, &u.TelegramChatID, &u.CreatedAt, &u.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get user by chat_id: %w", err)
 	}
 	return &u, nil
 }

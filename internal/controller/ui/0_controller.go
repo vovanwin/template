@@ -14,32 +14,36 @@ import (
 	"github.com/vovanwin/template/internal/controller/ui/pages"
 	"github.com/vovanwin/template/internal/pkg/events"
 	"github.com/vovanwin/template/internal/pkg/jwt"
+	"github.com/vovanwin/template/internal/pkg/timezone"
 	"github.com/vovanwin/template/internal/service"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 )
 
 type UIController struct {
-	bus         *events.Bus
-	authService *service.AuthService
-	jwtService  jwt.JWTService
-	log         *slog.Logger
+	bus             *events.Bus
+	authService     *service.AuthService
+	reminderService *service.ReminderService
+	jwtService      jwt.JWTService
+	log             *slog.Logger
 }
 
 type Deps struct {
 	fx.In
-	Bus         *events.Bus
-	AuthService *service.AuthService
-	JWTService  jwt.JWTService
-	Log         *slog.Logger
+	Bus             *events.Bus
+	AuthService     *service.AuthService
+	ReminderService *service.ReminderService
+	JWTService      jwt.JWTService
+	Log             *slog.Logger
 }
 
 func NewUIController(deps Deps) *UIController {
 	return &UIController{
-		bus:         deps.Bus,
-		authService: deps.AuthService,
-		jwtService:  deps.JWTService,
-		log:         deps.Log,
+		bus:             deps.Bus,
+		authService:     deps.AuthService,
+		reminderService: deps.ReminderService,
+		jwtService:      deps.JWTService,
+		log:             deps.Log,
 	}
 }
 
@@ -83,6 +87,9 @@ func (c *UIController) RegisterRoutes(ctx context.Context, mux *runtime.ServeMux
 		{"GET", "/logout", c.handleLogout},
 		{"GET", "/dashboard", c.handleDashboard},
 		{"GET", "/profile", c.handleProfile},
+		{"GET", "/reminders", c.handleReminders},
+		{"POST", "/reminders", c.handleCreateReminder},
+		{"DELETE", "/reminders/{id}", c.handleDeleteReminder},
 		{"GET", "/settings", c.handleSettings},
 	}
 
@@ -192,6 +199,114 @@ func (c *UIController) handleProfile(w http.ResponseWriter, r *http.Request, _ m
 	}
 
 	templ.Handler(pages.ProfilePage(profile, csrf.Token(r))).ServeHTTP(w, r)
+}
+
+// handleReminders — страница напоминаний (GET /reminders).
+func (c *UIController) handleReminders(w http.ResponseWriter, r *http.Request, _ map[string]string) {
+	userIDStr, stop := c.requireAuth(w, r)
+	if stop {
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Ошибка авторизации", http.StatusInternalServerError)
+		return
+	}
+
+	reminders, err := c.reminderService.ListReminders(r.Context(), userID)
+	if err != nil {
+		c.log.Error("list reminders", slog.Any("err", err))
+		http.Error(w, "Ошибка загрузки напоминаний", http.StatusInternalServerError)
+		return
+	}
+
+	templ.Handler(pages.RemindersPage(reminders, csrf.Token(r))).ServeHTTP(w, r)
+}
+
+// handleCreateReminder — создание напоминания (POST /reminders).
+func (c *UIController) handleCreateReminder(w http.ResponseWriter, r *http.Request, _ map[string]string) {
+	userIDStr, stop := c.requireAuth(w, r)
+	if stop {
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Ошибка авторизации", http.StatusInternalServerError)
+		return
+	}
+
+	var req struct {
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		RemindAt    string `json:"remind_at"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
+		return
+	}
+
+	// Парсим как локальное время пользователя → автоматически конвертируется в UTC при сохранении
+	remindAt, err := timezone.FromUser("2006-01-02T15:04", req.RemindAt)
+	if err != nil {
+		http.Error(w, "Неверный формат даты", http.StatusBadRequest)
+		return
+	}
+
+	// TODO: получить telegram_chat_id из профиля пользователя
+	var telegramChatID int64
+
+	_, err = c.reminderService.CreateReminder(r.Context(), userID, req.Title, req.Description, remindAt, telegramChatID)
+	if err != nil {
+		c.log.Error("create reminder", slog.Any("err", err))
+		http.Error(w, "Ошибка создания напоминания", http.StatusInternalServerError)
+		return
+	}
+
+	// Возвращаем обновлённый список
+	reminders, err := c.reminderService.ListReminders(r.Context(), userID)
+	if err != nil {
+		c.log.Error("list reminders", slog.Any("err", err))
+		http.Error(w, "Ошибка загрузки", http.StatusInternalServerError)
+		return
+	}
+	templ.Handler(pages.RemindersList(reminders)).ServeHTTP(w, r)
+}
+
+// handleDeleteReminder — удаление напоминания (DELETE /reminders/{id}).
+func (c *UIController) handleDeleteReminder(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
+	userIDStr, stop := c.requireAuth(w, r)
+	if stop {
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Ошибка авторизации", http.StatusInternalServerError)
+		return
+	}
+
+	reminderID, err := uuid.Parse(pathParams["id"])
+	if err != nil {
+		http.Error(w, "Неверный ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := c.reminderService.DeleteReminder(r.Context(), userID, reminderID); err != nil {
+		c.log.Error("delete reminder", slog.Any("err", err))
+		http.Error(w, "Ошибка удаления", http.StatusInternalServerError)
+		return
+	}
+
+	// Возвращаем обновлённый список
+	reminders, err := c.reminderService.ListReminders(r.Context(), userID)
+	if err != nil {
+		c.log.Error("list reminders", slog.Any("err", err))
+		http.Error(w, "Ошибка загрузки", http.StatusInternalServerError)
+		return
+	}
+	templ.Handler(pages.RemindersList(reminders)).ServeHTTP(w, r)
 }
 
 // handleSettings — страница настроек (GET /settings).

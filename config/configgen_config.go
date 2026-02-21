@@ -28,6 +28,7 @@ type Config struct {
 	Otel     Otel     `toml:"otel"`
 	Rabbit   Rabbit   `toml:"rabbit"`
 	Server   Server   `toml:"server"`
+	Telegram Telegram `toml:"telegram"`
 	Temporal Temporal `toml:"temporal"`
 }
 
@@ -140,6 +141,16 @@ type Server struct {
 	Port string `toml:"port"`
 	// Порт Swagger UI
 	SwaggerPort string `toml:"swagger_port"`
+}
+
+// Telegram секция конфигурации
+type Telegram struct {
+	// Токен бота от @BotFather
+	Token string `toml:"token"`
+	// URL для вебхука (если пусто — используется long polling)
+	WebhookURL string `toml:"webhook_url"`
+	// URL Mini App (WebApp) для открытия в Telegram WebView
+	MiniAppURL string `toml:"miniapp_url"`
 }
 
 // Temporal секция конфигурации
