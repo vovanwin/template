@@ -4,6 +4,7 @@ package temporal
 import (
 	"context"
 	"fmt"
+	"log/slog"
 )
 
 // Service основной сервис для работы с Temporal
@@ -19,16 +20,16 @@ type ServiceConfig struct {
 }
 
 // NewService создает новый Temporal сервис
-func NewService(config ServiceConfig) (*Service, error) {
+func NewService(config ServiceConfig, log *slog.Logger) (*Service, error) {
 
 	// Создаем клиент
-	client, err := NewClient(config.Client)
+	client, err := NewClient(config.Client, log)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temporal client: %w", err)
 	}
 
 	// Создаем воркер
-	worker := NewWorker(client, config.Worker)
+	worker := NewWorker(client, config.Worker, log)
 
 	service := &Service{
 		client: client,

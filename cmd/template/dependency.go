@@ -16,6 +16,7 @@ import (
 	"github.com/vovanwin/template/internal/pkg/etcdstore"
 	"github.com/vovanwin/template/internal/pkg/flagsui"
 	"github.com/vovanwin/template/internal/pkg/jwt"
+	"github.com/vovanwin/template/internal/pkg/logx"
 	authmw "github.com/vovanwin/template/internal/pkg/middleware"
 	"github.com/vovanwin/template/internal/pkg/storage/postgres"
 	"github.com/vovanwin/template/pkg"
@@ -34,6 +35,11 @@ func ProvideLogger(cfg *config.Config, lc fx.Lifecycle) (*slog.Logger, error) {
 		TraceID:     cfg.Metrics.EnableMetrics,
 	})
 	lc.Append(fx.StopHook(closer))
+
+	// Оборачиваем логгер в ComponentHandler для поддержки переопределений уровней
+	handler := logx.NewComponentHandler(l.Handler(), cfg.Log.Overrides)
+	l = slog.New(handler)
+
 	l.Debug("start logger")
 	return l, nil
 }
@@ -103,7 +109,7 @@ func ProvideServerModule(cfg *config.Config, flags *config.Flags, jwtService jwt
 	return server.NewModule(opts...)
 }
 
-func ProvidePgx(c *config.Config) (*postgres.Postgres, error) {
+func ProvidePgx(c *config.Config, log *slog.Logger) (*postgres.Postgres, error) {
 	opt := postgres.NewOptions(
 		c.PG.Host,
 		c.PG.User,
@@ -114,7 +120,7 @@ func ProvidePgx(c *config.Config) (*postgres.Postgres, error) {
 		config.IsProduction(),
 	)
 
-	connect, err := postgres.New(opt)
+	connect, err := postgres.New(opt, log.With("component", "db"))
 	if err != nil {
 		return nil, fmt.Errorf("create pgx connection: %w", err)
 	}

@@ -319,7 +319,10 @@ func (c *UIController) handleSettings(w http.ResponseWriter, r *http.Request, _ 
 
 // Module возвращает fx.Option для подключения UI контроллера.
 func Module() fx.Option {
-	return fx.Options(
+	return fx.Module("ui",
+		fx.Decorate(func(log *slog.Logger) *slog.Logger {
+			return log.With("component", "ui")
+		}),
 		fx.Provide(NewUIController),
 		fx.Provide(
 			fx.Annotate(

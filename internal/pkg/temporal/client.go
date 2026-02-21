@@ -3,6 +3,7 @@ package temporal
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"go.temporal.io/sdk/client"
 )
@@ -21,10 +22,11 @@ type Config struct {
 }
 
 // NewClient создает новый Temporal клиент
-func NewClient(config Config) (*Client, error) {
+func NewClient(config Config, log *slog.Logger) (*Client, error) {
 	clientOptions := client.Options{
 		HostPort:  fmt.Sprintf("%s:%d", config.Host, config.Port),
 		Namespace: config.Namespace,
+		Logger:    log,
 	}
 
 	temporalClient, err := client.Dial(clientOptions)

@@ -7,3 +7,8 @@
 name = "template"
 # Версия приложения
 version = "1.0.0"
+
+[log]
+# Переопределение уровней логирования для компонентов
+# Ключ - имя компонента, значение - уровень (DEBUG, INFO, WARN, ERROR)
+overrides = { "temporal" = "INFO", "telegram" = "INFO", "db" = "INFO", "api" = "INFO" }

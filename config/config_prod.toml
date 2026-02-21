@@ -87,3 +87,12 @@ port = 7233
 namespace = "default"
 # Очередь задач
 task_queue = "default-task-queue"
+
+# Настройки Telegram бота
+[telegram]
+# Токен бота от @BotFather
+token = ""
+# URL для вебхука (пусто = long polling для локальной разработки)
+webhook_url = ""
+# URL Mini App (WebApp) для открытия в Telegram WebView
+miniapp_url = ""

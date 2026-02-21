@@ -24,6 +24,11 @@ type HandlerParams struct {
 // Module возвращает fx.Option для Telegram бота с модульными хэндлерами.
 func Module() fx.Option {
 	return fx.Module("telegram",
+		// Декорируем логгер для всех компонентов внутри этого модуля
+		fx.Decorate(func(log *slog.Logger) *slog.Logger {
+			return log.With("component", "telegram")
+		}),
+
 		// Хэндлеры
 		fx.Provide(
 			fx.Annotate(
@@ -44,7 +49,7 @@ func Module() fx.Option {
 		fx.Provide(
 			fx.Annotate(
 				func(cfg *config.Config, log *slog.Logger) HandlerRegistrar {
-					return NewMiniAppHandler(cfg.Telegram.MiniAppURL, log)
+					return NewMiniAppHandler(cfg.Telegram.MiniappUrl, log)
 				},
 				fx.ResultTags(`group:"telegram_handlers"`),
 			),
@@ -68,7 +73,7 @@ func Module() fx.Option {
 			for _, h := range hp.Handlers {
 				opts = append(opts, h.Options()...)
 			}
-			return New(cfg.Telegram.Token, cfg.Telegram.WebhookURL, log, opts...)
+			return New(cfg.Telegram.Token, cfg.Telegram.WebhookUrl, log, opts...)
 		}),
 
 		// Lifecycle: start/stop бота

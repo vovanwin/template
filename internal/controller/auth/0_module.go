@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/vovanwin/platform/server"
 	authpb "github.com/vovanwin/template/pkg/auth"
@@ -13,7 +14,10 @@ import (
 
 // Module возвращает fx.Option для подключения AuthService.
 func Module() fx.Option {
-	return fx.Options(
+	return fx.Module("api:auth",
+		fx.Decorate(func(log *slog.Logger) *slog.Logger {
+			return log.With("component", "api")
+		}),
 		fx.Provide(NewAuthGRPCServer),
 		fx.Provide(
 			fx.Annotate(

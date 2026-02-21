@@ -99,6 +99,9 @@ type Log struct {
 	LokiEnabled bool `toml:"loki_enabled"`
 	// URL Loki push API
 	LokiUrl string `toml:"loki_url"`
+	// Переопределение уровней логирования для компонентов
+	// Ключ - имя компонента, значение - уровень (DEBUG, INFO, WARN, ERROR)
+	Overrides Overrides `toml:"overrides"`
 }
 
 // Metrics секция конфигурации
@@ -145,12 +148,12 @@ type Server struct {
 
 // Telegram секция конфигурации
 type Telegram struct {
+	// URL Mini App (WebApp) для открытия в Telegram WebView
+	MiniappUrl string `toml:"miniapp_url"`
 	// Токен бота от @BotFather
 	Token string `toml:"token"`
-	// URL для вебхука (если пусто — используется long polling)
-	WebhookURL string `toml:"webhook_url"`
-	// URL Mini App (WebApp) для открытия в Telegram WebView
-	MiniAppURL string `toml:"miniapp_url"`
+	// URL для вебхука (пусто = long polling для локальной разработки)
+	WebhookUrl string `toml:"webhook_url"`
 }
 
 // Temporal секция конфигурации

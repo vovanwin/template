@@ -2,6 +2,7 @@ package template
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/vovanwin/platform/server"
 	templatepb "github.com/vovanwin/template/pkg/template"
@@ -13,7 +14,10 @@ import (
 
 // Module возвращает fx.Option для подключения TemplateService.
 func Module() fx.Option {
-	return fx.Options(
+	return fx.Module("api:template",
+		fx.Decorate(func(log *slog.Logger) *slog.Logger {
+			return log.With("component", "api")
+		}),
 		fx.Provide(NewTemplateGRPCServer),
 		fx.Provide(
 			fx.Annotate(
