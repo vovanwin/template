@@ -103,7 +103,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*User, error) 
 
 func (r *UserRepo) GetByID(ctx context.Context, id uuid.UUID) (*User, error) {
 	query, args, err := r.pg.Builder.
-		Select("id", "email", "password_hash", "COALESCE(name, '')", "role", "is_active", "created_at", "updated_at").
+		Select("id", "email", "password_hash", "COALESCE(name, '')", "role", "is_active", "COALESCE(telegram_chat_id, 0)", "created_at", "updated_at").
 		From("users").
 		Where(squirrel.Eq{"id": id}).
 		ToSql()
@@ -114,7 +114,7 @@ func (r *UserRepo) GetByID(ctx context.Context, id uuid.UUID) (*User, error) {
 	var u User
 	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName,
-		&u.Role, &u.IsActive, &u.CreatedAt, &u.UpdatedAt,
+		&u.Role, &u.IsActive, &u.TelegramChatID, &u.CreatedAt, &u.UpdatedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {

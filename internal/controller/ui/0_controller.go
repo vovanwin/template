@@ -254,10 +254,14 @@ func (c *UIController) handleCreateReminder(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// TODO: получить telegram_chat_id из профиля пользователя
-	var telegramChatID int64
+	profile, err := c.authService.GetProfile(r.Context(), userID)
+	if err != nil {
+		c.log.Error("get profile for telegram_chat_id", slog.Any("err", err))
+		http.Error(w, "Ошибка получения профиля", http.StatusInternalServerError)
+		return
+	}
 
-	_, err = c.reminderService.CreateReminder(r.Context(), userID, req.Title, req.Description, remindAt, telegramChatID)
+	_, err = c.reminderService.CreateReminder(r.Context(), userID, req.Title, req.Description, remindAt, profile.TelegramChatID)
 	if err != nil {
 		c.log.Error("create reminder", slog.Any("err", err))
 		http.Error(w, "Ошибка создания напоминания", http.StatusInternalServerError)

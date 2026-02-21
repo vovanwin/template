@@ -32,11 +32,13 @@
         - [reminder.v1.Reminder.CancelReminder](#reminder-v1-reminder-cancelreminder-signal)
       - [Activities](#reminder-v1-reminder-activities)
         - [reminder.v1.Reminder.SendTelegramNotification](#reminder-v1-reminder-sendtelegramnotification-activity)
+        - [reminder.v1.Reminder.UpdateReminderStatus](#reminder-v1-reminder-updatereminderstatus-activity)
   - Messages
     - [reminder.v1.GetReminderStatusResponse](#reminder-v1-getreminderstatusresponse)
     - [reminder.v1.ScheduleReminderRequest](#reminder-v1-schedulereminderrequest)
     - [reminder.v1.ScheduleReminderResponse](#reminder-v1-schedulereminderresponse)
     - [reminder.v1.SendTelegramNotificationRequest](#reminder-v1-sendtelegramnotificationrequest)
+    - [reminder.v1.UpdateReminderStatusRequest](#reminder-v1-updatereminderstatusrequest)
 - [google.protobuf](#google-protobuf)
   - Messages
     - [google.protobuf.Timestamp](#google-protobuf-timestamp)
@@ -501,14 +503,6 @@ ScheduleReminder запускает workflow, который ждёт до remin
 json_name: description
 go_name: Description</pre></td>
 </tr><tr>
-<td>id</td>
-<td>string</td>
-<td><pre>
-Уникальный ID напоминания<br>
-
-json_name: id
-go_name: Id</pre></td>
-</tr><tr>
 <td>remind_at</td>
 <td><a href="#google-protobuf-timestamp">google.protobuf.Timestamp</a></td>
 <td><pre>
@@ -516,6 +510,14 @@ go_name: Id</pre></td>
 
 json_name: remindAt
 go_name: RemindAt</pre></td>
+</tr><tr>
+<td>reminder_id</td>
+<td>string</td>
+<td><pre>
+Уникальный ID напоминания<br>
+
+json_name: reminderId
+go_name: ReminderId</pre></td>
 </tr><tr>
 <td>telegram_chat_id</td>
 <td>int64</td>
@@ -575,7 +577,7 @@ go_name: WorkflowId</pre></td>
 <table>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>execution_timeout</td><td>4 weeks 2 days</td></tr>
-<tr><td>id</td><td><pre><code>reminder/${! id }</code></pre></td></tr>
+<tr><td>id</td><td><pre><code>reminder/${! reminder_id }</code></pre></td></tr>
 <tr><td>id_reuse_policy</td><td><pre><code>WORKFLOW_ID_REUSE_POLICY_UNSPECIFIED</code></pre></td></tr>
 </table>
 
@@ -686,6 +688,49 @@ go_name: Title</pre></td>
 <tr><th>Name</th><th>Value</th></tr>
 <tr><td>retry_policy.max_attempts</td><td>5</td></tr>
 <tr><td>start_to_close_timeout</td><td>30 seconds</td></tr>
+</table> 
+
+---
+<a name="reminder-v1-reminder-updatereminderstatus-activity"></a>
+### reminder.v1.Reminder.UpdateReminderStatus
+
+<pre>
+UpdateReminderStatus activity — обновляет статус в БД
+</pre>
+
+**Input:** [reminder.v1.UpdateReminderStatusRequest](#reminder-v1-updatereminderstatusrequest)
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>reminder_id</td>
+<td>string</td>
+<td><pre>
+ID напоминания<br>
+
+json_name: reminderId
+go_name: ReminderId</pre></td>
+</tr><tr>
+<td>status</td>
+<td>string</td>
+<td><pre>
+Новый статус<br>
+
+json_name: status
+go_name: Status</pre></td>
+</tr>
+</table>
+
+**Defaults:**
+
+<table>
+<tr><th>Name</th><th>Value</th></tr>
+<tr><td>retry_policy.max_attempts</td><td>10</td></tr>
+<tr><td>start_to_close_timeout</td><td>10 seconds</td></tr>
 </table>   
 
 <a name="reminder-v1-messages"></a>
@@ -739,14 +784,6 @@ ScheduleReminderRequest входные данные для создания на
 json_name: description
 go_name: Description</pre></td>
 </tr><tr>
-<td>id</td>
-<td>string</td>
-<td><pre>
-Уникальный ID напоминания<br>
-
-json_name: id
-go_name: Id</pre></td>
-</tr><tr>
 <td>remind_at</td>
 <td><a href="#google-protobuf-timestamp">google.protobuf.Timestamp</a></td>
 <td><pre>
@@ -754,6 +791,14 @@ go_name: Id</pre></td>
 
 json_name: remindAt
 go_name: RemindAt</pre></td>
+</tr><tr>
+<td>reminder_id</td>
+<td>string</td>
+<td><pre>
+Уникальный ID напоминания<br>
+
+json_name: reminderId
+go_name: ReminderId</pre></td>
 </tr><tr>
 <td>telegram_chat_id</td>
 <td>int64</td>
@@ -854,6 +899,40 @@ go_name: Description</pre></td>
 
 json_name: title
 go_name: Title</pre></td>
+</tr>
+</table>
+
+
+
+<a name="reminder-v1-updatereminderstatusrequest"></a>
+### reminder.v1.UpdateReminderStatusRequest
+
+<pre>
+UpdateReminderStatusRequest входные данные для обновления статуса
+</pre>
+
+<table>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>reminder_id</td>
+<td>string</td>
+<td><pre>
+ID напоминания<br>
+
+json_name: reminderId
+go_name: ReminderId</pre></td>
+</tr><tr>
+<td>status</td>
+<td>string</td>
+<td><pre>
+Новый статус<br>
+
+json_name: status
+go_name: Status</pre></td>
 </tr>
 </table>
 

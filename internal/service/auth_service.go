@@ -22,14 +22,15 @@ type AuthResult struct {
 }
 
 type Profile struct {
-	ID        uuid.UUID
-	Email     string
-	Name      string
-	AvatarURL string
-	Role      string
-	IsActive  bool
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID             uuid.UUID
+	Email          string
+	Name           string
+	AvatarURL      string
+	Role           string
+	IsActive       bool
+	TelegramChatID int64
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type SessionInfo struct {
@@ -223,14 +224,15 @@ func (s *AuthService) GetProfile(ctx context.Context, userID uuid.UUID) (*Profil
 	}
 
 	return &Profile{
-		ID:        user.ID,
-		Email:     user.Email,
-		Name:      user.FirstName,
-		AvatarURL: user.AvatarURL,
-		Role:      user.Role,
-		IsActive:  user.IsActive,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
+		ID:             user.ID,
+		Email:          user.Email,
+		Name:           user.FirstName,
+		AvatarURL:      user.AvatarURL,
+		Role:           user.Role,
+		IsActive:       user.IsActive,
+		TelegramChatID: user.TelegramChatID,
+		CreatedAt:      user.CreatedAt,
+		UpdatedAt:      user.UpdatedAt,
 	}, nil
 }
 

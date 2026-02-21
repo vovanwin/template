@@ -16,7 +16,7 @@ service Reminder {
   rpc ScheduleReminder(ScheduleReminderRequest) returns (ScheduleReminderResponse) {
     option (temporal.v1.workflow) = {
       execution_timeout: { seconds: 2592000 }
-      id: 'reminder/${! id }'
+      id: 'reminder/${! reminder_id }'
       signal: { ref: "CancelReminder" }
       query: { ref: "GetReminderStatus" }
     };
@@ -28,6 +28,16 @@ service Reminder {
       start_to_close_timeout: { seconds: 30 }
       retry_policy: {
         max_attempts: 5
+      }
+    };
+  }
+
+  // UpdateReminderStatus activity — обновляет статус в БД
+  rpc UpdateReminderStatus(UpdateReminderStatusRequest) returns (google.protobuf.Empty) {
+    option (temporal.v1.activity) = {
+      start_to_close_timeout: { seconds: 10 }
+      retry_policy: {
+        max_attempts: 10
       }
     };
   }
@@ -46,7 +56,7 @@ service Reminder {
 // ScheduleReminderRequest входные данные для создания напоминания
 message ScheduleReminderRequest {
   // Уникальный ID напоминания
-  string id = 1;
+  string reminder_id = 1;
   // ID пользователя
   string user_id = 2;
   // Заголовок напоминания
@@ -75,6 +85,14 @@ message SendTelegramNotificationRequest {
   string title = 2;
   // Описание
   string description = 3;
+}
+
+// UpdateReminderStatusRequest входные данные для обновления статуса
+message UpdateReminderStatusRequest {
+  // ID напоминания
+  string reminder_id = 1;
+  // Новый статус
+  string status = 2;
 }
 
 // GetReminderStatusResponse текущий статус напоминания

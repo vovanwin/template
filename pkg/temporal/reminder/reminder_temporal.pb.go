@@ -46,12 +46,13 @@ const (
 
 // reminder.v1.Reminder workflow id expressions
 var (
-	ScheduleReminderIdexpression = expression.MustParseExpression("reminder/${! id }")
+	ScheduleReminderIdexpression = expression.MustParseExpression("reminder/${! reminder_id }")
 )
 
 // reminder.v1.Reminder activity names
 const (
 	SendTelegramNotificationActivityName = "reminder.v1.Reminder.SendTelegramNotification"
+	UpdateReminderStatusActivityName     = "reminder.v1.Reminder.UpdateReminderStatus"
 )
 
 // reminder.v1.Reminder query names
@@ -535,7 +536,7 @@ func (i *ScheduleReminderWorkflowInput) ContinueAsNew(ctx workflow.Context, inpu
 
 // ScheduleReminder запускает workflow, который ждёт до remind_at и отправляет уведомление
 //
-// workflow details: (name: "reminder.v1.Reminder.ScheduleReminder", id: "reminder/${! id }")
+// workflow details: (name: "reminder.v1.Reminder.ScheduleReminder", id: "reminder/${! reminder_id }")
 type ScheduleReminderWorkflow interface {
 	// Execute defines the entrypoint to a(n) reminder.v1.Reminder.ScheduleReminder workflow
 	Execute(ctx workflow.Context) (*ScheduleReminderResponse, error)
@@ -843,11 +844,15 @@ func CancelReminderExternalAsync(ctx workflow.Context, workflowID string, runID 
 type ReminderActivities interface {
 	// SendTelegramNotification activity — отправляет сообщение в Telegram
 	SendTelegramNotification(ctx context.Context, req *SendTelegramNotificationRequest) error
+
+	// UpdateReminderStatus activity — обновляет статус в БД
+	UpdateReminderStatus(ctx context.Context, req *UpdateReminderStatusRequest) error
 }
 
 // RegisterReminderActivities registers activities with a worker
 func RegisterReminderActivities(r worker.ActivityRegistry, activities ReminderActivities) {
 	RegisterSendTelegramNotificationActivity(r, activities.SendTelegramNotification)
+	RegisterUpdateReminderStatusActivity(r, activities.UpdateReminderStatus)
 }
 
 // RegisterSendTelegramNotificationActivity registers a reminder.v1.Reminder.SendTelegramNotification activity
@@ -1106,6 +1111,266 @@ func (o *SendTelegramNotificationLocalActivityOptions) WithScheduleToCloseTimeou
 
 // WithStartToCloseTimeout sets the StartToCloseTimeout value
 func (o *SendTelegramNotificationLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *SendTelegramNotificationLocalActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// RegisterUpdateReminderStatusActivity registers a reminder.v1.Reminder.UpdateReminderStatus activity
+func RegisterUpdateReminderStatusActivity(r worker.ActivityRegistry, fn func(context.Context, *UpdateReminderStatusRequest) error) {
+	r.RegisterActivityWithOptions(fn, activity.RegisterOptions{
+		Name: UpdateReminderStatusActivityName,
+	})
+}
+
+// UpdateReminderStatusFuture describes a(n) reminder.v1.Reminder.UpdateReminderStatus activity execution
+type UpdateReminderStatusFuture struct {
+	Future workflow.Future
+}
+
+// Get blocks on the activity's completion, returning the response
+func (f *UpdateReminderStatusFuture) Get(ctx workflow.Context) error {
+	return f.Future.Get(ctx, nil)
+}
+
+// Select adds the activity's completion to the selector, callback can be nil
+func (f *UpdateReminderStatusFuture) Select(sel workflow.Selector, fn func(*UpdateReminderStatusFuture)) workflow.Selector {
+	return sel.AddFuture(f.Future, func(workflow.Future) {
+		if fn != nil {
+			fn(f)
+		}
+	})
+}
+
+// UpdateReminderStatus activity — обновляет статус в БД
+func UpdateReminderStatus(ctx workflow.Context, req *UpdateReminderStatusRequest, options ...*UpdateReminderStatusActivityOptions) error {
+	return UpdateReminderStatusAsync(ctx, req, options...).Get(ctx)
+}
+
+// UpdateReminderStatus activity — обновляет статус в БД
+func UpdateReminderStatusAsync(ctx workflow.Context, req *UpdateReminderStatusRequest, options ...*UpdateReminderStatusActivityOptions) *UpdateReminderStatusFuture {
+	var o *UpdateReminderStatusActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewUpdateReminderStatusActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &UpdateReminderStatusFuture{Future: errF}
+	}
+	activity := UpdateReminderStatusActivityName
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &UpdateReminderStatusFuture{Future: workflow.ExecuteActivity(ctx, activity, req)}
+	return future
+}
+
+// UpdateReminderStatus activity — обновляет статус в БД
+func UpdateReminderStatusLocal(ctx workflow.Context, req *UpdateReminderStatusRequest, options ...*UpdateReminderStatusLocalActivityOptions) error {
+	return UpdateReminderStatusLocalAsync(ctx, req, options...).Get(ctx)
+}
+
+// UpdateReminderStatus activity — обновляет статус в БД
+func UpdateReminderStatusLocalAsync(ctx workflow.Context, req *UpdateReminderStatusRequest, options ...*UpdateReminderStatusLocalActivityOptions) *UpdateReminderStatusFuture {
+	var o *UpdateReminderStatusLocalActivityOptions
+	if len(options) > 0 && options[0] != nil {
+		o = options[0]
+	} else {
+		o = NewUpdateReminderStatusLocalActivityOptions()
+	}
+	var err error
+	if ctx, err = o.Build(ctx); err != nil {
+		errF, errS := workflow.NewFuture(ctx)
+		errS.SetError(err)
+		return &UpdateReminderStatusFuture{Future: errF}
+	}
+	var activity any
+	if o.fn != nil {
+		activity = o.fn
+	} else {
+		activity = UpdateReminderStatusActivityName
+	}
+	if o.dc != nil {
+		ctx = workflow.WithDataConverter(ctx, o.dc)
+	}
+	future := &UpdateReminderStatusFuture{Future: workflow.ExecuteLocalActivity(ctx, activity, req)}
+	return future
+}
+
+// UpdateReminderStatusActivityOptions provides configuration for a(n) reminder.v1.Reminder.UpdateReminderStatus activity
+type UpdateReminderStatusActivityOptions struct {
+	options                workflow.ActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	heartbeatTimeout       *time.Duration
+	scheduleToStartTimeout *time.Duration
+	taskQueue              *string
+	waitForCancellation    *bool
+}
+
+// NewUpdateReminderStatusActivityOptions initializes a new UpdateReminderStatusActivityOptions value
+func NewUpdateReminderStatusActivityOptions() *UpdateReminderStatusActivityOptions {
+	return &UpdateReminderStatusActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate ActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *UpdateReminderStatusActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.heartbeatTimeout; v != nil {
+		opts.HeartbeatTimeout = *v
+	}
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	} else if opts.RetryPolicy == nil {
+		opts.RetryPolicy = &temporal.RetryPolicy{MaximumAttempts: int32(10)}
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	}
+	if v := o.scheduleToStartTimeout; v != nil {
+		opts.ScheduleToStartTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	} else if opts.StartToCloseTimeout == 0 {
+		opts.StartToCloseTimeout = 10000000000 // 10 seconds
+	}
+	if v := o.taskQueue; v != nil {
+		opts.TaskQueue = *v
+	} else if opts.TaskQueue == "" {
+		opts.TaskQueue = ReminderTaskQueue
+	}
+	if v := o.waitForCancellation; v != nil {
+		opts.WaitForCancellation = *v
+	}
+	return workflow.WithActivityOptions(ctx, opts), nil
+}
+
+// WithActivityOptions specifies an initial ActivityOptions value to which defaults will be applied
+func (o *UpdateReminderStatusActivityOptions) WithActivityOptions(options workflow.ActivityOptions) *UpdateReminderStatusActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *UpdateReminderStatusActivityOptions) WithDataConverter(dc converter.DataConverter) *UpdateReminderStatusActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithHeartbeatTimeout sets the HeartbeatTimeout value
+func (o *UpdateReminderStatusActivityOptions) WithHeartbeatTimeout(d time.Duration) *UpdateReminderStatusActivityOptions {
+	o.heartbeatTimeout = &d
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *UpdateReminderStatusActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *UpdateReminderStatusActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *UpdateReminderStatusActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *UpdateReminderStatusActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithScheduleToStartTimeout sets the ScheduleToStartTimeout value
+func (o *UpdateReminderStatusActivityOptions) WithScheduleToStartTimeout(d time.Duration) *UpdateReminderStatusActivityOptions {
+	o.scheduleToStartTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *UpdateReminderStatusActivityOptions) WithStartToCloseTimeout(d time.Duration) *UpdateReminderStatusActivityOptions {
+	o.startToCloseTimeout = &d
+	return o
+}
+
+// WithTaskQueue sets the TaskQueue value
+func (o *UpdateReminderStatusActivityOptions) WithTaskQueue(tq string) *UpdateReminderStatusActivityOptions {
+	o.taskQueue = &tq
+	return o
+}
+
+// WithWaitForCancellation sets the WaitForCancellation value
+func (o *UpdateReminderStatusActivityOptions) WithWaitForCancellation(wait bool) *UpdateReminderStatusActivityOptions {
+	o.waitForCancellation = &wait
+	return o
+}
+
+// UpdateReminderStatusLocalActivityOptions provides configuration for a(n) reminder.v1.Reminder.UpdateReminderStatus activity
+type UpdateReminderStatusLocalActivityOptions struct {
+	options                workflow.LocalActivityOptions
+	retryPolicy            *temporal.RetryPolicy
+	scheduleToCloseTimeout *time.Duration
+	startToCloseTimeout    *time.Duration
+	dc                     converter.DataConverter
+	fn                     func(context.Context, *UpdateReminderStatusRequest) error
+}
+
+// NewUpdateReminderStatusLocalActivityOptions initializes a new UpdateReminderStatusLocalActivityOptions value
+func NewUpdateReminderStatusLocalActivityOptions() *UpdateReminderStatusLocalActivityOptions {
+	return &UpdateReminderStatusLocalActivityOptions{}
+}
+
+// Build initializes a workflow.Context with appropriate LocalActivityOptions values derived from schema defaults and any user-defined overrides
+func (o *UpdateReminderStatusLocalActivityOptions) Build(ctx workflow.Context) (workflow.Context, error) {
+	opts := o.options
+	if v := o.retryPolicy; v != nil {
+		opts.RetryPolicy = v
+	} else if opts.RetryPolicy == nil {
+		opts.RetryPolicy = &temporal.RetryPolicy{MaximumAttempts: int32(10)}
+	}
+	if v := o.scheduleToCloseTimeout; v != nil {
+		opts.ScheduleToCloseTimeout = *v
+	}
+	if v := o.startToCloseTimeout; v != nil {
+		opts.StartToCloseTimeout = *v
+	} else if opts.StartToCloseTimeout == 0 {
+		opts.StartToCloseTimeout = 10000000000 // 10 seconds
+	}
+	return workflow.WithLocalActivityOptions(ctx, opts), nil
+}
+
+// Local specifies a custom reminder.v1.Reminder.UpdateReminderStatus implementation
+func (o *UpdateReminderStatusLocalActivityOptions) Local(fn func(context.Context, *UpdateReminderStatusRequest) error) *UpdateReminderStatusLocalActivityOptions {
+	o.fn = fn
+	return o
+}
+
+// WithLocalActivityOptions specifies an initial LocalActivityOptions value to which defaults will be applied
+func (o *UpdateReminderStatusLocalActivityOptions) WithLocalActivityOptions(options workflow.LocalActivityOptions) *UpdateReminderStatusLocalActivityOptions {
+	o.options = options
+	return o
+}
+
+// WithDataConverter registers a DataConverter for the (local) activity
+func (o *UpdateReminderStatusLocalActivityOptions) WithDataConverter(dc converter.DataConverter) *UpdateReminderStatusLocalActivityOptions {
+	o.dc = dc
+	return o
+}
+
+// WithRetryPolicy sets the RetryPolicy value
+func (o *UpdateReminderStatusLocalActivityOptions) WithRetryPolicy(policy *temporal.RetryPolicy) *UpdateReminderStatusLocalActivityOptions {
+	o.retryPolicy = policy
+	return o
+}
+
+// WithScheduleToCloseTimeout sets the ScheduleToCloseTimeout value
+func (o *UpdateReminderStatusLocalActivityOptions) WithScheduleToCloseTimeout(d time.Duration) *UpdateReminderStatusLocalActivityOptions {
+	o.scheduleToCloseTimeout = &d
+	return o
+}
+
+// WithStartToCloseTimeout sets the StartToCloseTimeout value
+func (o *UpdateReminderStatusLocalActivityOptions) WithStartToCloseTimeout(d time.Duration) *UpdateReminderStatusLocalActivityOptions {
 	o.startToCloseTimeout = &d
 	return o
 }
@@ -1426,7 +1691,7 @@ func newReminderCommands(options ...*ReminderCliOptions) ([]*cliv3.Command, erro
 					Category: "INPUT",
 				},
 				&cliv3.StringFlag{
-					Name:     "id",
+					Name:     "reminder-id",
 					Usage:    "Уникальный ID напоминания",
 					Category: "INPUT",
 				},
@@ -1552,9 +1817,9 @@ func UnmarshalCliFlagsToScheduleReminderRequest(cmd *cliv3.Command, options ...h
 			return nil, fmt.Errorf("error parsing %s json: %w", opts.FromFile, err)
 		}
 	}
-	if flag := opts.FlagName("id"); cmd.IsSet(flag) {
+	if flag := opts.FlagName("reminder-id"); cmd.IsSet(flag) {
 		value := cmd.String(flag)
-		result.Id = value
+		result.ReminderId = value
 	}
 	if flag := opts.FlagName("user-id"); cmd.IsSet(flag) {
 		value := cmd.String(flag)

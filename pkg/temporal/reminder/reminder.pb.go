@@ -28,7 +28,7 @@ const (
 type ScheduleReminderRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Уникальный ID напоминания
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ReminderId string `protobuf:"bytes,1,opt,name=reminder_id,json=reminderId,proto3" json:"reminder_id,omitempty"`
 	// ID пользователя
 	UserId string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	// Заголовок напоминания
@@ -73,9 +73,9 @@ func (*ScheduleReminderRequest) Descriptor() ([]byte, []int) {
 	return file_reminder_reminder_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ScheduleReminderRequest) GetId() string {
+func (x *ScheduleReminderRequest) GetReminderId() string {
 	if x != nil {
-		return x.Id
+		return x.ReminderId
 	}
 	return ""
 }
@@ -234,6 +234,61 @@ func (x *SendTelegramNotificationRequest) GetDescription() string {
 	return ""
 }
 
+// UpdateReminderStatusRequest входные данные для обновления статуса
+type UpdateReminderStatusRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID напоминания
+	ReminderId string `protobuf:"bytes,1,opt,name=reminder_id,json=reminderId,proto3" json:"reminder_id,omitempty"`
+	// Новый статус
+	Status        string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateReminderStatusRequest) Reset() {
+	*x = UpdateReminderStatusRequest{}
+	mi := &file_reminder_reminder_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateReminderStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateReminderStatusRequest) ProtoMessage() {}
+
+func (x *UpdateReminderStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_reminder_reminder_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateReminderStatusRequest.ProtoReflect.Descriptor instead.
+func (*UpdateReminderStatusRequest) Descriptor() ([]byte, []int) {
+	return file_reminder_reminder_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *UpdateReminderStatusRequest) GetReminderId() string {
+	if x != nil {
+		return x.ReminderId
+	}
+	return ""
+}
+
+func (x *UpdateReminderStatusRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
 // GetReminderStatusResponse текущий статус напоминания
 type GetReminderStatusResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -245,7 +300,7 @@ type GetReminderStatusResponse struct {
 
 func (x *GetReminderStatusResponse) Reset() {
 	*x = GetReminderStatusResponse{}
-	mi := &file_reminder_reminder_proto_msgTypes[3]
+	mi := &file_reminder_reminder_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -257,7 +312,7 @@ func (x *GetReminderStatusResponse) String() string {
 func (*GetReminderStatusResponse) ProtoMessage() {}
 
 func (x *GetReminderStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_reminder_reminder_proto_msgTypes[3]
+	mi := &file_reminder_reminder_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -270,7 +325,7 @@ func (x *GetReminderStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReminderStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetReminderStatusResponse) Descriptor() ([]byte, []int) {
-	return file_reminder_reminder_proto_rawDescGZIP(), []int{3}
+	return file_reminder_reminder_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetReminderStatusResponse) GetStatus() string {
@@ -284,9 +339,10 @@ var File_reminder_reminder_proto protoreflect.FileDescriptor
 
 const file_reminder_reminder_proto_rawDesc = "" +
 	"\n" +
-	"\x17reminder/reminder.proto\x12\vreminder.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1atemporal/v1/temporal.proto\"\xdd\x01\n" +
-	"\x17ScheduleReminderRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\x17reminder/reminder.proto\x12\vreminder.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1atemporal/v1/temporal.proto\"\xee\x01\n" +
+	"\x17ScheduleReminderRequest\x12\x1f\n" +
+	"\vreminder_id\x18\x01 \x01(\tR\n" +
+	"reminderId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x127\n" +
@@ -299,15 +355,22 @@ const file_reminder_reminder_proto_rawDesc = "" +
 	"\x1fSendTelegramNotificationRequest\x12\x17\n" +
 	"\achat_id\x18\x01 \x01(\x03R\x06chatId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\"3\n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\"V\n" +
+	"\x1bUpdateReminderStatusRequest\x12\x1f\n" +
+	"\vreminder_id\x18\x01 \x01(\tR\n" +
+	"reminderId\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\"3\n" +
 	"\x19GetReminderStatusResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status2\xd9\x03\n" +
-	"\bReminder\x12\xa6\x01\n" +
-	"\x10ScheduleReminder\x12$.reminder.v1.ScheduleReminderRequest\x1a%.reminder.v1.ScheduleReminderResponse\"E\x8a\xc4\x03A\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status2\xca\x04\n" +
+	"\bReminder\x12\xaf\x01\n" +
+	"\x10ScheduleReminder\x12$.reminder.v1.ScheduleReminderRequest\x1a%.reminder.v1.ScheduleReminderResponse\"N\x8a\xc4\x03J\n" +
 	"\x13\n" +
 	"\x11GetReminderStatus\x12\x10\n" +
-	"\x0eCancelReminder\"\x05\b\x80\x9a\x9e\x01*\x11reminder/${! id }\x12n\n" +
-	"\x18SendTelegramNotification\x12,.reminder.v1.SendTelegramNotificationRequest\x1a\x16.google.protobuf.Empty\"\f\x92\xc4\x03\b\"\x02\b\x1e2\x02 \x05\x12F\n" +
+	"\x0eCancelReminder\"\x05\b\x80\x9a\x9e\x01*\x1areminder/${! reminder_id }\x12n\n" +
+	"\x18SendTelegramNotification\x12,.reminder.v1.SendTelegramNotificationRequest\x1a\x16.google.protobuf.Empty\"\f\x92\xc4\x03\b\"\x02\b\x1e2\x02 \x05\x12f\n" +
+	"\x14UpdateReminderStatus\x12(.reminder.v1.UpdateReminderStatusRequest\x1a\x16.google.protobuf.Empty\"\f\x92\xc4\x03\b\"\x02\b\n" +
+	"2\x02 \n" +
+	"\x12F\n" +
 	"\x0eCancelReminder\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x04\xa2\xc4\x03\x00\x12Y\n" +
 	"\x11GetReminderStatus\x12\x16.google.protobuf.Empty\x1a&.reminder.v1.GetReminderStatusResponse\"\x04\x9a\xc4\x03\x00\x1a\x11\x8a\xc4\x03\r\n" +
 	"\vreminder-v1B\x8e\x01\n" +
@@ -325,27 +388,30 @@ func file_reminder_reminder_proto_rawDescGZIP() []byte {
 	return file_reminder_reminder_proto_rawDescData
 }
 
-var file_reminder_reminder_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_reminder_reminder_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_reminder_reminder_proto_goTypes = []any{
 	(*ScheduleReminderRequest)(nil),         // 0: reminder.v1.ScheduleReminderRequest
 	(*ScheduleReminderResponse)(nil),        // 1: reminder.v1.ScheduleReminderResponse
 	(*SendTelegramNotificationRequest)(nil), // 2: reminder.v1.SendTelegramNotificationRequest
-	(*GetReminderStatusResponse)(nil),       // 3: reminder.v1.GetReminderStatusResponse
-	(*timestamppb.Timestamp)(nil),           // 4: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                   // 5: google.protobuf.Empty
+	(*UpdateReminderStatusRequest)(nil),     // 3: reminder.v1.UpdateReminderStatusRequest
+	(*GetReminderStatusResponse)(nil),       // 4: reminder.v1.GetReminderStatusResponse
+	(*timestamppb.Timestamp)(nil),           // 5: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                   // 6: google.protobuf.Empty
 }
 var file_reminder_reminder_proto_depIdxs = []int32{
-	4, // 0: reminder.v1.ScheduleReminderRequest.remind_at:type_name -> google.protobuf.Timestamp
+	5, // 0: reminder.v1.ScheduleReminderRequest.remind_at:type_name -> google.protobuf.Timestamp
 	0, // 1: reminder.v1.Reminder.ScheduleReminder:input_type -> reminder.v1.ScheduleReminderRequest
 	2, // 2: reminder.v1.Reminder.SendTelegramNotification:input_type -> reminder.v1.SendTelegramNotificationRequest
-	5, // 3: reminder.v1.Reminder.CancelReminder:input_type -> google.protobuf.Empty
-	5, // 4: reminder.v1.Reminder.GetReminderStatus:input_type -> google.protobuf.Empty
-	1, // 5: reminder.v1.Reminder.ScheduleReminder:output_type -> reminder.v1.ScheduleReminderResponse
-	5, // 6: reminder.v1.Reminder.SendTelegramNotification:output_type -> google.protobuf.Empty
-	5, // 7: reminder.v1.Reminder.CancelReminder:output_type -> google.protobuf.Empty
-	3, // 8: reminder.v1.Reminder.GetReminderStatus:output_type -> reminder.v1.GetReminderStatusResponse
-	5, // [5:9] is the sub-list for method output_type
-	1, // [1:5] is the sub-list for method input_type
+	3, // 3: reminder.v1.Reminder.UpdateReminderStatus:input_type -> reminder.v1.UpdateReminderStatusRequest
+	6, // 4: reminder.v1.Reminder.CancelReminder:input_type -> google.protobuf.Empty
+	6, // 5: reminder.v1.Reminder.GetReminderStatus:input_type -> google.protobuf.Empty
+	1, // 6: reminder.v1.Reminder.ScheduleReminder:output_type -> reminder.v1.ScheduleReminderResponse
+	6, // 7: reminder.v1.Reminder.SendTelegramNotification:output_type -> google.protobuf.Empty
+	6, // 8: reminder.v1.Reminder.UpdateReminderStatus:output_type -> google.protobuf.Empty
+	6, // 9: reminder.v1.Reminder.CancelReminder:output_type -> google.protobuf.Empty
+	4, // 10: reminder.v1.Reminder.GetReminderStatus:output_type -> reminder.v1.GetReminderStatusResponse
+	6, // [6:11] is the sub-list for method output_type
+	1, // [1:6] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -362,7 +428,7 @@ func file_reminder_reminder_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_reminder_reminder_proto_rawDesc), len(file_reminder_reminder_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/vovanwin/template/config"
+	"github.com/vovanwin/template/internal/model"
 	"github.com/vovanwin/template/internal/pkg/temporal"
 	"github.com/vovanwin/template/internal/repository"
 	reminderv1 "github.com/vovanwin/template/pkg/temporal/reminder"
@@ -16,23 +16,20 @@ import (
 )
 
 type ReminderService struct {
-	repo      *repository.ReminderRepo
-	temporal  *temporal.Service
-	taskQueue string
-	log       *slog.Logger
+	repo     *repository.ReminderRepo
+	temporal *temporal.Service
+	log      *slog.Logger
 }
 
 func NewReminderService(
 	repo *repository.ReminderRepo,
 	temporalSvc *temporal.Service,
-	cfg *config.Config,
 	log *slog.Logger,
 ) *ReminderService {
 	return &ReminderService{
-		repo:      repo,
-		temporal:  temporalSvc,
-		taskQueue: cfg.Temporal.TaskQueue,
-		log:       log,
+		repo:     repo,
+		temporal: temporalSvc,
+		log:      log,
 	}
 }
 
@@ -42,15 +39,15 @@ func (s *ReminderService) CreateReminder(ctx context.Context, userID uuid.UUID, 
 		return nil, fmt.Errorf("create reminder in db: %w", err)
 	}
 
-	// Запускаем Temporal workflow
+	// Запускаем Temporal workflow на очереди из proto (reminder-v1)
 	workflowID := fmt.Sprintf("reminder/%s", rem.ID.String())
 	opts := client.StartWorkflowOptions{
 		ID:        workflowID,
-		TaskQueue: s.taskQueue,
+		TaskQueue: reminderv1.ReminderTaskQueue,
 	}
 
 	req := &reminderv1.ScheduleReminderRequest{
-		Id:             rem.ID.String(),
+		ReminderId:     rem.ID.String(),
 		UserId:         userID.String(),
 		Title:          title,
 		Description:    description,
@@ -94,7 +91,7 @@ func (s *ReminderService) CancelReminder(ctx context.Context, userID, reminderID
 		}
 	}
 
-	return s.repo.UpdateStatus(ctx, reminderID, "cancelled")
+	return s.repo.UpdateStatus(ctx, reminderID, model.ReminderStatusCancelled.String())
 }
 
 func (s *ReminderService) DeleteReminder(ctx context.Context, userID, reminderID uuid.UUID) error {
@@ -110,7 +107,7 @@ func (s *ReminderService) DeleteReminder(ctx context.Context, userID, reminderID
 	}
 
 	// Если workflow активен — пробуем отменить
-	if rem.WorkflowID != "" && rem.Status == "pending" {
+	if rem.WorkflowID != "" && rem.Status == model.ReminderStatusPending.String() {
 		_ = s.temporal.GetClient().GetClient().SignalWorkflow(ctx, rem.WorkflowID, "", reminderv1.CancelReminderSignalName, nil)
 	}
 

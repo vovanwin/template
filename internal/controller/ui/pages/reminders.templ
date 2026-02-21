@@ -2,6 +2,7 @@ package pages
 
 import (
 	"github.com/vovanwin/template/internal/controller/ui/layouts"
+	"github.com/vovanwin/template/internal/model"
 	"github.com/vovanwin/template/internal/pkg/timezone"
 	"github.com/vovanwin/template/internal/repository"
 )
@@ -99,7 +100,7 @@ templ reminderRow(rem repository.Reminder) {
 				</span>
 			</p>
 		</div>
-		if rem.Status == "pending" {
+		if rem.Status == model.ReminderStatusPending.String() {
 			<button
 				hx-delete={ "/reminders/" + rem.ID.String() }
 				hx-target="#reminders-list"
@@ -115,13 +116,13 @@ templ reminderRow(rem repository.Reminder) {
 
 func statusClass(status string) string {
 	switch status {
-	case "pending":
+	case model.ReminderStatusPending.String():
 		return "bg-yellow-100 text-yellow-700"
-	case "sent":
+	case model.ReminderStatusSent.String():
 		return "bg-green-100 text-green-700"
-	case "cancelled":
+	case model.ReminderStatusCancelled.String():
 		return "bg-gray-100 text-gray-500"
-	case "failed":
+	case model.ReminderStatusFailed.String():
 		return "bg-red-100 text-red-700"
 	default:
 		return "bg-gray-100 text-gray-500"
@@ -130,13 +131,15 @@ func statusClass(status string) string {
 
 func statusLabel(status string) string {
 	switch status {
-	case "pending":
+	case model.ReminderStatusPending.String():
 		return "Ожидает"
-	case "sent":
+	case model.ReminderStatusProcessing.String():
+		return "В обработке"
+	case model.ReminderStatusSent.String():
 		return "Отправлено"
-	case "cancelled":
+	case model.ReminderStatusCancelled.String():
 		return "Отменено"
-	case "failed":
+	case model.ReminderStatusFailed.String():
 		return "Ошибка"
 	default:
 		return status

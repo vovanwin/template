@@ -29,7 +29,7 @@ loki_enabled = false
 # URL Loki push API
 loki_url = "http://localhost:3100/loki/api/v1/push"
 # Переопределения для компонентов.
-overrides = { "temporal" = "INFO", "telegram" = "DEBUG", "db" = "DEBUG", "api" = "WARN", "ui" = "DEBUG", "bot:reminder" = "DEBUG" }
+overrides = { "temporal" = "INFO", "telegram" = "DEBUG", "db" = "WARN", "api" = "WARN", "ui" = "DEBUG", "bot:reminder" = "DEBUG" }
 
 # Переключатели функций
 [metrics]
@@ -89,7 +89,7 @@ port = 7233
 # Пространство имён
 namespace = "default"
 # Очередь задач
-task_queue = "default-task-queue"
+task_queue = "reminder-v1"
 
 # Настройки Telegram бота
 [telegram]

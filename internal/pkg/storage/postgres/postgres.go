@@ -56,6 +56,34 @@ type Options struct {
 	isProduction bool   `option:"mandatory"`
 }
 
+// SlogLevelToPgxLogLevel converts slog.Level to tracelog.LogLevel.
+func SlogLevelToPgxLogLevel(level slog.Level) tracelog.LogLevel {
+	switch {
+	case level <= slog.LevelDebug:
+		return tracelog.LogLevelDebug
+	case level <= slog.LevelInfo:
+		return tracelog.LogLevelInfo
+	case level <= slog.LevelWarn:
+		return tracelog.LogLevelWarn
+	case level <= slog.LevelError:
+		return tracelog.LogLevelError
+	default:
+		return tracelog.LogLevelInfo
+	}
+}
+
+// GetSlogEffectiveLevel finds the lowest enabled level for a logger.
+func GetSlogEffectiveLevel(log *slog.Logger) slog.Level {
+	ctx := context.Background()
+	levels := []slog.Level{slog.LevelDebug, slog.LevelInfo, slog.LevelWarn, slog.LevelError}
+	for _, l := range levels {
+		if log.Enabled(ctx, l) {
+			return l
+		}
+	}
+	return slog.LevelInfo
+}
+
 func New(opts Options, log *slog.Logger) (*Postgres, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("validate options error: %w", err)
@@ -89,10 +117,11 @@ func New(opts Options, log *slog.Logger) (*Postgres, error) {
 	if opts.isProduction {
 		poolConfig.ConnConfig.Tracer = otelpgx.NewTracer()
 	} else if log != nil {
+		effectiveLevel := GetSlogEffectiveLevel(log)
 		// pgx-slog использует tracelog.NewTraceLog для v5
 		poolConfig.ConnConfig.Tracer = &tracelog.TraceLog{
 			Logger:   pgxslog.NewLogger(log),
-			LogLevel: tracelog.LogLevelDebug,
+			LogLevel: SlogLevelToPgxLogLevel(effectiveLevel),
 		}
 	}
 

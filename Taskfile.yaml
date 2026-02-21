@@ -20,6 +20,7 @@ vars:
     github.com/vovanwin/platform/protogen/cmd/protogen@v0.4.2
     github.com/cludden/protoc-gen-go-temporal/cmd/protoc-gen-go_temporal@v1.22.0
     github.com/a-h/templ/cmd/templ@latest
+    github.com/dmarkham/enumer@latest
 
   DOCKER_COMPOSE_PATHS: |
     -f ./deployments/local/docker-compose.yml
@@ -56,6 +57,7 @@ vars:
   CONFIGGEN: "{{.BIN_DIR}}/configgen"
   PROTOGEN: "{{.BIN_DIR}}/protogen"
   TEMPL: "{{.BIN_DIR}}/templ"
+  ENUMER: "{{.BIN_DIR}}/enumer"
 
   SERVICES: app
 
@@ -239,17 +241,23 @@ tasks:
       - '{{.CONFIGGEN}} --validate --configs={{.CONFIG_CONFIGS}}'
 
   generate:
-    desc: Запуск всех генераторов (proto, контроллеры, конфиги)
+    desc: Запуск всех генераторов (proto, контроллеры, конфиги, enum, templ)
     cmds:
       - task: proto:gen
       - task: proto:controllers
       - task: generate-config
+      - task: enum:gen
       - task: templ:gen
 
   templ:gen:
     desc: Генерация Go-кода из templ файлов
     cmds:
       - '{{.TEMPL}} generate'
+
+  enum:gen:
+    desc: Генерация enum-кода через enumer (go:generate)
+    cmds:
+      - 'PATH={{.BIN_DIR}}:$PATH go generate ./...'
 
   run:
     desc: Сборка и запуск приложения
