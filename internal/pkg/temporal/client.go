@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/log"
 )
 
 // Client обертка над temporal клиентом с дополнительной функциональностью
@@ -22,11 +23,11 @@ type Config struct {
 }
 
 // NewClient создает новый Temporal клиент
-func NewClient(config Config, log *slog.Logger) (*Client, error) {
+func NewClient(config Config, slogLogger *slog.Logger) (*Client, error) {
 	clientOptions := client.Options{
 		HostPort:  fmt.Sprintf("%s:%d", config.Host, config.Port),
 		Namespace: config.Namespace,
-		Logger:    log,
+		Logger:    log.NewStructuredLogger(slogLogger),
 	}
 
 	temporalClient, err := client.Dial(clientOptions)

@@ -28,6 +28,8 @@ format = false
 loki_enabled = true
 # URL Loki push API
 loki_url = "http://loki:3100/loki/api/v1/push"
+# Переопределения для компонентов.
+overrides = { "temporal" = "INFO", "telegram" = "DEBUG", "db" = "DEBUG", "api" = "WARN", "ui" = "DEBUG", "bot:reminder" = "DEBUG" }
 
 # Переключатели функций
 [metrics]

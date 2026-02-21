@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 
-	"go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/worker"
 )
 
@@ -21,9 +20,7 @@ type WorkerConfig struct {
 
 // NewWorker создает новый Temporal воркер
 func NewWorker(client *Client, config WorkerConfig, slogLogger *slog.Logger) *Worker {
-	temporalWorker := worker.New(client.GetClient(), config.TaskQueue, worker.Options{
-		Logger: log.NewStructuredLogger(slogLogger),
-	})
+	temporalWorker := worker.New(client.GetClient(), config.TaskQueue, worker.Options{})
 
 	return &Worker{
 		temporalWorker: temporalWorker,

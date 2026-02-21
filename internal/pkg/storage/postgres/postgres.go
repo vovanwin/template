@@ -3,9 +3,12 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/exaring/otelpgx"
+	"github.com/jackc/pgx/v5/tracelog"
+	pgxslog "github.com/mcosta74/pgx-slog"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -53,7 +56,7 @@ type Options struct {
 	isProduction bool   `option:"mandatory"`
 }
 
-func New(opts Options) (*Postgres, error) {
+func New(opts Options, log *slog.Logger) (*Postgres, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, fmt.Errorf("validate options error: %w", err)
 	}
@@ -82,14 +85,15 @@ func New(opts Options) (*Postgres, error) {
 
 	poolConfig.MaxConns = int32(pg.maxPoolSize)
 
-	// Включает логирование запросов в БД при дебаг режиме
+	// Включает логирование запросов в БД
 	if opts.isProduction {
 		poolConfig.ConnConfig.Tracer = otelpgx.NewTracer()
-	}
-	if !opts.isProduction {
-		// Создаем трейсер без logger для избежания nil pointer
-		// В production лучше использовать otel
-		poolConfig.ConnConfig.Tracer = otelpgx.NewTracer()
+	} else if log != nil {
+		// pgx-slog использует tracelog.NewTraceLog для v5
+		poolConfig.ConnConfig.Tracer = &tracelog.TraceLog{
+			Logger:   pgxslog.NewLogger(log),
+			LogLevel: tracelog.LogLevelDebug,
+		}
 	}
 
 	for pg.connAttempts > 0 {

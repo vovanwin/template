@@ -98,9 +98,7 @@ type Log struct {
 	// Включить отправку логов в Loki
 	LokiEnabled bool `toml:"loki_enabled"`
 	// URL Loki push API
-	LokiUrl string `toml:"loki_url"`
-	// Переопределение уровней логирования для компонентов
-	// Ключ - имя компонента, значение - уровень (DEBUG, INFO, WARN, ERROR)
+	LokiUrl   string    `toml:"loki_url"`
 	Overrides Overrides `toml:"overrides"`
 }
 

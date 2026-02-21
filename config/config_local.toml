@@ -21,15 +21,15 @@ csrf_key = "01234567890123456789012345678901"
 
 # Уровень логирования: DEBUG, INFO, WARN, ERROR
 [log]
-level = "DEBUG"
+level = "WARN"
 # Формат вывода: text=false , json = true
 format = false
 # Включить отправку логов в Loki
 loki_enabled = false
 # URL Loki push API
 loki_url = "http://localhost:3100/loki/api/v1/push"
-# Переопределения для компонентов
-overrides = { "temporal" = "INFO", "telegram" = "DEBUG", "db" = "DEBUG", "api" = "INFO", "ui" = "DEBUG", "bot:reminder" = "DEBUG" }
+# Переопределения для компонентов.
+overrides = { "temporal" = "INFO", "telegram" = "DEBUG", "db" = "DEBUG", "api" = "WARN", "ui" = "DEBUG", "bot:reminder" = "DEBUG" }
 
 # Переключатели функций
 [metrics]

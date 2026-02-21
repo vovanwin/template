@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"log/slog"
 	"time"
 
 	"github.com/vovanwin/template/config"
@@ -32,26 +33,22 @@ func inject(configDir string) fx.Option {
 	jwtService := jwt.NewJWTService(cfg.JWT.SignKey, cfg.JWT.TokenTtl, cfg.JWT.RefreshTokenTtl)
 	eventBus := events.NewBus()
 
-	// Temporal — создаём до fx.New()
-	temporalSvc, err := temporal.NewService(temporal.ServiceConfig{
-		Client: temporal.Config{
-			Host:      cfg.Temporal.Host,
-			Port:      cfg.Temporal.Port,
-			Namespace: cfg.Temporal.Namespace,
-		},
-		Worker: temporal.WorkerConfig{TaskQueue: cfg.Temporal.TaskQueue},
-	})
-	if err != nil {
-		log.Fatalf("temporal service: %v", err)
-	}
-
 	return fx.Options(
 		fx.Supply(cfg),
 		fx.Supply(flags),
 		fx.Supply(eventBus),
-		fx.Supply(temporalSvc),
 		fx.Provide(
 			ProvideLogger,
+			func(cfg *config.Config, log *slog.Logger) (*temporal.Service, error) {
+				return temporal.NewService(temporal.ServiceConfig{
+					Client: temporal.Config{
+						Host:      cfg.Temporal.Host,
+						Port:      cfg.Temporal.Port,
+						Namespace: cfg.Temporal.Namespace,
+					},
+					Worker: temporal.WorkerConfig{TaskQueue: cfg.Temporal.TaskQueue},
+				}, log.With("component", "temporal"))
+			},
 			ProvideServerConfig,
 			ProvidePgx,
 			repository.NewUserRepo,
@@ -66,7 +63,7 @@ func inject(configDir string) fx.Option {
 		fx.Invoke(func(lc fx.Lifecycle) {
 			lc.Append(fx.StopHook(closeFn))
 		}),
-		fx.Invoke(func(lc fx.Lifecycle) {
+		fx.Invoke(func(lc fx.Lifecycle, temporalSvc *temporal.Service) {
 			lc.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {
 					return temporalSvc.Start(ctx)
