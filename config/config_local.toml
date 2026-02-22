@@ -29,7 +29,7 @@ loki_enabled = false
 # URL Loki push API
 loki_url = "http://localhost:3100/loki/api/v1/push"
 # Переопределения для компонентов.
-overrides = { "temporal" = "INFO", "telegram" = "DEBUG", "db" = "WARN", "api" = "WARN", "ui" = "DEBUG", "bot:reminder" = "DEBUG" }
+overrides = { "temporal" = "INFO", "telegram" = "DEBUG", "db" = "WARN", "api" = "INFO", "ui" = "DEBUG", "bot:reminder" = "DEBUG" }
 
 # Переключатели функций
 [metrics]
@@ -90,6 +90,17 @@ port = 7233
 namespace = "default"
 # Очередь задач
 task_queue = "reminder-v1"
+
+# Настройки Centrifugo
+[centrifugo]
+# HTTP адрес Centrifugo API
+addr = "http://localhost:8000"
+# API ключ для Server API
+api_key = "centrifugo-api-key"
+# HMAC секрет для генерации JWT токенов клиентов
+token_secret = "centrifugo-token-secret"
+# Время жизни клиентского токена
+token_ttl = "60m"
 
 # Настройки Telegram бота
 [telegram]

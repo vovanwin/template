@@ -3,10 +3,10 @@ package pages
 import "github.com/vovanwin/template/internal/controller/ui/layouts"
 
 templ DashboardPage(csrfToken string) {
-	@layouts.AuthedLayout("Дашборд", "/dashboard", dashboardContent(), csrfToken)
+	@layouts.AuthedLayout("Дашборд", "/dashboard", DashboardContent(), csrfToken)
 }
 
-templ dashboardContent() {
+templ DashboardContent() {
 	<div class="space-y-6">
 		<!-- Карточки со статистикой (заглушки) -->
 		<div class="grid grid-cols-1 md:grid-cols-3 gap-6">

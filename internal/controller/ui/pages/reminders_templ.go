@@ -9,7 +9,9 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
+	"github.com/vovanwin/template/internal/controller/ui/components"
 	"github.com/vovanwin/template/internal/controller/ui/layouts"
+	"github.com/vovanwin/template/internal/model"
 	"github.com/vovanwin/template/internal/pkg/timezone"
 	"github.com/vovanwin/template/internal/repository"
 )
@@ -35,7 +37,7 @@ func RemindersPage(reminders []repository.Reminder, csrfToken string) templ.Comp
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = layouts.AuthedLayout("Напоминания", "/reminders", remindersContent(reminders, csrfToken), csrfToken).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layouts.AuthedLayout("Напоминания", "/reminders", RemindersContentPaged(reminders, csrfToken, 1, 1), csrfToken).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -43,7 +45,7 @@ func RemindersPage(reminders []repository.Reminder, csrfToken string) templ.Comp
 	})
 }
 
-func remindersContent(reminders []repository.Reminder, csrfToken string) templ.Component {
+func RemindersPagePaged(reminders []repository.Reminder, csrfToken string, currentPage, totalPages int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -64,15 +66,7 @@ func remindersContent(reminders []repository.Reminder, csrfToken string) templ.C
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-4xl space-y-6\"><!-- Форма создания --><div class=\"bg-white rounded-xl shadow-sm p-6 border border-gray-200\"><h2 class=\"text-lg font-semibold text-gray-800 mb-4\">Новое напоминание</h2><form hx-post=\"/reminders\" hx-target=\"#reminders-list\" hx-swap=\"innerHTML\" hx-ext=\"json-enc\" class=\"space-y-4\"><div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\"><div><label class=\"block text-sm font-medium text-gray-700 mb-1\">Название</label> <input type=\"text\" name=\"title\" required placeholder=\"Что напомнить?\" class=\"w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all\"></div><div><label class=\"block text-sm font-medium text-gray-700 mb-1\">Дата и время</label> <input type=\"datetime-local\" name=\"remind_at\" required class=\"w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all\"></div></div><div><label class=\"block text-sm font-medium text-gray-700 mb-1\">Описание</label> <textarea name=\"description\" rows=\"2\" placeholder=\"Подробности (необязательно)\" class=\"w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none\"></textarea></div><button type=\"submit\" class=\"bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition-colors font-medium\">Создать</button><div id=\"reminder-message\" class=\"mt-2 text-sm\"></div></form></div><!-- Список напоминаний --><div class=\"bg-white rounded-xl shadow-sm p-6 border border-gray-200\"><h2 class=\"text-lg font-semibold text-gray-800 mb-4\">Мои напоминания</h2><div id=\"reminders-list\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = RemindersList(reminders).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></div></div>")
+		templ_7745c5c3_Err = layouts.AuthedLayout("Напоминания", "/reminders", RemindersContentPaged(reminders, csrfToken, currentPage, totalPages), csrfToken).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -80,7 +74,7 @@ func remindersContent(reminders []repository.Reminder, csrfToken string) templ.C
 	})
 }
 
-func RemindersList(reminders []repository.Reminder) templ.Component {
+func RemindersContent(reminders []repository.Reminder, csrfToken string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -99,6 +93,105 @@ func RemindersList(reminders []repository.Reminder) templ.Component {
 		templ_7745c5c3_Var3 := templ.GetChildren(ctx)
 		if templ_7745c5c3_Var3 == nil {
 			templ_7745c5c3_Var3 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = RemindersContentPaged(reminders, csrfToken, 1, 1).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func RemindersContentPaged(reminders []repository.Reminder, csrfToken string, currentPage int, totalPages int) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var4 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var4 == nil {
+			templ_7745c5c3_Var4 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-4xl space-y-6\"><!-- Форма создания --><div class=\"bg-white rounded-xl shadow-sm p-6 border border-gray-200\" x-data=\"{ title: '', remind_at: '', error: '' }\"><h2 class=\"text-lg font-semibold text-gray-800 mb-4\">Новое напоминание</h2><form hx-post=\"/reminders\" hx-target=\"#reminders-table\" hx-swap=\"innerHTML\" hx-ext=\"json-enc\" class=\"space-y-4\" @submit=\"\n\t\t\t\t\tif (!title) { error = 'Введите название!'; $event.preventDefault(); return; }\n\t\t\t\t\tif (!remind_at) { error = 'Выберите дату!'; $event.preventDefault(); return; }\n\t\t\t\t\terror = '';\n\t\t\t\t\" @htmx:after-request=\"if ($event.detail.successful) { title = ''; remind_at = ''; error = '' }\"><div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\"><div><label class=\"block text-sm font-medium text-gray-700 mb-1\">Название</label> <input type=\"text\" name=\"title\" x-model=\"title\" required placeholder=\"Что напомнить?\" class=\"w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all\"></div><div><label class=\"block text-sm font-medium text-gray-700 mb-1\">Дата и время</label> <input type=\"datetime-local\" name=\"remind_at\" x-model=\"remind_at\" required class=\"w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all\"></div></div><template x-if=\"error\"><div class=\"text-red-500 text-sm\" x-text=\"error\"></div></template><div><label class=\"block text-sm font-medium text-gray-700 mb-1\">Описание</label> <textarea name=\"description\" rows=\"2\" placeholder=\"Подробности (необязательно)\" class=\"w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none\"></textarea></div><div class=\"flex items-center gap-4\" x-data=\"{ confirmEnabled: false }\"><label class=\"flex items-center gap-2 text-sm font-medium text-gray-700\"><input type=\"checkbox\" name=\"require_confirmation\" x-model=\"confirmEnabled\" class=\"rounded border-gray-300 text-indigo-600 focus:ring-indigo-500\"> Требовать подтверждение</label><div x-show=\"confirmEnabled\" x-cloak><select name=\"repeat_interval_minutes\" class=\"px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none\"><option value=\"5\">Каждые 5 мин</option> <option value=\"10\">Каждые 10 мин</option> <option value=\"15\" selected>Каждые 15 мин</option> <option value=\"30\">Каждые 30 мин</option> <option value=\"60\">Каждые 60 мин</option></select></div></div><button type=\"submit\" class=\"bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition-colors font-medium\">Создать</button><div id=\"reminder-message\" class=\"mt-2 text-sm\"></div></form></div><!-- Список напоминаний (Таблица) --><div class=\"bg-white rounded-xl shadow-sm p-6 border border-gray-200\"><h2 class=\"text-lg font-semibold text-gray-800 mb-4\">История напоминаний (Таблица)</h2><div id=\"reminders-table\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = RemindersTablePaged(reminders, currentPage, totalPages).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></div></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func RemindersTable(reminders []repository.Reminder) templ.Component {
+	return RemindersTablePaged(reminders, 1, 1)
+}
+
+func RemindersTablePaged(reminders []repository.Reminder, currentPage, totalPages int) templ.Component {
+	rows := make([]map[string]any, len(reminders))
+	for i, rem := range reminders {
+		rows[i] = map[string]any{
+			"id":          rem.ID,
+			"title":       rem.Title,
+			"status":      statusLabel(rem.Status),
+			"remind_at":   timezone.FormatUser(rem.RemindAt, "02.01.2006 15:04"),
+			"description": rem.Description,
+		}
+	}
+
+	config := components.TableConfig{
+		Columns: []components.Column{
+			{Title: "Название", Key: "title"},
+			{Title: "Статус", Key: "status"},
+			{Title: "Время", Key: "remind_at"},
+			{Title: "Описание", Key: "description"},
+		},
+		Rows:        rows,
+		BaseURL:     "/reminders",
+		TableID:     "reminders-table",
+		TotalPages:  totalPages,
+		CurrentPage: currentPage,
+	}
+
+	return components.Table(config)
+}
+
+func RemindersList(reminders []repository.Reminder) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var5 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var5 == nil {
+			templ_7745c5c3_Var5 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
 		if len(reminders) == 0 {
@@ -142,21 +235,21 @@ func reminderRow(rem repository.Reminder) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var4 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var4 == nil {
-			templ_7745c5c3_Var4 = templ.NopComponent
+		templ_7745c5c3_Var6 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var6 == nil {
+			templ_7745c5c3_Var6 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"flex items-center justify-between py-3\" id=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var5 string
-		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs("reminder-" + rem.ID.String())
+		var templ_7745c5c3_Var7 string
+		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs("reminder-" + rem.ID.String())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/pages/reminders.templ`, Line: 89, Col: 87}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/pages/reminders.templ`, Line: 166, Col: 87}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -164,12 +257,12 @@ func reminderRow(rem repository.Reminder) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var6 string
-		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(rem.Title)
+		var templ_7745c5c3_Var8 string
+		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(rem.Title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/pages/reminders.templ`, Line: 91, Col: 68}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/pages/reminders.templ`, Line: 168, Col: 68}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -182,12 +275,12 @@ func reminderRow(rem repository.Reminder) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var7 string
-			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(rem.Description)
+			var templ_7745c5c3_Var9 string
+			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(rem.Description)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/pages/reminders.templ`, Line: 93, Col: 63}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/pages/reminders.templ`, Line: 170, Col: 63}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -200,12 +293,12 @@ func reminderRow(rem repository.Reminder) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var8 string
-		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(timezone.FormatUser(rem.RemindAt, "02.01.2006 15:04"))
+		var templ_7745c5c3_Var10 string
+		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(timezone.FormatUser(rem.RemindAt, "02.01.2006 15:04"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/pages/reminders.templ`, Line: 96, Col: 59}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/pages/reminders.templ`, Line: 173, Col: 59}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -213,8 +306,8 @@ func reminderRow(rem repository.Reminder) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var9 = []any{"ml-2 inline-block px-2 py-0.5 rounded-full text-xs font-medium", statusClass(rem.Status)}
-		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var9...)
+		var templ_7745c5c3_Var11 = []any{"ml-2 inline-block px-2 py-0.5 rounded-full text-xs font-medium", statusClass(rem.Status)}
+		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var11...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -222,12 +315,12 @@ func reminderRow(rem repository.Reminder) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var10 string
-		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var9).String())
+		var templ_7745c5c3_Var12 string
+		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var11).String())
 		if templ_7745c5c3_Err != nil {
 			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/pages/reminders.templ`, Line: 1, Col: 0}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -235,12 +328,12 @@ func reminderRow(rem repository.Reminder) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var11 string
-		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(statusLabel(rem.Status))
+		var templ_7745c5c3_Var13 string
+		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(statusLabel(rem.Status))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/pages/reminders.templ`, Line: 98, Col: 30}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/pages/reminders.templ`, Line: 175, Col: 30}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -248,21 +341,21 @@ func reminderRow(rem repository.Reminder) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if rem.Status == "pending" {
+		if rem.Status == model.ReminderStatusPending.String() {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<button hx-delete=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var12 string
-			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs("/reminders/" + rem.ID.String())
+			var templ_7745c5c3_Var14 string
+			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs("/reminders/" + rem.ID.String())
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/pages/reminders.templ`, Line: 104, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/pages/reminders.templ`, Line: 181, Col: 47}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" hx-target=\"#reminders-list\" hx-swap=\"innerHTML\" hx-confirm=\"Удалить напоминание?\" class=\"ml-4 text-red-500 hover:text-red-700 text-sm font-medium shrink-0\">Удалить</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" hx-target=\"#reminders-table\" hx-swap=\"innerHTML\" hx-confirm=\"Удалить напоминание?\" class=\"ml-4 text-red-500 hover:text-red-700 text-sm font-medium shrink-0\">Удалить</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -277,13 +370,13 @@ func reminderRow(rem repository.Reminder) templ.Component {
 
 func statusClass(status string) string {
 	switch status {
-	case "pending":
+	case model.ReminderStatusPending.String():
 		return "bg-yellow-100 text-yellow-700"
-	case "sent":
+	case model.ReminderStatusSent.String():
 		return "bg-green-100 text-green-700"
-	case "cancelled":
+	case model.ReminderStatusCancelled.String():
 		return "bg-gray-100 text-gray-500"
-	case "failed":
+	case model.ReminderStatusFailed.String():
 		return "bg-red-100 text-red-700"
 	default:
 		return "bg-gray-100 text-gray-500"
@@ -292,13 +385,15 @@ func statusClass(status string) string {
 
 func statusLabel(status string) string {
 	switch status {
-	case "pending":
+	case model.ReminderStatusPending.String():
 		return "Ожидает"
-	case "sent":
+	case model.ReminderStatusProcessing.String():
+		return "В обработке"
+	case model.ReminderStatusSent.String():
 		return "Отправлено"
-	case "cancelled":
+	case model.ReminderStatusCancelled.String():
 		return "Отменено"
-	case "failed":
+	case model.ReminderStatusFailed.String():
 		return "Ошибка"
 	default:
 		return status

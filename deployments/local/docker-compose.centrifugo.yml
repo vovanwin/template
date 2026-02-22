@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  centrifugo:
+    image: centrifugo/centrifugo:v5
+    command: centrifugo -c config.json
+    volumes:
+      - ./centrifugo/config.json:/centrifugo/config.json
+    ports:
+      - "8000:8000"
+      - "10000:10000"
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/a-h/templ"
 	"github.com/google/uuid"
@@ -12,6 +14,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/vovanwin/platform/server"
 	"github.com/vovanwin/template/internal/controller/ui/pages"
+	"github.com/vovanwin/template/internal/pkg/centrifugo"
 	"github.com/vovanwin/template/internal/pkg/events"
 	"github.com/vovanwin/template/internal/pkg/jwt"
 	"github.com/vovanwin/template/internal/pkg/timezone"
@@ -21,29 +24,35 @@ import (
 )
 
 type UIController struct {
-	bus             *events.Bus
-	authService     *service.AuthService
-	reminderService *service.ReminderService
-	jwtService      jwt.JWTService
-	log             *slog.Logger
+	bus              *events.Bus
+	centrifugoClient *centrifugo.Client
+	centrifugoURL    string
+	authService      *service.AuthService
+	reminderService  *service.ReminderService
+	jwtService       jwt.JWTService
+	log              *slog.Logger
 }
 
 type Deps struct {
 	fx.In
-	Bus             *events.Bus
-	AuthService     *service.AuthService
-	ReminderService *service.ReminderService
-	JWTService      jwt.JWTService
-	Log             *slog.Logger
+	Bus              *events.Bus
+	CentrifugoClient *centrifugo.Client
+	CentrifugoURL    string `name:"centrifugo_url"`
+	AuthService      *service.AuthService
+	ReminderService  *service.ReminderService
+	JWTService       jwt.JWTService
+	Log              *slog.Logger
 }
 
 func NewUIController(deps Deps) *UIController {
 	return &UIController{
-		bus:             deps.Bus,
-		authService:     deps.AuthService,
-		reminderService: deps.ReminderService,
-		jwtService:      deps.JWTService,
-		log:             deps.Log,
+		bus:              deps.Bus,
+		centrifugoClient: deps.CentrifugoClient,
+		centrifugoURL:    deps.CentrifugoURL,
+		authService:      deps.AuthService,
+		reminderService:  deps.ReminderService,
+		jwtService:       deps.JWTService,
+		log:              deps.Log,
 	}
 }
 
@@ -61,10 +70,15 @@ func (c *UIController) extractUser(r *http.Request) (userID, email string, ok bo
 }
 
 // requireAuth редиректит на /login если пользователь не авторизован.
-// Возвращает true если обработчик должен прекратить работу.
+// Для HTMX запросов возвращает 401 Unauthorized, что обрабатывается на клиенте.
 func (c *UIController) requireAuth(w http.ResponseWriter, r *http.Request) (userID string, stop bool) {
 	uid, _, ok := c.extractUser(r)
 	if !ok {
+		if r.Header.Get("HX-Request") == "true" {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Сессия истекла"))
+			return "", true
+		}
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return "", true
 	}
@@ -72,10 +86,6 @@ func (c *UIController) requireAuth(w http.ResponseWriter, r *http.Request) (user
 }
 
 func (c *UIController) RegisterRoutes(ctx context.Context, mux *runtime.ServeMux, _ *grpc.Server) error {
-	if err := c.RegisterEvents(mux); err != nil {
-		return err
-	}
-
 	routes := []struct {
 		method  string
 		pattern string
@@ -91,6 +101,11 @@ func (c *UIController) RegisterRoutes(ctx context.Context, mux *runtime.ServeMux
 		{"POST", "/reminders", c.handleCreateReminder},
 		{"DELETE", "/reminders/{id}", c.handleDeleteReminder},
 		{"GET", "/settings", c.handleSettings},
+		{"GET", "/events-log", c.handleEventsLog},
+		{"GET", "/notifications-demo", c.handleNotificationsDemo},
+		{"POST", "/api/v1/notifications-demo/send", c.handleNotificationsDemoSend},
+		{"POST", "/api/v1/notifications-demo/burst", c.handleNotificationsDemoBurst},
+		{"GET", "/api/v1/centrifugo/token", c.handleCentrifugoToken},
 	}
 
 	for _, r := range routes {
@@ -175,7 +190,8 @@ func (c *UIController) handleDashboard(w http.ResponseWriter, r *http.Request, _
 	if _, stop := c.requireAuth(w, r); stop {
 		return
 	}
-	templ.Handler(pages.DashboardPage(csrf.Token(r))).ServeHTTP(w, r)
+	token := csrf.Token(r)
+	c.Render(w, r, pages.DashboardPage(token), pages.DashboardContent())
 }
 
 // handleProfile — страница профиля (GET /profile).
@@ -198,7 +214,8 @@ func (c *UIController) handleProfile(w http.ResponseWriter, r *http.Request, _ m
 		return
 	}
 
-	templ.Handler(pages.ProfilePage(profile, csrf.Token(r))).ServeHTTP(w, r)
+	token := csrf.Token(r)
+	c.Render(w, r, pages.ProfilePage(profile, token), pages.ProfileContent(profile, token))
 }
 
 // handleReminders — страница напоминаний (GET /reminders).
@@ -214,14 +231,32 @@ func (c *UIController) handleReminders(w http.ResponseWriter, r *http.Request, _
 		return
 	}
 
-	reminders, err := c.reminderService.ListReminders(r.Context(), userID)
+	page := 1
+	if p := r.URL.Query().Get("page"); p != "" {
+		if v, err := strconv.Atoi(p); err == nil && v > 0 {
+			page = v
+		}
+	}
+
+	const pageSize = 20
+	paged, err := c.reminderService.ListRemindersPaged(r.Context(), userID, page, pageSize)
 	if err != nil {
 		c.log.Error("list reminders", slog.Any("err", err))
 		http.Error(w, "Ошибка загрузки напоминаний", http.StatusInternalServerError)
 		return
 	}
 
-	templ.Handler(pages.RemindersPage(reminders, csrf.Token(r))).ServeHTTP(w, r)
+	// Если это HTMX-запрос пагинации (не boosted навигация), возвращаем только таблицу
+	if isHTMX(r) && r.Header.Get("HX-Boosted") != "true" {
+		templ.Handler(pages.RemindersTablePaged(paged.Items, page, paged.TotalPages)).ServeHTTP(w, r)
+		return
+	}
+
+	token := csrf.Token(r)
+	c.Render(w, r,
+		pages.RemindersPagePaged(paged.Items, token, page, paged.TotalPages),
+		pages.RemindersContentPaged(paged.Items, token, page, paged.TotalPages),
+	)
 }
 
 // handleCreateReminder — создание напоминания (POST /reminders).
@@ -238,9 +273,11 @@ func (c *UIController) handleCreateReminder(w http.ResponseWriter, r *http.Reque
 	}
 
 	var req struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		RemindAt    string `json:"remind_at"`
+		Title                 string `json:"title"`
+		Description           string `json:"description"`
+		RemindAt              string `json:"remind_at"`
+		RequireConfirmation   bool   `json:"require_confirmation"`
+		RepeatIntervalMinutes int    `json:"repeat_interval_minutes"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
@@ -261,7 +298,7 @@ func (c *UIController) handleCreateReminder(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	_, err = c.reminderService.CreateReminder(r.Context(), userID, req.Title, req.Description, remindAt, profile.TelegramChatID)
+	_, err = c.reminderService.CreateReminder(r.Context(), userID, req.Title, req.Description, remindAt, profile.TelegramChatID, req.RequireConfirmation, req.RepeatIntervalMinutes)
 	if err != nil {
 		c.log.Error("create reminder", slog.Any("err", err))
 		http.Error(w, "Ошибка создания напоминания", http.StatusInternalServerError)
@@ -275,7 +312,7 @@ func (c *UIController) handleCreateReminder(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Ошибка загрузки", http.StatusInternalServerError)
 		return
 	}
-	templ.Handler(pages.RemindersList(reminders)).ServeHTTP(w, r)
+	templ.Handler(pages.RemindersTable(reminders)).ServeHTTP(w, r)
 }
 
 // handleDeleteReminder — удаление напоминания (DELETE /reminders/{id}).
@@ -310,7 +347,7 @@ func (c *UIController) handleDeleteReminder(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Ошибка загрузки", http.StatusInternalServerError)
 		return
 	}
-	templ.Handler(pages.RemindersList(reminders)).ServeHTTP(w, r)
+	templ.Handler(pages.RemindersTable(reminders)).ServeHTTP(w, r)
 }
 
 // handleSettings — страница настроек (GET /settings).
@@ -318,7 +355,26 @@ func (c *UIController) handleSettings(w http.ResponseWriter, r *http.Request, _ 
 	if _, stop := c.requireAuth(w, r); stop {
 		return
 	}
-	templ.Handler(pages.SettingsPage(csrf.Token(r))).ServeHTTP(w, r)
+	token := csrf.Token(r)
+	c.Render(w, r, pages.SettingsPage(token), pages.SettingsContent())
+}
+
+// handleEventsLog — пример использования универсальной таблицы (GET /events-log).
+func (c *UIController) handleEventsLog(w http.ResponseWriter, r *http.Request, _ map[string]string) {
+	if _, stop := c.requireAuth(w, r); stop {
+		return
+	}
+
+	// Мокаем данные для демонстрации универсальной таблицы
+	mockEvents := []map[string]any{
+		{"id": 1, "type": "auth", "msg": "User login success", "time": time.Now().Add(-1 * time.Hour).Format(time.RFC822)},
+		{"id": 2, "type": "reminder", "msg": "Reminder created", "time": time.Now().Add(-2 * time.Hour).Format(time.RFC822)},
+		{"id": 3, "type": "system", "msg": "SSE connected", "time": time.Now().Add(-3 * time.Hour).Format(time.RFC822)},
+		{"id": 4, "type": "auth", "msg": "Token refreshed", "time": time.Now().Add(-4 * time.Hour).Format(time.RFC822)},
+	}
+
+	token := csrf.Token(r)
+	c.Render(w, r, pages.EventsLogPage(mockEvents, token), pages.EventsLogContent(mockEvents))
 }
 
 // Module возвращает fx.Option для подключения UI контроллера.

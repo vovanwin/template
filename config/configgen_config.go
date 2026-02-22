@@ -21,15 +21,16 @@ type Config struct {
 	JWT JWT         `toml:"JWT"`
 	PG  PG          `toml:"PG"`
 	// Информация о приложении
-	App      App      `toml:"app"`
-	Etcd     Etcd     `toml:"etcd"`
-	Log      Log      `toml:"log"`
-	Metrics  Metrics  `toml:"metrics"`
-	Otel     Otel     `toml:"otel"`
-	Rabbit   Rabbit   `toml:"rabbit"`
-	Server   Server   `toml:"server"`
-	Telegram Telegram `toml:"telegram"`
-	Temporal Temporal `toml:"temporal"`
+	App        App        `toml:"app"`
+	Centrifugo Centrifugo `toml:"centrifugo"`
+	Etcd       Etcd       `toml:"etcd"`
+	Log        Log        `toml:"log"`
+	Metrics    Metrics    `toml:"metrics"`
+	Otel       Otel       `toml:"otel"`
+	Rabbit     Rabbit     `toml:"rabbit"`
+	Server     Server     `toml:"server"`
+	Telegram   Telegram   `toml:"telegram"`
+	Temporal   Temporal   `toml:"temporal"`
 }
 
 func (c *Config) IsProduction() bool { return c.Env == EnvProduction }
@@ -80,6 +81,18 @@ type App struct {
 	Name string `toml:"name"`
 	// Версия приложения
 	Version string `toml:"version"`
+}
+
+// Centrifugo секция конфигурации
+type Centrifugo struct {
+	// HTTP адрес Centrifugo API
+	Addr string `toml:"addr"`
+	// API ключ для Server API
+	ApiKey string `toml:"api_key"`
+	// HMAC секрет для генерации JWT токенов клиентов
+	TokenSecret string `toml:"token_secret"`
+	// Время жизни клиентского токена
+	TokenTtl time.Duration `toml:"token_ttl"`
 }
 
 // Etcd секция конфигурации

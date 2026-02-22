@@ -5,20 +5,23 @@ templ Layout(title string, content templ.Component, csrfToken string) {
 	<html lang="ru">
 		<head>
 			<meta charset="UTF-8"/>
-			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 			<title>{ title }</title>
 			
 			<!-- HTMX -->
 			<script src="https://unpkg.com/htmx.org@1.9.10"></script>
 			<script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
 			<script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+
+			<!-- Alpine.js -->
+			<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 			
 			<!-- Tailwind CSS -->
 			<script src="https://cdn.tailwindcss.com"></script>
 			
 			<meta name="csrf-token" content={ csrfToken }/>
 		</head>
-		<body class="bg-gray-50 font-sans">
+		<body class="bg-gray-50 font-sans" hx-boost="true">
 			<nav class="bg-white shadow-sm mb-8 border-b">
 				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div class="flex justify-between h-16">
@@ -39,7 +42,7 @@ templ Layout(title string, content templ.Component, csrfToken string) {
 
 			<!-- Глобальный контейнер для уведомлений (включая SSE) -->
 			<div id="notifications" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2">
-				<div id="sse-status" hx-ext="sse" sse-connect="/api/v1/events" sse-swap="message">
+				<div id="sse-handler" hx-preserve="true" hx-ext="sse" sse-connect="/api/v1/events" sse-swap="message">
 					<!-- Сюда будут падать сообщения от сервера -->
 				</div>
 			</div>

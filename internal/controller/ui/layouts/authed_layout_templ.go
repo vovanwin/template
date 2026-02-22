@@ -11,8 +11,6 @@ import templruntime "github.com/a-h/templ/runtime"
 import "github.com/vovanwin/template/internal/controller/ui/components"
 
 // AuthedLayout — лейаут для страниц авторизованного пользователя.
-// title — заголовок страницы, activeURL — текущий путь (для подсветки меню),
-// content — компонент с основным содержимым, csrfToken — токен CSRF.
 func AuthedLayout(title string, activeURL string, content templ.Component, csrfToken string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -34,33 +32,33 @@ func AuthedLayout(title string, activeURL string, content templ.Component, csrfT
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"ru\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"ru\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\"><title>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/layouts/authed_layout.templ`, Line: 14, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/layouts/authed_layout.templ`, Line: 12, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " — Template App</title><!-- HTMX --><script src=\"https://unpkg.com/htmx.org@1.9.10\"></script><script src=\"https://unpkg.com/htmx.org/dist/ext/sse.js\"></script><script src=\"https://unpkg.com/htmx.org/dist/ext/json-enc.js\"></script><!-- Tailwind CSS --><script src=\"https://cdn.tailwindcss.com\"></script><meta name=\"csrf-token\" content=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " — Template App</title><!-- HTMX --><script src=\"https://unpkg.com/htmx.org@1.9.10\"></script><script src=\"https://unpkg.com/htmx.org/dist/ext/json-enc.js\"></script><!-- Alpine.js --><script defer src=\"https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js\"></script><!-- Telegram Web App --><script src=\"https://telegram.org/js/telegram-web-app.js\"></script><!-- Tailwind CSS --><script src=\"https://cdn.tailwindcss.com\"></script><meta name=\"csrf-token\" content=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(csrfToken)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/layouts/authed_layout.templ`, Line: 21, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/layouts/authed_layout.templ`, Line: 22, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"></head><body class=\"bg-gray-100 font-sans\"><!-- hx-boost на обёртке: HTMX перехватывает все ссылки внутри --><div hx-boost=\"true\" class=\"flex h-screen overflow-hidden\"><!-- Боковое меню -->")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><style>\n\t\t\t\t:root {\n\t\t\t\t\t--tg-theme-bg-color: #ffffff;\n\t\t\t\t\t--tg-theme-text-color: #000000;\n\t\t\t\t\t--tg-theme-hint-color: #999999;\n\t\t\t\t\t--tg-theme-link-color: #2481cc;\n\t\t\t\t\t--tg-theme-button-color: #2481cc;\n\t\t\t\t\t--tg-theme-button-text-color: #ffffff;\n\t\t\t\t\t--tg-theme-secondary-bg-color: #efeff3;\n\t\t\t\t}\n\t\t\t\tbody.is-tg {\n\t\t\t\t\tbackground-color: var(--tg-theme-bg-color);\n\t\t\t\t\tcolor: var(--tg-theme-text-color);\n\t\t\t\t}\n\t\t\t\t.is-tg .bg-white { background-color: var(--tg-theme-bg-color) !important; }\n\t\t\t\t.is-tg .bg-gray-100 { background-color: var(--tg-theme-secondary-bg-color) !important; }\n\t\t\t\t.is-tg .text-gray-900 { color: var(--tg-theme-text-color) !important; }\n\t\t\t</style></head><body class=\"bg-gray-100 font-sans text-gray-900\" hx-indicator=\"#global-progress\" x-data=\"{ mobileMenuOpen: false, isTG: false }\" :class=\"{ 'is-tg': isTG }\" x-init=\"\n\t\t\t\tif (window.Telegram && window.Telegram.WebApp) {\n\t\t\t\t\tconst tg = window.Telegram.WebApp;\n\t\t\t\t\ttg.ready();\n\t\t\t\t\ttg.expand();\n\t\t\t\t\tisTG = true;\n\t\t\t\t\tdocument.documentElement.style.setProperty('--tg-theme-bg-color', tg.backgroundColor);\n\t\t\t\t}\n\t\t\t  \"><!-- Индикатор загрузки --><div id=\"global-progress\" class=\"htmx-indicator fixed top-0 left-0 right-0 z-50 h-0.5 bg-indigo-600\" style=\"transition: opacity 200ms ease-in;\"></div><div class=\"flex flex-col md:flex-row h-screen overflow-hidden\" hx-boost=\"true\" hx-target=\"#main-content\" hx-swap=\"innerHTML\"><!-- Боковое меню (Desktop) --><div class=\"hidden md:flex md:shrink-0\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -68,20 +66,20 @@ func AuthedLayout(title string, activeURL string, content templ.Component, csrfT
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<!-- Основная область --><div class=\"flex-1 flex flex-col min-h-screen overflow-auto\"><!-- Верхняя панель --><header class=\"bg-white shadow-sm px-6 py-4 flex items-center justify-between shrink-0\"><h1 class=\"text-lg font-semibold text-gray-800\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><!-- Основная область --><div class=\"flex-1 flex flex-col min-h-0 overflow-hidden\"><!-- Хедер --><header class=\"bg-white shadow-sm px-4 md:px-6 py-3 flex items-center justify-between shrink-0\"><div class=\"flex items-center gap-3\"><button @click=\"mobileMenuOpen = !mobileMenuOpen\" class=\"md:hidden p-2 -ml-2 text-gray-500\"><svg class=\"w-6 h-6\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 6h16M4 12h16M4 18h16\"></path></svg></button><h1 class=\"text-base md:text-lg font-semibold text-gray-800 truncate\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/layouts/authed_layout.templ`, Line: 32, Col: 61}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/layouts/authed_layout.templ`, Line: 77, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</h1><div class=\"flex items-center gap-4\"><a href=\"/profile\" class=\"text-sm text-gray-600 hover:text-indigo-600 transition-colors\">👤 Профиль</a> <a href=\"/logout\" class=\"text-sm text-red-500 hover:text-red-700 transition-colors\">Выйти</a></div></header><!-- Контент --><main class=\"flex-1 p-6 overflow-auto\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</h1></div><div class=\"flex items-center gap-2 md:gap-4\"><a href=\"/profile\" class=\"p-2 text-gray-600 hover:text-indigo-600 transition-colors rounded-full hover:bg-gray-100\" title=\"Профиль\">👤 <span class=\"hidden sm:inline ml-1 text-sm\">Профиль</span></a> <a href=\"/logout\" hx-boost=\"false\" class=\"p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-50\" title=\"Выход\">🚪 <span class=\"hidden sm:inline ml-1 text-sm\">Выход</span></a></div></header><!-- Контент (ID для HTMX таргета) --><main class=\"flex-1 p-4 md:p-6 overflow-y-auto pb-20 md:pb-6\" id=\"main-content\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -89,7 +87,84 @@ func AuthedLayout(title string, activeURL string, content templ.Component, csrfT
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</main></div></div><!-- SSE-уведомления: hx-preserve — не пересоздаётся при навигации --><div id=\"notifications\" class=\"fixed bottom-4 right-4 z-50 flex flex-col space-y-2 max-w-sm\"><div id=\"sse-container\" hx-preserve=\"true\" hx-ext=\"sse\" sse-connect=\"/api/v1/events\" sse-swap=\"message\"></div></div><script>\n\t\t\t\t// CSRF во все HTMX-запросы\n\t\t\t\tdocument.addEventListener('htmx:configRequest', (event) => {\n\t\t\t\t\tconst meta = document.querySelector('meta[name=\"csrf-token\"]');\n\t\t\t\t\tif (meta) event.detail.headers['X-CSRF-Token'] = meta.content;\n\t\t\t\t});\n\n\t\t\t\t// Глобальный обработчик ошибок\n\t\t\t\tdocument.addEventListener('htmx:responseError', (event) => {\n\t\t\t\t\tconst msg = event.detail.xhr.responseText || 'Ошибка сервера';\n\t\t\t\t\tconst target = event.detail.target;\n\t\t\t\t\tif (target) {\n\t\t\t\t\t\ttarget.innerHTML = `<div class=\"text-red-600 bg-red-50 p-3 rounded-lg border border-red-200\">❌ ${msg}</div>`;\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t</script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</main><!-- Мобильное нижнее меню --><nav class=\"md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-16 shrink-0 z-40\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		for _, item := range components.DefaultMenuItems() {
+			var templ_7745c5c3_Var5 = []any{"flex flex-col items-center justify-center w-full h-full transition-colors",
+				templ.KV("text-indigo-600", item.URL == activeURL),
+				templ.KV("text-gray-500", item.URL != activeURL)}
+			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var5...)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<a href=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var6 templ.SafeURL
+			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(item.URL))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/layouts/authed_layout.templ`, Line: 97, Col: 40}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var7 string
+			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var5).String())
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/layouts/authed_layout.templ`, Line: 1, Col: 0}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\"><span class=\"text-xl\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var8 string
+			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(item.Icon)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/layouts/authed_layout.templ`, Line: 101, Col: 41}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</span> <span class=\"text-[10px] mt-1 font-medium\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var9 string
+			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(item.Title)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/layouts/authed_layout.templ`, Line: 102, Col: 63}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</span></a>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</nav></div><!-- Мобильный Drawer (выезжающее меню) --><div x-show=\"mobileMenuOpen\" class=\"fixed inset-0 z-50 md:hidden\" style=\"display: none;\"><div class=\"fixed inset-0 bg-gray-600 bg-opacity-75\" @click=\"mobileMenuOpen = false\"></div><div class=\"relative flex-1 flex flex-col max-w-xs w-full bg-gray-900\"><div class=\"absolute top-0 right-0 -mr-12 pt-2\"><button @click=\"mobileMenuOpen = false\" class=\"ml-1 flex items-center justify-center h-10 w-10 rounded-full text-white\"><svg class=\"h-6 w-6\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M6 18L18 6M6 6l12 12\"></path></svg></button></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = components.SideMenu(components.DefaultMenuItems(), activeURL).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div></div></div><!-- Контейнер для уведомлений --><div id=\"notifications\" hx-preserve=\"true\" class=\"fixed bottom-20 md:bottom-4 right-4 z-50 flex flex-col space-y-2 max-w-sm pointer-events-none\"></div><script>\n\t\t\t\tdocument.addEventListener('htmx:configRequest', (event) => {\n\t\t\t\t\tconst meta = document.querySelector('meta[name=\"csrf-token\"]');\n\t\t\t\t\tif (meta) event.detail.headers['X-CSRF-Token'] = meta.content;\n\t\t\t\t});\n\n\t\t\t\tdocument.addEventListener('htmx:responseError', (event) => {\n\t\t\t\t\tif (event.detail.xhr.status === 401) {\n\t\t\t\t\t\twindow.location.href = '/login';\n\t\t\t\t\t}\n\t\t\t\t});\n\n\t\t\t\t// Centrifugo realtime notifications (uni_sse — нативный EventSource)\n\t\t\t\t(function() {\n\t\t\t\t\tif (window.__centrifugeConnected) return;\n\t\t\t\t\twindow.__centrifugeConnected = true;\n\n\t\t\t\t\tfetch('/api/v1/centrifugo/token')\n\t\t\t\t\t\t.then(function(r) { return r.json(); })\n\t\t\t\t\t\t.then(function(data) {\n\t\t\t\t\t\t\tvar url = new URL(data.url + '/connection/uni_sse');\n\t\t\t\t\t\t\turl.searchParams.append('cf_connect', JSON.stringify({\n\t\t\t\t\t\t\t\ttoken: data.token\n\t\t\t\t\t\t\t}));\n\n\t\t\t\t\t\t\tvar es = new EventSource(url);\n\t\t\t\t\t\t\tes.onmessage = function(event) {\n\t\t\t\t\t\t\t\ttry {\n\t\t\t\t\t\t\t\t\tvar msg = JSON.parse(event.data);\n\t\t\t\t\t\t\t\t\tconsole.log('Centrifugo SSE raw:', msg);\n\n\t\t\t\t\t\t\t\t\tvar pubData = null;\n\t\t\t\t\t\t\t\t\tif (msg.push && msg.push.pub && msg.push.pub.data) {\n\t\t\t\t\t\t\t\t\t\tpubData = msg.push.pub.data;\n\t\t\t\t\t\t\t\t\t} else if (msg.pub && msg.pub.data) {\n\t\t\t\t\t\t\t\t\t\tpubData = msg.pub.data;\n\t\t\t\t\t\t\t\t\t} else if (msg.data) {\n\t\t\t\t\t\t\t\t\t\tpubData = msg.data;\n\t\t\t\t\t\t\t\t\t} else if (msg.message) {\n\t\t\t\t\t\t\t\t\t\tpubData = msg;\n\t\t\t\t\t\t\t\t\t}\n\n\t\t\t\t\t\t\t\t\tconsole.log('Centrifugo pubData:', pubData);\n\t\t\t\t\t\t\t\t\tif (!pubData || !pubData.message) return;\n\n\t\t\t\t\t\t\t\t\tvar container = document.getElementById('notifications');\n\t\t\t\t\t\t\t\t\tconsole.log('Centrifugo container:', container);\n\t\t\t\t\t\t\t\t\tif (!container) return;\n\n\t\t\t\t\t\t\t\t\tvar colors = {\n\t\t\t\t\t\t\t\t\t\tsuccess: {bg: '#22c55e', border: '#15803d'},\n\t\t\t\t\t\t\t\t\t\tinfo:    {bg: '#3b82f6', border: '#1d4ed8'},\n\t\t\t\t\t\t\t\t\t\twarning: {bg: '#eab308', border: '#a16207'},\n\t\t\t\t\t\t\t\t\t\terror:   {bg: '#ef4444', border: '#b91c1c'},\n\t\t\t\t\t\t\t\t\t\treminder:{bg: '#a855f7', border: '#7e22ce'}\n\t\t\t\t\t\t\t\t\t};\n\t\t\t\t\t\t\t\t\tvar ntype = pubData.type || 'info';\n\t\t\t\t\t\t\t\t\tvar c = colors[ntype] || colors.info;\n\n\t\t\t\t\t\t\t\t\tvar div = document.createElement('div');\n\t\t\t\t\t\t\t\t\tdiv.style.cssText = 'color:white;padding:12px;border-radius:8px;box-shadow:0 10px 15px rgba(0,0,0,0.2);margin-bottom:12px;border-left:4px solid ' + c.border + ';background:' + c.bg + ';pointer-events:auto;';\n\t\t\t\t\t\t\t\t\tdiv.textContent = pubData.message;\n\t\t\t\t\t\t\t\t\tcontainer.appendChild(div);\n\t\t\t\t\t\t\t\t\tsetTimeout(function() { div.remove(); }, 5000);\n\t\t\t\t\t\t\t\t} catch(e) {\n\t\t\t\t\t\t\t\t\tconsole.warn('Centrifugo SSE parse error:', e, event.data);\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t};\n\t\t\t\t\t\t\tes.onerror = function() {\n\t\t\t\t\t\t\t\tconsole.warn('Centrifugo SSE connection error');\n\t\t\t\t\t\t\t};\n\t\t\t\t\t\t})\n\t\t\t\t\t\t.catch(function(err) {\n\t\t\t\t\t\t\tconsole.warn('Centrifugo token fetch failed:', err);\n\t\t\t\t\t\t});\n\t\t\t\t})();\n\t\t\t</script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

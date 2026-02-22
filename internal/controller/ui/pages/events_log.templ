@@ -1,0 +1,35 @@
+package pages
+
+import (
+	"github.com/vovanwin/template/internal/controller/ui/layouts"
+	"github.com/vovanwin/template/internal/controller/ui/components"
+)
+
+templ EventsLogPage(events []map[string]any, csrfToken string) {
+	@layouts.AuthedLayout("Лог событий", "/events-log", EventsLogContent(events), csrfToken)
+}
+
+templ EventsLogContent(events []map[string]any) {
+	<div class="space-y-6">
+		<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+			<h2 class="text-lg font-semibold text-gray-800 mb-4">История всех событий</h2>
+			<p class="text-sm text-gray-500 mb-6">
+				Это пример использования универсального компонента таблицы (Generic Table) для отображения любых данных.
+			</p>
+			
+			@components.Table(components.TableConfig{
+				Columns: []components.Column{
+					{Title: "ID", Key: "id"},
+					{Title: "Тип", Key: "type"},
+					{Title: "Сообщение", Key: "msg"},
+					{Title: "Время", Key: "time"},
+				},
+				Rows:        events,
+				BaseURL:     "/events-log",
+				TableID:     "events-log-table",
+				TotalPages:  5,
+				CurrentPage: 1,
+			})
+		</div>
+	</div>
+}

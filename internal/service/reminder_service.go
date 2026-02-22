@@ -33,8 +33,8 @@ func NewReminderService(
 	}
 }
 
-func (s *ReminderService) CreateReminder(ctx context.Context, userID uuid.UUID, title, description string, remindAt time.Time, telegramChatID int64) (*repository.Reminder, error) {
-	rem, err := s.repo.Create(ctx, userID, title, description, remindAt)
+func (s *ReminderService) CreateReminder(ctx context.Context, userID uuid.UUID, title, description string, remindAt time.Time, telegramChatID int64, requireConfirmation bool, repeatIntervalMinutes int) (*repository.Reminder, error) {
+	rem, err := s.repo.Create(ctx, userID, title, description, remindAt, requireConfirmation, repeatIntervalMinutes)
 	if err != nil {
 		return nil, fmt.Errorf("create reminder in db: %w", err)
 	}
@@ -47,12 +47,14 @@ func (s *ReminderService) CreateReminder(ctx context.Context, userID uuid.UUID, 
 	}
 
 	req := &reminderv1.ScheduleReminderRequest{
-		ReminderId:     rem.ID.String(),
-		UserId:         userID.String(),
-		Title:          title,
-		Description:    description,
-		RemindAt:       timestamppb.New(remindAt),
-		TelegramChatId: telegramChatID,
+		ReminderId:            rem.ID.String(),
+		UserId:                userID.String(),
+		Title:                 title,
+		Description:           description,
+		RemindAt:              timestamppb.New(remindAt),
+		TelegramChatId:        telegramChatID,
+		RequireConfirmation:   requireConfirmation,
+		RepeatIntervalMinutes: int32(repeatIntervalMinutes),
 	}
 
 	run, err := s.temporal.GetClient().ExecuteWorkflow(ctx, opts, reminderv1.ScheduleReminderWorkflowName, req)
@@ -69,6 +71,16 @@ func (s *ReminderService) CreateReminder(ctx context.Context, userID uuid.UUID, 
 
 func (s *ReminderService) ListReminders(ctx context.Context, userID uuid.UUID) ([]repository.Reminder, error) {
 	return s.repo.ListByUserID(ctx, userID)
+}
+
+func (s *ReminderService) ListRemindersPaged(ctx context.Context, userID uuid.UUID, page, pageSize int) (*repository.PagedReminders, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	return s.repo.ListByUserIDPaged(ctx, userID, page, pageSize)
 }
 
 func (s *ReminderService) CancelReminder(ctx context.Context, userID, reminderID uuid.UUID) error {
@@ -92,6 +104,29 @@ func (s *ReminderService) CancelReminder(ctx context.Context, userID, reminderID
 	}
 
 	return s.repo.UpdateStatus(ctx, reminderID, model.ReminderStatusCancelled.String())
+}
+
+func (s *ReminderService) AcknowledgeReminder(ctx context.Context, userID, reminderID uuid.UUID) error {
+	rem, err := s.repo.GetByID(ctx, reminderID)
+	if err != nil {
+		return fmt.Errorf("get reminder: %w", err)
+	}
+	if rem == nil {
+		return fmt.Errorf("reminder not found")
+	}
+	if rem.UserID != userID {
+		return fmt.Errorf("forbidden")
+	}
+
+	if rem.WorkflowID != "" {
+		err = s.temporal.GetClient().GetClient().SignalWorkflow(ctx, rem.WorkflowID, "", reminderv1.AcknowledgeReminderSignalName, nil)
+		if err != nil {
+			s.log.Warn("failed to acknowledge workflow", slog.Any("err", err), slog.String("workflow_id", rem.WorkflowID))
+			return fmt.Errorf("acknowledge workflow: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (s *ReminderService) DeleteReminder(ctx context.Context, userID, reminderID uuid.UUID) error {

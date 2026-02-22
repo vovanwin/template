@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	convert "github.com/cludden/protoc-gen-go-temporal/pkg/convert"
 	expression "github.com/cludden/protoc-gen-go-temporal/pkg/expression"
 	helpers "github.com/cludden/protoc-gen-go-temporal/pkg/helpers"
 	gohomedir "github.com/mitchellh/go-homedir"
@@ -62,7 +63,8 @@ const (
 
 // reminder.v1.Reminder signal names
 const (
-	CancelReminderSignalName = "reminder.v1.Reminder.CancelReminder"
+	AcknowledgeReminderSignalName = "reminder.v1.Reminder.AcknowledgeReminder"
+	CancelReminderSignalName      = "reminder.v1.Reminder.CancelReminder"
 )
 
 // ReminderClient describes a client for a(n) reminder.v1.Reminder worker
@@ -84,6 +86,9 @@ type ReminderClient interface {
 
 	// GetReminderStatus запрос текущего статуса напоминания
 	GetReminderStatus(ctx context.Context, workflowID string, runID string) (*GetReminderStatusResponse, error)
+
+	// AcknowledgeReminder сигнал подтверждения получения напоминания
+	AcknowledgeReminder(ctx context.Context, workflowID string, runID string) error
 
 	// CancelReminder сигнал для отмены напоминания
 	CancelReminder(ctx context.Context, workflowID string, runID string) error
@@ -215,6 +220,11 @@ func (c *reminderClient) GetReminderStatus(ctx context.Context, workflowID strin
 		return nil, err
 	}
 	return &resp, nil
+}
+
+// AcknowledgeReminder сигнал подтверждения получения напоминания
+func (c *reminderClient) AcknowledgeReminder(ctx context.Context, workflowID string, runID string) error {
+	return c.client.SignalWorkflow(ctx, workflowID, runID, AcknowledgeReminderSignalName, nil)
 }
 
 // CancelReminder сигнал для отмены напоминания
@@ -389,6 +399,9 @@ type ScheduleReminderRun interface {
 
 	// CancelReminder сигнал для отмены напоминания
 	CancelReminder(ctx context.Context) error
+
+	// AcknowledgeReminder сигнал подтверждения получения напоминания
+	AcknowledgeReminder(ctx context.Context) error
 }
 
 // scheduleReminderRun provides an internal implementation of a(n) ScheduleReminderRunRun
@@ -439,6 +452,11 @@ func (r *scheduleReminderRun) GetReminderStatus(ctx context.Context) (*GetRemind
 // CancelReminder сигнал для отмены напоминания
 func (r *scheduleReminderRun) CancelReminder(ctx context.Context) error {
 	return r.client.CancelReminder(ctx, r.ID(), "")
+}
+
+// AcknowledgeReminder сигнал подтверждения получения напоминания
+func (r *scheduleReminderRun) AcknowledgeReminder(ctx context.Context) error {
+	return r.client.AcknowledgeReminder(ctx, r.ID(), "")
 }
 
 // Reference to generated workflow functions
@@ -499,6 +517,9 @@ func buildScheduleReminder(ctor func(workflow.Context, *ScheduleReminderWorkflow
 			CancelReminder: &CancelReminderSignal{
 				Channel: workflow.GetSignalChannel(ctx, CancelReminderSignalName),
 			},
+			AcknowledgeReminder: &AcknowledgeReminderSignal{
+				Channel: workflow.GetSignalChannel(ctx, AcknowledgeReminderSignalName),
+			},
 		}
 		wf, err := ctor(ctx, input)
 		if err != nil {
@@ -518,8 +539,9 @@ func buildScheduleReminder(ctor func(workflow.Context, *ScheduleReminderWorkflow
 
 // ScheduleReminderWorkflowInput describes the input to a(n) reminder.v1.Reminder.ScheduleReminder workflow constructor
 type ScheduleReminderWorkflowInput struct {
-	Req            *ScheduleReminderRequest
-	CancelReminder *CancelReminderSignal
+	Req                 *ScheduleReminderRequest
+	CancelReminder      *CancelReminderSignal
+	AcknowledgeReminder *AcknowledgeReminderSignal
 }
 
 // ContinueAsNew returns an appropriately configured ContinueAsNewError
@@ -787,6 +809,67 @@ func (r *ScheduleReminderChildRun) CancelReminder(ctx workflow.Context) error {
 // CancelReminderAsync sends a(n) "reminder.v1.Reminder.CancelReminder" signal request to the child workflow
 func (r *ScheduleReminderChildRun) CancelReminderAsync(ctx workflow.Context) workflow.Future {
 	return r.Future.SignalChildWorkflow(ctx, CancelReminderSignalName, nil)
+}
+
+// AcknowledgeReminder sends a(n) "reminder.v1.Reminder.AcknowledgeReminder" signal request to the child workflow
+func (r *ScheduleReminderChildRun) AcknowledgeReminder(ctx workflow.Context) error {
+	return r.AcknowledgeReminderAsync(ctx).Get(ctx, nil)
+}
+
+// AcknowledgeReminderAsync sends a(n) "reminder.v1.Reminder.AcknowledgeReminder" signal request to the child workflow
+func (r *ScheduleReminderChildRun) AcknowledgeReminderAsync(ctx workflow.Context) workflow.Future {
+	return r.Future.SignalChildWorkflow(ctx, AcknowledgeReminderSignalName, nil)
+}
+
+// AcknowledgeReminderSignal describes a(n) reminder.v1.Reminder.AcknowledgeReminder signal
+type AcknowledgeReminderSignal struct {
+	Channel workflow.ReceiveChannel
+}
+
+// NewAcknowledgeReminderSignal initializes a new reminder.v1.Reminder.AcknowledgeReminder signal wrapper
+func NewAcknowledgeReminderSignal(ctx workflow.Context) *AcknowledgeReminderSignal {
+	return &AcknowledgeReminderSignal{Channel: workflow.GetSignalChannel(ctx, AcknowledgeReminderSignalName)}
+}
+
+// Receive blocks until a(n) reminder.v1.Reminder.AcknowledgeReminder signal is received
+func (s *AcknowledgeReminderSignal) Receive(ctx workflow.Context) bool {
+	more := s.Channel.Receive(ctx, nil)
+	return more
+}
+
+// ReceiveAsync checks for a reminder.v1.Reminder.AcknowledgeReminder signal without blocking
+func (s *AcknowledgeReminderSignal) ReceiveAsync() bool {
+	return s.Channel.ReceiveAsync(nil)
+}
+
+// ReceiveWithTimeout blocks until a(n) reminder.v1.Reminder.AcknowledgeReminder signal is received or timeout expires.
+// Returns more value of false when Channel is closed.
+// Returns ok value of false when no value was found in the channel for the duration of timeout or the ctx was canceled.
+func (s *AcknowledgeReminderSignal) ReceiveWithTimeout(ctx workflow.Context, timeout time.Duration) (ok bool, more bool) {
+	if ok, more = s.Channel.ReceiveWithTimeout(ctx, timeout, nil); !ok {
+		return false, more
+	}
+	return
+}
+
+// Select checks for a(n) reminder.v1.Reminder.AcknowledgeReminder signal without blocking
+func (s *AcknowledgeReminderSignal) Select(sel workflow.Selector, fn func()) workflow.Selector {
+	return sel.AddReceive(s.Channel, func(workflow.ReceiveChannel, bool) {
+		s.ReceiveAsync()
+		if fn != nil {
+			fn()
+		}
+	})
+}
+
+// AcknowledgeReminder сигнал подтверждения получения напоминания
+func AcknowledgeReminderExternal(ctx workflow.Context, workflowID string, runID string) error {
+	return AcknowledgeReminderExternalAsync(ctx, workflowID, runID).Get(ctx, nil)
+}
+
+// AcknowledgeReminder сигнал подтверждения получения напоминания
+func AcknowledgeReminderExternalAsync(ctx workflow.Context, workflowID string, runID string) workflow.Future {
+	return workflow.SignalExternalWorkflow(ctx, workflowID, runID, AcknowledgeReminderSignalName, nil)
 }
 
 // CancelReminderSignal describes a(n) reminder.v1.Reminder.CancelReminder signal
@@ -1450,6 +1533,12 @@ func (c *TestReminderClient) GetReminderStatus(ctx context.Context, workflowID s
 	}
 }
 
+// AcknowledgeReminder executes a reminder.v1.Reminder.AcknowledgeReminder signal
+func (c *TestReminderClient) AcknowledgeReminder(ctx context.Context, workflowID string, runID string) error {
+	c.env.SignalWorkflow(AcknowledgeReminderSignalName, nil)
+	return nil
+}
+
 // CancelReminder executes a reminder.v1.Reminder.CancelReminder signal
 func (c *TestReminderClient) CancelReminder(ctx context.Context, workflowID string, runID string) error {
 	c.env.SignalWorkflow(CancelReminderSignalName, nil)
@@ -1522,6 +1611,11 @@ func (r *testScheduleReminderRun) GetReminderStatus(ctx context.Context) (*GetRe
 // CancelReminder executes a reminder.v1.Reminder.CancelReminder signal against a test reminder.v1.Reminder.ScheduleReminder workflow
 func (r *testScheduleReminderRun) CancelReminder(ctx context.Context) error {
 	return r.client.CancelReminder(ctx, r.ID(), r.RunID())
+}
+
+// AcknowledgeReminder executes a reminder.v1.Reminder.AcknowledgeReminder signal against a test reminder.v1.Reminder.ScheduleReminder workflow
+func (r *testScheduleReminderRun) AcknowledgeReminder(ctx context.Context) error {
+	return r.client.AcknowledgeReminder(ctx, r.ID(), r.RunID())
 }
 
 // ReminderCliOptions describes runtime configuration for reminder.v1.Reminder cli v3
@@ -1631,6 +1725,40 @@ func newReminderCommands(options ...*ReminderCliOptions) ([]*cliv3.Command, erro
 			},
 		},
 		{
+			Name:                   "acknowledge-reminder",
+			Usage:                  "AcknowledgeReminder сигнал подтверждения получения напоминания",
+			Category:               "SIGNALS",
+			UseShortOptionHandling: true,
+			Before:                 opts.before,
+			After:                  opts.after,
+			Flags: []cliv3.Flag{
+				&cliv3.StringFlag{
+					Name:     "workflow-id",
+					Usage:    "workflow id",
+					Required: true,
+					Aliases:  []string{"w"},
+				},
+				&cliv3.StringFlag{
+					Name:    "run-id",
+					Usage:   "run id",
+					Aliases: []string{"r"},
+				},
+			},
+			Action: func(ctx context.Context, cmd *cliv3.Command) error {
+				c, err := opts.clientForCommand(ctx, cmd)
+				if err != nil {
+					return fmt.Errorf("error initializing client for command: %w", err)
+				}
+				defer c.Close()
+				client := NewReminderClient(c)
+				if err := client.AcknowledgeReminder(ctx, cmd.String("workflow-id"), cmd.String("run-id")); err != nil {
+					return fmt.Errorf("error sending %q signal: %w", AcknowledgeReminderSignalName, err)
+				}
+				fmt.Println("success")
+				return nil
+			},
+		},
+		{
 			Name:                   "cancel-reminder",
 			Usage:                  "CancelReminder сигнал для отмены напоминания",
 			Category:               "SIGNALS",
@@ -1719,6 +1847,16 @@ func newReminderCommands(options ...*ReminderCliOptions) ([]*cliv3.Command, erro
 				&cliv3.Int64Flag{
 					Name:     "telegram-chat-id",
 					Usage:    "Chat ID в Telegram для отправки уведомления",
+					Category: "INPUT",
+				},
+				&cliv3.BoolFlag{
+					Name:     "require-confirmation",
+					Usage:    "Требуется ли подтверждение получения",
+					Category: "INPUT",
+				},
+				&cliv3.Int64Flag{
+					Name:     "repeat-interval-minutes",
+					Usage:    "Интервал повторной отправки в минутах (5, 10, 15, 30, 60)",
 					Category: "INPUT",
 				},
 			},
@@ -1841,6 +1979,17 @@ func UnmarshalCliFlagsToScheduleReminderRequest(cmd *cliv3.Command, options ...h
 	if flag := opts.FlagName("telegram-chat-id"); cmd.IsSet(flag) {
 		value := cmd.Int64(flag)
 		result.TelegramChatId = value
+	}
+	if flag := opts.FlagName("require-confirmation"); cmd.IsSet(flag) {
+		value := cmd.Bool(flag)
+		result.RequireConfirmation = value
+	}
+	if flag := opts.FlagName("repeat-interval-minutes"); cmd.IsSet(flag) {
+		value, err := convert.SafeCast[int64, int32](cmd.Int64(flag))
+		if err != nil {
+			return nil, err
+		}
+		result.RepeatIntervalMinutes = value
 	}
 	return &result, nil
 }

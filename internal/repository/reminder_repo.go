@@ -12,15 +12,17 @@ import (
 )
 
 type Reminder struct {
-	ID          uuid.UUID
-	UserID      uuid.UUID
-	Title       string
-	Description string
-	RemindAt    time.Time
-	WorkflowID  string
-	Status      string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID                    uuid.UUID
+	UserID                uuid.UUID
+	Title                 string
+	Description           string
+	RemindAt              time.Time
+	WorkflowID            string
+	Status                string
+	RequireConfirmation   bool
+	RepeatIntervalMinutes int
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
 }
 
 type ReminderRepo struct {
@@ -31,12 +33,12 @@ func NewReminderRepo(pg *postgres.Postgres) *ReminderRepo {
 	return &ReminderRepo{pg: pg}
 }
 
-func (r *ReminderRepo) Create(ctx context.Context, userID uuid.UUID, title, description string, remindAt time.Time) (*Reminder, error) {
+func (r *ReminderRepo) Create(ctx context.Context, userID uuid.UUID, title, description string, remindAt time.Time, requireConfirmation bool, repeatIntervalMinutes int) (*Reminder, error) {
 	query, args, err := r.pg.Builder.
 		Insert("reminders").
-		Columns("user_id", "title", "description", "remind_at").
-		Values(userID, title, description, remindAt).
-		Suffix("RETURNING id, user_id, title, description, remind_at, COALESCE(workflow_id, ''), status, created_at, updated_at").
+		Columns("user_id", "title", "description", "remind_at", "require_confirmation", "repeat_interval_minutes").
+		Values(userID, title, description, remindAt, requireConfirmation, repeatIntervalMinutes).
+		Suffix("RETURNING id, user_id, title, description, remind_at, COALESCE(workflow_id, ''), status, require_confirmation, repeat_interval_minutes, created_at, updated_at").
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("build query: %w", err)
@@ -45,7 +47,8 @@ func (r *ReminderRepo) Create(ctx context.Context, userID uuid.UUID, title, desc
 	var rem Reminder
 	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(
 		&rem.ID, &rem.UserID, &rem.Title, &rem.Description, &rem.RemindAt,
-		&rem.WorkflowID, &rem.Status, &rem.CreatedAt, &rem.UpdatedAt,
+		&rem.WorkflowID, &rem.Status, &rem.RequireConfirmation, &rem.RepeatIntervalMinutes,
+		&rem.CreatedAt, &rem.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("insert reminder: %w", err)
@@ -55,7 +58,7 @@ func (r *ReminderRepo) Create(ctx context.Context, userID uuid.UUID, title, desc
 
 func (r *ReminderRepo) ListByUserID(ctx context.Context, userID uuid.UUID) ([]Reminder, error) {
 	query, args, err := r.pg.Builder.
-		Select("id", "user_id", "title", "description", "remind_at", "COALESCE(workflow_id, '')", "status", "created_at", "updated_at").
+		Select("id", "user_id", "title", "description", "remind_at", "COALESCE(workflow_id, '')", "status", "require_confirmation", "repeat_interval_minutes", "created_at", "updated_at").
 		From("reminders").
 		Where(squirrel.Eq{"user_id": userID}).
 		OrderBy("remind_at ASC").
@@ -75,7 +78,8 @@ func (r *ReminderRepo) ListByUserID(ctx context.Context, userID uuid.UUID) ([]Re
 		var rem Reminder
 		if err := rows.Scan(
 			&rem.ID, &rem.UserID, &rem.Title, &rem.Description, &rem.RemindAt,
-			&rem.WorkflowID, &rem.Status, &rem.CreatedAt, &rem.UpdatedAt,
+			&rem.WorkflowID, &rem.Status, &rem.RequireConfirmation, &rem.RepeatIntervalMinutes,
+			&rem.CreatedAt, &rem.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan reminder: %w", err)
 		}
@@ -84,9 +88,71 @@ func (r *ReminderRepo) ListByUserID(ctx context.Context, userID uuid.UUID) ([]Re
 	return result, nil
 }
 
+type PagedReminders struct {
+	Items      []Reminder
+	TotalPages int
+}
+
+func (r *ReminderRepo) ListByUserIDPaged(ctx context.Context, userID uuid.UUID, page, pageSize int) (*PagedReminders, error) {
+	// Count total
+	countQuery, countArgs, err := r.pg.Builder.
+		Select("COUNT(*)").
+		From("reminders").
+		Where(squirrel.Eq{"user_id": userID}).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("build count query: %w", err)
+	}
+
+	var total int
+	if err := r.pg.Pool.QueryRow(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+		return nil, fmt.Errorf("count reminders: %w", err)
+	}
+
+	totalPages := (total + pageSize - 1) / pageSize
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	offset := (page - 1) * pageSize
+
+	query, args, err := r.pg.Builder.
+		Select("id", "user_id", "title", "description", "remind_at", "COALESCE(workflow_id, '')", "status", "require_confirmation", "repeat_interval_minutes", "created_at", "updated_at").
+		From("reminders").
+		Where(squirrel.Eq{"user_id": userID}).
+		OrderBy("remind_at ASC").
+		Limit(uint64(pageSize)).
+		Offset(uint64(offset)).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("build query: %w", err)
+	}
+
+	rows, err := r.pg.Pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query reminders: %w", err)
+	}
+	defer rows.Close()
+
+	var result []Reminder
+	for rows.Next() {
+		var rem Reminder
+		if err := rows.Scan(
+			&rem.ID, &rem.UserID, &rem.Title, &rem.Description, &rem.RemindAt,
+			&rem.WorkflowID, &rem.Status, &rem.RequireConfirmation, &rem.RepeatIntervalMinutes,
+			&rem.CreatedAt, &rem.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan reminder: %w", err)
+		}
+		result = append(result, rem)
+	}
+
+	return &PagedReminders{Items: result, TotalPages: totalPages}, nil
+}
+
 func (r *ReminderRepo) GetByID(ctx context.Context, id uuid.UUID) (*Reminder, error) {
 	query, args, err := r.pg.Builder.
-		Select("id", "user_id", "title", "description", "remind_at", "COALESCE(workflow_id, '')", "status", "created_at", "updated_at").
+		Select("id", "user_id", "title", "description", "remind_at", "COALESCE(workflow_id, '')", "status", "require_confirmation", "repeat_interval_minutes", "created_at", "updated_at").
 		From("reminders").
 		Where(squirrel.Eq{"id": id}).
 		ToSql()
@@ -97,7 +163,8 @@ func (r *ReminderRepo) GetByID(ctx context.Context, id uuid.UUID) (*Reminder, er
 	var rem Reminder
 	err = r.pg.Pool.QueryRow(ctx, query, args...).Scan(
 		&rem.ID, &rem.UserID, &rem.Title, &rem.Description, &rem.RemindAt,
-		&rem.WorkflowID, &rem.Status, &rem.CreatedAt, &rem.UpdatedAt,
+		&rem.WorkflowID, &rem.Status, &rem.RequireConfirmation, &rem.RepeatIntervalMinutes,
+		&rem.CreatedAt, &rem.UpdatedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {

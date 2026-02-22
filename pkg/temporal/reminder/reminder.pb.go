@@ -39,8 +39,12 @@ type ScheduleReminderRequest struct {
 	RemindAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=remind_at,json=remindAt,proto3" json:"remind_at,omitempty"`
 	// Chat ID в Telegram для отправки уведомления
 	TelegramChatId int64 `protobuf:"varint,6,opt,name=telegram_chat_id,json=telegramChatId,proto3" json:"telegram_chat_id,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Требуется ли подтверждение получения
+	RequireConfirmation bool `protobuf:"varint,7,opt,name=require_confirmation,json=requireConfirmation,proto3" json:"require_confirmation,omitempty"`
+	// Интервал повторной отправки в минутах (5, 10, 15, 30, 60)
+	RepeatIntervalMinutes int32 `protobuf:"varint,8,opt,name=repeat_interval_minutes,json=repeatIntervalMinutes,proto3" json:"repeat_interval_minutes,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *ScheduleReminderRequest) Reset() {
@@ -115,6 +119,20 @@ func (x *ScheduleReminderRequest) GetTelegramChatId() int64 {
 	return 0
 }
 
+func (x *ScheduleReminderRequest) GetRequireConfirmation() bool {
+	if x != nil {
+		return x.RequireConfirmation
+	}
+	return false
+}
+
+func (x *ScheduleReminderRequest) GetRepeatIntervalMinutes() int32 {
+	if x != nil {
+		return x.RepeatIntervalMinutes
+	}
+	return 0
+}
+
 // ScheduleReminderResponse результат создания напоминания
 type ScheduleReminderResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -178,7 +196,11 @@ type SendTelegramNotificationRequest struct {
 	// Заголовок
 	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	// Описание
-	Description   string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	// Требуется ли подтверждение (для отображения кнопки)
+	RequireConfirmation bool `protobuf:"varint,4,opt,name=require_confirmation,json=requireConfirmation,proto3" json:"require_confirmation,omitempty"`
+	// ID напоминания (для callback data кнопки подтверждения)
+	ReminderId    string `protobuf:"bytes,5,opt,name=reminder_id,json=reminderId,proto3" json:"reminder_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -230,6 +252,20 @@ func (x *SendTelegramNotificationRequest) GetTitle() string {
 func (x *SendTelegramNotificationRequest) GetDescription() string {
 	if x != nil {
 		return x.Description
+	}
+	return ""
+}
+
+func (x *SendTelegramNotificationRequest) GetRequireConfirmation() bool {
+	if x != nil {
+		return x.RequireConfirmation
+	}
+	return false
+}
+
+func (x *SendTelegramNotificationRequest) GetReminderId() string {
+	if x != nil {
+		return x.ReminderId
 	}
 	return ""
 }
@@ -339,7 +375,7 @@ var File_reminder_reminder_proto protoreflect.FileDescriptor
 
 const file_reminder_reminder_proto_rawDesc = "" +
 	"\n" +
-	"\x17reminder/reminder.proto\x12\vreminder.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1atemporal/v1/temporal.proto\"\xee\x01\n" +
+	"\x17reminder/reminder.proto\x12\vreminder.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1atemporal/v1/temporal.proto\"\xd9\x02\n" +
 	"\x17ScheduleReminderRequest\x12\x1f\n" +
 	"\vreminder_id\x18\x01 \x01(\tR\n" +
 	"reminderId\x12\x17\n" +
@@ -347,31 +383,38 @@ const file_reminder_reminder_proto_rawDesc = "" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x127\n" +
 	"\tremind_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\bremindAt\x12(\n" +
-	"\x10telegram_chat_id\x18\x06 \x01(\x03R\x0etelegramChatId\"S\n" +
+	"\x10telegram_chat_id\x18\x06 \x01(\x03R\x0etelegramChatId\x121\n" +
+	"\x14require_confirmation\x18\a \x01(\bR\x13requireConfirmation\x126\n" +
+	"\x17repeat_interval_minutes\x18\b \x01(\x05R\x15repeatIntervalMinutes\"S\n" +
 	"\x18ScheduleReminderResponse\x12\x1f\n" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
 	"workflowId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\"r\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\"\xc6\x01\n" +
 	"\x1fSendTelegramNotificationRequest\x12\x17\n" +
 	"\achat_id\x18\x01 \x01(\x03R\x06chatId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\"V\n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x121\n" +
+	"\x14require_confirmation\x18\x04 \x01(\bR\x13requireConfirmation\x12\x1f\n" +
+	"\vreminder_id\x18\x05 \x01(\tR\n" +
+	"reminderId\"V\n" +
 	"\x1bUpdateReminderStatusRequest\x12\x1f\n" +
 	"\vreminder_id\x18\x01 \x01(\tR\n" +
 	"reminderId\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\"3\n" +
 	"\x19GetReminderStatusResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status2\xca\x04\n" +
-	"\bReminder\x12\xaf\x01\n" +
-	"\x10ScheduleReminder\x12$.reminder.v1.ScheduleReminderRequest\x1a%.reminder.v1.ScheduleReminderResponse\"N\x8a\xc4\x03J\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status2\xae\x05\n" +
+	"\bReminder\x12\xc6\x01\n" +
+	"\x10ScheduleReminder\x12$.reminder.v1.ScheduleReminderRequest\x1a%.reminder.v1.ScheduleReminderResponse\"e\x8a\xc4\x03a\n" +
 	"\x13\n" +
 	"\x11GetReminderStatus\x12\x10\n" +
-	"\x0eCancelReminder\"\x05\b\x80\x9a\x9e\x01*\x1areminder/${! reminder_id }\x12n\n" +
+	"\x0eCancelReminder\x12\x15\n" +
+	"\x13AcknowledgeReminder\"\x05\b\x80\x9a\x9e\x01*\x1areminder/${! reminder_id }\x12n\n" +
 	"\x18SendTelegramNotification\x12,.reminder.v1.SendTelegramNotificationRequest\x1a\x16.google.protobuf.Empty\"\f\x92\xc4\x03\b\"\x02\b\x1e2\x02 \x05\x12f\n" +
 	"\x14UpdateReminderStatus\x12(.reminder.v1.UpdateReminderStatusRequest\x1a\x16.google.protobuf.Empty\"\f\x92\xc4\x03\b\"\x02\b\n" +
 	"2\x02 \n" +
 	"\x12F\n" +
-	"\x0eCancelReminder\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x04\xa2\xc4\x03\x00\x12Y\n" +
+	"\x0eCancelReminder\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x04\xa2\xc4\x03\x00\x12K\n" +
+	"\x13AcknowledgeReminder\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\"\x04\xa2\xc4\x03\x00\x12Y\n" +
 	"\x11GetReminderStatus\x12\x16.google.protobuf.Empty\x1a&.reminder.v1.GetReminderStatusResponse\"\x04\x9a\xc4\x03\x00\x1a\x11\x8a\xc4\x03\r\n" +
 	"\vreminder-v1B\x8e\x01\n" +
 	"\x0fcom.reminder.v1B\rReminderProtoP\x01Z\x1fexample/gen/reminder;reminderv1\xa2\x02\x03RXX\xaa\x02\vReminder.V1\xca\x02\vReminder\\V1\xe2\x02\x17Reminder\\V1\\GPBMetadata\xea\x02\fReminder::V1b\x06proto3"
@@ -404,14 +447,16 @@ var file_reminder_reminder_proto_depIdxs = []int32{
 	2, // 2: reminder.v1.Reminder.SendTelegramNotification:input_type -> reminder.v1.SendTelegramNotificationRequest
 	3, // 3: reminder.v1.Reminder.UpdateReminderStatus:input_type -> reminder.v1.UpdateReminderStatusRequest
 	6, // 4: reminder.v1.Reminder.CancelReminder:input_type -> google.protobuf.Empty
-	6, // 5: reminder.v1.Reminder.GetReminderStatus:input_type -> google.protobuf.Empty
-	1, // 6: reminder.v1.Reminder.ScheduleReminder:output_type -> reminder.v1.ScheduleReminderResponse
-	6, // 7: reminder.v1.Reminder.SendTelegramNotification:output_type -> google.protobuf.Empty
-	6, // 8: reminder.v1.Reminder.UpdateReminderStatus:output_type -> google.protobuf.Empty
-	6, // 9: reminder.v1.Reminder.CancelReminder:output_type -> google.protobuf.Empty
-	4, // 10: reminder.v1.Reminder.GetReminderStatus:output_type -> reminder.v1.GetReminderStatusResponse
-	6, // [6:11] is the sub-list for method output_type
-	1, // [1:6] is the sub-list for method input_type
+	6, // 5: reminder.v1.Reminder.AcknowledgeReminder:input_type -> google.protobuf.Empty
+	6, // 6: reminder.v1.Reminder.GetReminderStatus:input_type -> google.protobuf.Empty
+	1, // 7: reminder.v1.Reminder.ScheduleReminder:output_type -> reminder.v1.ScheduleReminderResponse
+	6, // 8: reminder.v1.Reminder.SendTelegramNotification:output_type -> google.protobuf.Empty
+	6, // 9: reminder.v1.Reminder.UpdateReminderStatus:output_type -> google.protobuf.Empty
+	6, // 10: reminder.v1.Reminder.CancelReminder:output_type -> google.protobuf.Empty
+	6, // 11: reminder.v1.Reminder.AcknowledgeReminder:output_type -> google.protobuf.Empty
+	4, // 12: reminder.v1.Reminder.GetReminderStatus:output_type -> reminder.v1.GetReminderStatusResponse
+	7, // [7:13] is the sub-list for method output_type
+	1, // [1:7] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name

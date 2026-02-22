@@ -3,10 +3,10 @@ package pages
 import "github.com/vovanwin/template/internal/controller/ui/layouts"
 
 templ SettingsPage(csrfToken string) {
-	@layouts.AuthedLayout("Настройки", "/settings", settingsContent(), csrfToken)
+	@layouts.AuthedLayout("Настройки", "/settings", SettingsContent(), csrfToken)
 }
 
-templ settingsContent() {
+templ SettingsContent() {
 	<div class="max-w-2xl space-y-6">
 		<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
 			<h2 class="text-lg font-semibold text-gray-800 mb-2">Настройки</h2>

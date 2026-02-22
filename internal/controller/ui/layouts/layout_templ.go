@@ -29,7 +29,7 @@ func Layout(title string, content templ.Component, csrfToken string) templ.Compo
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"ru\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"ru\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\"><title>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -42,20 +42,20 @@ func Layout(title string, content templ.Component, csrfToken string) templ.Compo
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><!-- HTMX --><script src=\"https://unpkg.com/htmx.org@1.9.10\"></script><script src=\"https://unpkg.com/htmx.org/dist/ext/sse.js\"></script><script src=\"https://unpkg.com/htmx.org/dist/ext/json-enc.js\"></script><!-- Tailwind CSS --><script src=\"https://cdn.tailwindcss.com\"></script><meta name=\"csrf-token\" content=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><!-- HTMX --><script src=\"https://unpkg.com/htmx.org@1.9.10\"></script><script src=\"https://unpkg.com/htmx.org/dist/ext/sse.js\"></script><script src=\"https://unpkg.com/htmx.org/dist/ext/json-enc.js\"></script><!-- Alpine.js --><script defer src=\"https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js\"></script><!-- Tailwind CSS --><script src=\"https://cdn.tailwindcss.com\"></script><meta name=\"csrf-token\" content=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(csrfToken)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/layouts/layout.templ`, Line: 19, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/controller/ui/layouts/layout.templ`, Line: 22, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"></head><body class=\"bg-gray-50 font-sans\"><nav class=\"bg-white shadow-sm mb-8 border-b\"><div class=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"flex justify-between h-16\"><div class=\"flex items-center\"><a href=\"/\" class=\"text-xl font-bold text-indigo-600 tracking-tight\">Template App</a></div><div class=\"flex items-center space-x-4\"><a href=\"/login\" class=\"text-gray-600 hover:text-gray-900 font-medium\">Войти</a> <a href=\"/register\" class=\"bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all shadow-sm\">Регистрация</a></div></div></div></nav><main class=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"></head><body class=\"bg-gray-50 font-sans\" hx-boost=\"true\"><nav class=\"bg-white shadow-sm mb-8 border-b\"><div class=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8\"><div class=\"flex justify-between h-16\"><div class=\"flex items-center\"><a href=\"/\" class=\"text-xl font-bold text-indigo-600 tracking-tight\">Template App</a></div><div class=\"flex items-center space-x-4\"><a href=\"/login\" class=\"text-gray-600 hover:text-gray-900 font-medium\">Войти</a> <a href=\"/register\" class=\"bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-all shadow-sm\">Регистрация</a></div></div></div></nav><main class=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -63,7 +63,7 @@ func Layout(title string, content templ.Component, csrfToken string) templ.Compo
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</main><!-- Глобальный контейнер для уведомлений (включая SSE) --><div id=\"notifications\" class=\"fixed bottom-4 right-4 z-50 flex flex-col space-y-2\"><div id=\"sse-status\" hx-ext=\"sse\" sse-connect=\"/api/v1/events\" sse-swap=\"message\"><!-- Сюда будут падать сообщения от сервера --></div></div><script>\n\t\t\t\t// 1. Прокидываем CSRF во все запросы HTMX\n\t\t\t\tdocument.addEventListener('htmx:configRequest', (event) => {\n\t\t\t\t\tconst meta = document.querySelector('meta[name=\"csrf-token\"]');\n\t\t\t\t\tif (meta) {\n\t\t\t\t\t\tevent.detail.headers['X-CSRF-Token'] = meta.content;\n\t\t\t\t\t}\n\t\t\t\t});\n\n\t\t\t\t// 2. Глобальная обработка ошибок\n\t\t\t\tdocument.addEventListener('htmx:responseError', (event) => {\n\t\t\t\t\tconst status = event.detail.xhr.status;\n\t\t\t\t\tconst target = event.detail.target;\n\t\t\t\t\tconst errorMsg = event.detail.xhr.responseText || \"Ошибка\";\n\t\t\t\t\t\n\t\t\t\t\tconsole.error(\"HTMX Error:\", status, errorMsg);\n\n\t\t\t\t\tif (target && target.id === 'login-message') {\n\t\t\t\t\t\ttarget.innerHTML = `<div class='text-red-600 bg-red-50 p-3 rounded-lg border border-red-200'>❌ ${errorMsg}</div>`;\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t</script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</main><!-- Глобальный контейнер для уведомлений (включая SSE) --><div id=\"notifications\" class=\"fixed bottom-4 right-4 z-50 flex flex-col space-y-2\"><div id=\"sse-handler\" hx-preserve=\"true\" hx-ext=\"sse\" sse-connect=\"/api/v1/events\" sse-swap=\"message\"><!-- Сюда будут падать сообщения от сервера --></div></div><script>\n\t\t\t\t// 1. Прокидываем CSRF во все запросы HTMX\n\t\t\t\tdocument.addEventListener('htmx:configRequest', (event) => {\n\t\t\t\t\tconst meta = document.querySelector('meta[name=\"csrf-token\"]');\n\t\t\t\t\tif (meta) {\n\t\t\t\t\t\tevent.detail.headers['X-CSRF-Token'] = meta.content;\n\t\t\t\t\t}\n\t\t\t\t});\n\n\t\t\t\t// 2. Глобальная обработка ошибок\n\t\t\t\tdocument.addEventListener('htmx:responseError', (event) => {\n\t\t\t\t\tconst status = event.detail.xhr.status;\n\t\t\t\t\tconst target = event.detail.target;\n\t\t\t\t\tconst errorMsg = event.detail.xhr.responseText || \"Ошибка\";\n\t\t\t\t\t\n\t\t\t\t\tconsole.error(\"HTMX Error:\", status, errorMsg);\n\n\t\t\t\t\tif (target && target.id === 'login-message') {\n\t\t\t\t\t\ttarget.innerHTML = `<div class='text-red-600 bg-red-50 p-3 rounded-lg border border-red-200'>❌ ${errorMsg}</div>`;\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t</script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

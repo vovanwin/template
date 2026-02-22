@@ -6,10 +6,10 @@ import (
 )
 
 templ ProfilePage(profile *service.Profile, csrfToken string) {
-	@layouts.AuthedLayout("Профиль", "/profile", profileContent(profile, csrfToken), csrfToken)
+	@layouts.AuthedLayout("Профиль", "/profile", ProfileContent(profile, csrfToken), csrfToken)
 }
 
-templ profileContent(profile *service.Profile, csrfToken string) {
+templ ProfileContent(profile *service.Profile, csrfToken string) {
 	<div class="max-w-2xl space-y-6">
 		<!-- Форма редактирования -->
 		<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">

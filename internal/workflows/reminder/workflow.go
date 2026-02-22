@@ -18,16 +18,18 @@ func NewWorkflows() *Workflows {
 // ScheduleReminder запускает workflow: ждёт до remind_at, затем отправляет уведомление.
 func (w *Workflows) ScheduleReminder(ctx workflow.Context, input *reminderv1.ScheduleReminderWorkflowInput) (reminderv1.ScheduleReminderWorkflow, error) {
 	return &scheduleReminderWorkflow{
-		req:    input.Req,
-		cancel: input.CancelReminder,
-		status: model.ReminderStatusPending,
+		req:         input.Req,
+		cancel:      input.CancelReminder,
+		acknowledge: input.AcknowledgeReminder,
+		status:      model.ReminderStatusPending,
 	}, nil
 }
 
 type scheduleReminderWorkflow struct {
-	req    *reminderv1.ScheduleReminderRequest
-	cancel *reminderv1.CancelReminderSignal
-	status model.ReminderStatus
+	req         *reminderv1.ScheduleReminderRequest
+	cancel      *reminderv1.CancelReminderSignal
+	acknowledge *reminderv1.AcknowledgeReminderSignal
+	status      model.ReminderStatus
 }
 
 func (w *scheduleReminderWorkflow) Execute(ctx workflow.Context) (*reminderv1.ScheduleReminderResponse, error) {
@@ -104,9 +106,11 @@ func (w *scheduleReminderWorkflow) Execute(ctx workflow.Context) (*reminderv1.Sc
 	// Если все попытки провалились — workflow завершается со статусом "failed",
 	// а НЕ возвращает error (иначе Temporal бесконечно ретраит весь workflow).
 	err := reminderv1.SendTelegramNotification(ctx, &reminderv1.SendTelegramNotificationRequest{
-		ChatId:      chatID,
-		Title:       w.req.GetTitle(),
-		Description: w.req.GetDescription(),
+		ChatId:              chatID,
+		Title:               w.req.GetTitle(),
+		Description:         w.req.GetDescription(),
+		RequireConfirmation: w.req.GetRequireConfirmation(),
+		ReminderId:          reminderID,
 	})
 	if err != nil {
 		log.Error("failed to send telegram notification after retries",
@@ -117,7 +121,76 @@ func (w *scheduleReminderWorkflow) Execute(ctx workflow.Context) (*reminderv1.Sc
 		return w.response(workflowID), nil
 	}
 
-	// 5. Обновляем статус в БД на "sent"
+	// 5. Если требуется подтверждение — цикл повторных уведомлений
+	if w.req.GetRequireConfirmation() && w.req.GetRepeatIntervalMinutes() > 0 {
+		repeatInterval := time.Duration(w.req.GetRepeatIntervalMinutes()) * time.Minute
+		maxRetryDuration := 10 * time.Hour
+		startTime := workflow.Now(ctx)
+
+		for {
+			elapsed := workflow.Now(ctx).Sub(startTime)
+			if elapsed >= maxRetryDuration {
+				log.Info("confirmation timeout exceeded, marking as sent", "reminder_id", reminderID)
+				break
+			}
+
+			// Ждём repeat_interval, AcknowledgeReminder или CancelReminder
+			repeatTimerCtx, repeatTimerCancel := workflow.WithCancel(ctx)
+			repeatFuture := workflow.NewTimer(repeatTimerCtx, repeatInterval)
+
+			repeatSel := workflow.NewSelector(ctx)
+
+			var acknowledged, repeatCancelled bool
+			var repeatTimerErr error
+
+			repeatSel.AddFuture(repeatFuture, func(f workflow.Future) {
+				repeatTimerErr = f.Get(repeatTimerCtx, nil)
+			})
+
+			repeatSel.AddReceive(w.acknowledge.Channel, func(ch workflow.ReceiveChannel, more bool) {
+				acknowledged = true
+				repeatTimerCancel()
+			})
+
+			repeatSel.AddReceive(w.cancel.Channel, func(ch workflow.ReceiveChannel, more bool) {
+				repeatCancelled = true
+				repeatTimerCancel()
+			})
+
+			repeatSel.Select(ctx)
+
+			if acknowledged {
+				log.Info("reminder acknowledged", "reminder_id", reminderID)
+				w.setStatus(ctx, reminderID, model.ReminderStatusSent)
+				return w.response(workflowID), nil
+			}
+
+			if repeatCancelled {
+				log.Info("reminder cancelled during confirmation loop", "reminder_id", reminderID)
+				w.setStatus(ctx, reminderID, model.ReminderStatusCancelled)
+				return w.response(workflowID), nil
+			}
+
+			if repeatTimerErr != nil {
+				log.Error("repeat timer error", "error", repeatTimerErr, "reminder_id", reminderID)
+				break
+			}
+
+			// Повторная отправка уведомления
+			err := reminderv1.SendTelegramNotification(ctx, &reminderv1.SendTelegramNotificationRequest{
+				ChatId:              chatID,
+				Title:               w.req.GetTitle(),
+				Description:         w.req.GetDescription(),
+				RequireConfirmation: true,
+				ReminderId:          reminderID,
+			})
+			if err != nil {
+				log.Error("failed to resend notification", "error", err, "reminder_id", reminderID)
+			}
+		}
+	}
+
+	// 6. Обновляем статус в БД на "sent"
 	log.Info("reminder sent", "reminder_id", reminderID, "chat_id", chatID)
 	w.setStatus(ctx, reminderID, model.ReminderStatusSent)
 

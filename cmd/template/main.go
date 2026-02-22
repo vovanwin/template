@@ -4,14 +4,12 @@ import (
 	"context"
 	"flag"
 	"log"
-	"log/slog"
 	"time"
 
 	"github.com/vovanwin/template/config"
 	"github.com/vovanwin/template/internal/controller/auth"
 	"github.com/vovanwin/template/internal/controller/template"
 	"github.com/vovanwin/template/internal/controller/ui"
-	"github.com/vovanwin/template/internal/pkg/events"
 	"github.com/vovanwin/template/internal/pkg/jwt"
 	"github.com/vovanwin/template/internal/pkg/telegram"
 	"github.com/vovanwin/template/internal/pkg/temporal"
@@ -31,24 +29,16 @@ func inject(configDir string) fx.Option {
 
 	flags, closeFn := ProvideFlags(cfg)
 	jwtService := jwt.NewJWTService(cfg.JWT.SignKey, cfg.JWT.TokenTtl, cfg.JWT.RefreshTokenTtl)
-	eventBus := events.NewBus()
 
 	return fx.Options(
 		fx.Supply(cfg),
 		fx.Supply(flags),
-		fx.Supply(eventBus),
 		fx.Provide(
+			ProvideCentrifugoClient,
+			ProvideEventBus,
+			fx.Annotate(ProvideCentrifugoURL, fx.ResultTags(`name:"centrifugo_url"`)),
 			ProvideLogger,
-			func(cfg *config.Config, log *slog.Logger) (*temporal.Service, error) {
-				return temporal.NewService(temporal.ServiceConfig{
-					Client: temporal.Config{
-						Host:      cfg.Temporal.Host,
-						Port:      cfg.Temporal.Port,
-						Namespace: cfg.Temporal.Namespace,
-					},
-					Worker: temporal.WorkerConfig{TaskQueue: cfg.Temporal.TaskQueue},
-				}, log.With("component", "temporal"))
-			},
+			ProvideTemporalService,
 			ProvideServerConfig,
 			ProvidePgx,
 			repository.NewUserRepo,

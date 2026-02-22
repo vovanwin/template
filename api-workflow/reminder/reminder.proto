@@ -18,6 +18,7 @@ service Reminder {
       execution_timeout: { seconds: 2592000 }
       id: 'reminder/${! reminder_id }'
       signal: { ref: "CancelReminder" }
+      signal: { ref: "AcknowledgeReminder" }
       query: { ref: "GetReminderStatus" }
     };
   }
@@ -47,6 +48,11 @@ service Reminder {
     option (temporal.v1.signal) = {};
   }
 
+  // AcknowledgeReminder сигнал подтверждения получения напоминания
+  rpc AcknowledgeReminder(google.protobuf.Empty) returns (google.protobuf.Empty) {
+    option (temporal.v1.signal) = {};
+  }
+
   // GetReminderStatus запрос текущего статуса напоминания
   rpc GetReminderStatus(google.protobuf.Empty) returns (GetReminderStatusResponse) {
     option (temporal.v1.query) = {};
@@ -67,6 +73,10 @@ message ScheduleReminderRequest {
   google.protobuf.Timestamp remind_at = 5;
   // Chat ID в Telegram для отправки уведомления
   int64 telegram_chat_id = 6;
+  // Требуется ли подтверждение получения
+  bool require_confirmation = 7;
+  // Интервал повторной отправки в минутах (5, 10, 15, 30, 60)
+  int32 repeat_interval_minutes = 8;
 }
 
 // ScheduleReminderResponse результат создания напоминания
@@ -85,6 +95,10 @@ message SendTelegramNotificationRequest {
   string title = 2;
   // Описание
   string description = 3;
+  // Требуется ли подтверждение (для отображения кнопки)
+  bool require_confirmation = 4;
+  // ID напоминания (для callback data кнопки подтверждения)
+  string reminder_id = 5;
 }
 
 // UpdateReminderStatusRequest входные данные для обновления статуса

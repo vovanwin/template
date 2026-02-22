@@ -1,0 +1,132 @@
+package components
+
+import (
+	"fmt"
+	"strconv"
+)
+
+type Column struct {
+	Title string
+	Key   string
+}
+
+type TableConfig struct {
+	Columns     []Column
+	Rows        []map[string]any
+	TotalPages  int
+	CurrentPage int
+	BaseURL     string // URL для пагинации, например "/reminders"
+	TableID     string // ID для HTMX-таргета, например "reminders-table"
+}
+
+templ Table(config TableConfig) {
+	<div class="flex flex-col">
+		<div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+			<div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+				<div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg bg-white">
+					<table class="min-w-full divide-y divide-gray-200">
+						<thead class="bg-gray-50">
+							<tr>
+								for _, col := range config.Columns {
+									<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+										{ col.Title }
+									</th>
+								}
+								<th scope="col" class="relative px-6 py-3">
+									<span class="sr-only">Действия</span>
+								</th>
+							</tr>
+						</thead>
+						<tbody class="bg-white divide-y divide-gray-200">
+							if len(config.Rows) == 0 {
+								<tr>
+									<td colspan={ strconv.Itoa(len(config.Columns) + 1) } class="px-6 py-10 text-center text-sm text-gray-500">
+										Нет данных для отображения
+									</td>
+								</tr>
+							} else {
+								for _, row := range config.Rows {
+									<tr>
+										for _, col := range config.Columns {
+											<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+												{ fmt.Sprintf("%v", row[col.Key]) }
+											</td>
+										}
+										<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+											if id, ok := row["id"]; ok {
+												<button
+													hx-delete={ fmt.Sprintf("%s/%v", config.BaseURL, id) }
+													hx-confirm="Вы уверены?"
+													hx-target={ "#" + config.TableID }
+													hx-swap="innerHTML"
+													class="text-red-600 hover:text-red-900"
+												>
+													Удалить
+												</button>
+											}
+										</td>
+									</tr>
+								}
+							}
+						</tbody>
+					</table>
+
+					if config.TotalPages > 1 {
+						<div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+							<div class="flex-1 flex justify-between sm:hidden">
+								@paginationButton(config.BaseURL, config.CurrentPage - 1, "Назад", config.CurrentPage > 1, config.TableID)
+								@paginationButton(config.BaseURL, config.CurrentPage + 1, "Вперед", config.CurrentPage < config.TotalPages, config.TableID)
+							</div>
+							<div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+								<div>
+									<p class="text-sm text-gray-700">
+										Страница <span class="font-medium">{ strconv.Itoa(config.CurrentPage) }</span> из <span class="font-medium">{ strconv.Itoa(config.TotalPages) }</span>
+									</p>
+								</div>
+								<div>
+									<nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+										@paginationButton(config.BaseURL, config.CurrentPage - 1, "←", config.CurrentPage > 1, config.TableID)
+										for i := 1; i <= config.TotalPages; i++ {
+											@paginationPageNum(config.BaseURL, i, i == config.CurrentPage, config.TableID)
+										}
+										@paginationButton(config.BaseURL, config.CurrentPage + 1, "→", config.CurrentPage < config.TotalPages, config.TableID)
+									</nav>
+								</div>
+							</div>
+						</div>
+					}
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ paginationButton(baseURL string, page int, text string, enabled bool, tableID string) {
+	if enabled {
+		<a hx-get={ fmt.Sprintf("%s?page=%d", baseURL, page) }
+		   hx-target={ "#" + tableID }
+		   hx-swap="innerHTML"
+		   class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
+			{ text }
+		</a>
+	} else {
+		<span class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-300 bg-gray-50 cursor-not-allowed">
+			{ text }
+		</span>
+	}
+}
+
+templ paginationPageNum(baseURL string, page int, isCurrent bool, tableID string) {
+	if isCurrent {
+		<span class="z-10 bg-indigo-50 border-indigo-500 text-indigo-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+			{ strconv.Itoa(page) }
+		</span>
+	} else {
+		<a hx-get={ fmt.Sprintf("%s?page=%d", baseURL, page) }
+		   hx-target={ "#" + tableID }
+		   hx-swap="innerHTML"
+		   class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium cursor-pointer">
+			{ strconv.Itoa(page) }
+		</a>
+	}
+}

@@ -90,6 +90,17 @@ namespace = "default"
 # Очередь задач
 task_queue = "default-task-queue"
 
+# Настройки Centrifugo
+[centrifugo]
+# HTTP адрес Centrifugo API
+addr = "http://localhost:8000"
+# API ключ для Server API
+api_key = "centrifugo-api-key"
+# HMAC секрет для генерации JWT токенов клиентов
+token_secret = "centrifugo-token-secret"
+# Время жизни клиентского токена
+token_ttl = "60m"
+
 # Настройки Telegram бота
 [telegram]
 # Токен бота от @BotFather

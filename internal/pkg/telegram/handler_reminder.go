@@ -11,6 +11,7 @@ import (
 	"github.com/go-telegram/bot/models"
 	"github.com/go-telegram/fsm"
 	"github.com/go-telegram/ui/datepicker"
+	"github.com/google/uuid"
 	"github.com/vovanwin/template/internal/pkg/timezone"
 	"github.com/vovanwin/template/internal/repository"
 	"github.com/vovanwin/template/internal/service"
@@ -18,11 +19,12 @@ import (
 
 // FSM states для создания напоминания.
 const (
-	stateDefault         fsm.StateID = "default"
-	stateWaitTitle       fsm.StateID = "waitTitle"
-	stateWaitDescription fsm.StateID = "waitDescription"
-	stateWaitDate        fsm.StateID = "waitDate"
-	stateWaitTime        fsm.StateID = "waitTime"
+	stateDefault          fsm.StateID = "default"
+	stateWaitTitle        fsm.StateID = "waitTitle"
+	stateWaitDescription  fsm.StateID = "waitDescription"
+	stateWaitDate         fsm.StateID = "waitDate"
+	stateWaitTime         fsm.StateID = "waitTime"
+	stateWaitConfirmation fsm.StateID = "waitConfirmation"
 )
 
 // ReminderHandler обрабатывает команду /remind с FSM для многошагового диалога.
@@ -57,6 +59,8 @@ func (h *ReminderHandler) Options() []bot.Option {
 	return []bot.Option{
 		bot.WithMessageTextHandler("/remind", bot.MatchTypeExact, h.handleRemind),
 		bot.WithMessageTextHandler("/cancel", bot.MatchTypeExact, h.handleCancel),
+		bot.WithCallbackQueryDataHandler("ack_reminder:", bot.MatchTypePrefix, h.handleAckCallback),
+		bot.WithCallbackQueryDataHandler("confirm_interval:", bot.MatchTypePrefix, h.handleConfirmIntervalCallback),
 		bot.WithDefaultHandler(h.handleDefault),
 	}
 }
@@ -105,19 +109,39 @@ func (h *ReminderHandler) onTimeSelected(ctx context.Context, b *bot.Bot, mes mo
 	}
 	date, _ := dateVal.(time.Time)
 
-	titleVal, _ := h.fsm.Get(userID, "title")
-	descVal, _ := h.fsm.Get(userID, "description")
-	h.fsm.Reset(userID)
-
-	title, _ := titleVal.(string)
-	desc, _ := descVal.(string)
-
 	// Собираем дату+время в таймзоне пользователя, затем конвертируем в UTC для хранения.
-	// Это тот же подход, что и в веб-интерфейсе (timezone.FromUser).
 	localTime := time.Date(date.Year(), date.Month(), date.Day(), hour, minute, 0, 0, timezone.UserLocation)
 	remindAtUTC := localTime.UTC()
 
-	h.finishReminder(ctx, b, chatID, title, desc, remindAtUTC, localTime)
+	h.fsm.Set(userID, "remind_at_utc", remindAtUTC)
+	h.fsm.Set(userID, "local_time", localTime)
+	h.fsm.Transition(userID, stateWaitConfirmation)
+
+	// Показываем выбор подтверждения
+	keyboard := &models.InlineKeyboardMarkup{
+		InlineKeyboard: [][]models.InlineKeyboardButton{
+			{
+				{Text: "Нет", CallbackData: "confirm_interval:0"},
+			},
+			{
+				{Text: "5 мин", CallbackData: "confirm_interval:5"},
+				{Text: "10 мин", CallbackData: "confirm_interval:10"},
+				{Text: "15 мин", CallbackData: "confirm_interval:15"},
+			},
+			{
+				{Text: "30 мин", CallbackData: "confirm_interval:30"},
+				{Text: "60 мин", CallbackData: "confirm_interval:60"},
+			},
+		},
+	}
+
+	if _, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:      chatID,
+		Text:        "Требуется подтверждение получения? Выберите интервал повтора:",
+		ReplyMarkup: keyboard,
+	}); err != nil {
+		h.log.Error("failed to send confirmation prompt", slog.Any("err", err))
+	}
 }
 
 // handleRemind запускает FSM-диалог создания напоминания.
@@ -217,13 +241,121 @@ func (h *ReminderHandler) handleDefault(ctx context.Context, b *bot.Bot, update 
 			h.log.Error("failed to send time hint", slog.Any("err", err))
 		}
 
+	case stateWaitConfirmation:
+		// Ожидаем нажатие на inline-кнопку подтверждения
+		if _, err := b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   "Пожалуйста, выберите интервал из кнопок выше.",
+		}); err != nil {
+			h.log.Error("failed to send confirmation hint", slog.Any("err", err))
+		}
+
 	default:
 		h.log.Info("unhandled message", slog.Int64("chat_id", chatID), slog.String("text", text))
 	}
 }
 
+// handleConfirmIntervalCallback обрабатывает выбор интервала подтверждения.
+func (h *ReminderHandler) handleConfirmIntervalCallback(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if update.CallbackQuery == nil {
+		return
+	}
+
+	chatID := update.CallbackQuery.Message.Message.Chat.ID
+	userID := chatID
+
+	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+	})
+
+	if h.fsm.Current(userID) != stateWaitConfirmation {
+		return
+	}
+
+	data := update.CallbackQuery.Data
+	// Формат: confirm_interval:N
+	var intervalMinutes int
+	if _, err := fmt.Sscanf(data, "confirm_interval:%d", &intervalMinutes); err != nil {
+		h.sendError(ctx, b, chatID, "Ошибка при обработке выбора.")
+		h.fsm.Reset(userID)
+		return
+	}
+
+	titleVal, _ := h.fsm.Get(userID, "title")
+	descVal, _ := h.fsm.Get(userID, "description")
+	remindAtVal, _ := h.fsm.Get(userID, "remind_at_utc")
+	localTimeVal, _ := h.fsm.Get(userID, "local_time")
+	h.fsm.Reset(userID)
+
+	title, _ := titleVal.(string)
+	desc, _ := descVal.(string)
+	remindAtUTC, _ := remindAtVal.(time.Time)
+	localTime, _ := localTimeVal.(time.Time)
+
+	requireConfirmation := intervalMinutes > 0
+
+	h.finishReminder(ctx, b, chatID, title, desc, remindAtUTC, localTime, requireConfirmation, intervalMinutes)
+}
+
+// handleAckCallback обрабатывает нажатие кнопки "Подтвердить" на уведомлении.
+func (h *ReminderHandler) handleAckCallback(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if update.CallbackQuery == nil {
+		return
+	}
+
+	chatID := update.CallbackQuery.Message.Message.Chat.ID
+	data := update.CallbackQuery.Data
+
+	// Формат: ack_reminder:<reminder_id>
+	var reminderIDStr string
+	if len(data) > len("ack_reminder:") {
+		reminderIDStr = data[len("ack_reminder:"):]
+	}
+
+	if reminderIDStr == "" {
+		b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Ошибка: неверные данные",
+		})
+		return
+	}
+
+	// Ищем пользователя по chat_id
+	user, err := h.userRepo.GetByChatID(ctx, chatID)
+	if err != nil || user == nil {
+		b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Ошибка: пользователь не найден",
+		})
+		return
+	}
+
+	reminderID, err := uuid.Parse(reminderIDStr)
+	if err != nil {
+		b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Ошибка: неверный ID",
+		})
+		return
+	}
+
+	if err := h.reminderService.AcknowledgeReminder(ctx, user.ID, reminderID); err != nil {
+		h.log.Error("failed to acknowledge reminder", slog.Any("err", err))
+		b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Ошибка подтверждения",
+		})
+		return
+	}
+
+	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+		Text:            "✅ Подтверждено!",
+	})
+}
+
 // finishReminder завершает создание напоминания.
-func (h *ReminderHandler) finishReminder(ctx context.Context, b *bot.Bot, chatID int64, title, desc string, remindAtUTC, localTime time.Time) {
+func (h *ReminderHandler) finishReminder(ctx context.Context, b *bot.Bot, chatID int64, title, desc string, remindAtUTC, localTime time.Time, requireConfirmation bool, repeatIntervalMinutes int) {
 	user, err := h.userRepo.GetByChatID(ctx, chatID)
 	if err != nil {
 		h.log.Error("failed to find user by chat_id", slog.Any("err", err), slog.Int64("chat_id", chatID))
@@ -235,7 +367,7 @@ func (h *ReminderHandler) finishReminder(ctx context.Context, b *bot.Bot, chatID
 		return
 	}
 
-	rem, err := h.reminderService.CreateReminder(ctx, user.ID, title, desc, remindAtUTC, chatID)
+	rem, err := h.reminderService.CreateReminder(ctx, user.ID, title, desc, remindAtUTC, chatID, requireConfirmation, repeatIntervalMinutes)
 	if err != nil {
 		h.log.Error("failed to create reminder", slog.Any("err", err))
 		h.sendError(ctx, b, chatID, "Ошибка при создании напоминания.")
@@ -247,6 +379,9 @@ func (h *ReminderHandler) finishReminder(ctx context.Context, b *bot.Bot, chatID
 	msg := fmt.Sprintf("Напоминание создано!\n\nНазвание: %s\nВремя: %s", rem.Title, displayTime)
 	if desc != "" {
 		msg = fmt.Sprintf("Напоминание создано!\n\nНазвание: %s\nОписание: %s\nВремя: %s", rem.Title, desc, displayTime)
+	}
+	if requireConfirmation {
+		msg += fmt.Sprintf("\nПодтверждение: каждые %d мин", repeatIntervalMinutes)
 	}
 
 	if _, err := b.SendMessage(ctx, &bot.SendMessageParams{

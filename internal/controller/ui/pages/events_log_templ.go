@@ -8,9 +8,12 @@ package pages
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/vovanwin/template/internal/controller/ui/layouts"
+import (
+	"github.com/vovanwin/template/internal/controller/ui/components"
+	"github.com/vovanwin/template/internal/controller/ui/layouts"
+)
 
-func SettingsPage(csrfToken string) templ.Component {
+func EventsLogPage(events []map[string]any, csrfToken string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -31,7 +34,7 @@ func SettingsPage(csrfToken string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = layouts.AuthedLayout("Настройки", "/settings", SettingsContent(), csrfToken).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layouts.AuthedLayout("Лог событий", "/events-log", EventsLogContent(events), csrfToken).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -39,7 +42,7 @@ func SettingsPage(csrfToken string) templ.Component {
 	})
 }
 
-func SettingsContent() templ.Component {
+func EventsLogContent(events []map[string]any) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -60,7 +63,27 @@ func SettingsContent() templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-2xl space-y-6\"><div class=\"bg-white rounded-xl shadow-sm p-6 border border-gray-200\"><h2 class=\"text-lg font-semibold text-gray-800 mb-2\">Настройки</h2><p class=\"text-gray-500 text-sm\">Раздел в разработке.</p></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"space-y-6\"><div class=\"bg-white rounded-xl shadow-sm p-6 border border-gray-200\"><h2 class=\"text-lg font-semibold text-gray-800 mb-4\">История всех событий</h2><p class=\"text-sm text-gray-500 mb-6\">Это пример использования универсального компонента таблицы (Generic Table) для отображения любых данных.</p>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = components.Table(components.TableConfig{
+			Columns: []components.Column{
+				{Title: "ID", Key: "id"},
+				{Title: "Тип", Key: "type"},
+				{Title: "Сообщение", Key: "msg"},
+				{Title: "Время", Key: "time"},
+			},
+			Rows:        events,
+			BaseURL:     "/events-log",
+			TableID:     "events-log-table",
+			TotalPages:  5,
+			CurrentPage: 1,
+		}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

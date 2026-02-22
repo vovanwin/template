@@ -13,12 +13,15 @@ import (
 	"github.com/vovanwin/platform/server"
 	"github.com/vovanwin/template/api"
 	"github.com/vovanwin/template/config"
+	"github.com/vovanwin/template/internal/pkg/centrifugo"
 	"github.com/vovanwin/template/internal/pkg/etcdstore"
+	"github.com/vovanwin/template/internal/pkg/events"
 	"github.com/vovanwin/template/internal/pkg/flagsui"
 	"github.com/vovanwin/template/internal/pkg/jwt"
 	"github.com/vovanwin/template/internal/pkg/logx"
 	authmw "github.com/vovanwin/template/internal/pkg/middleware"
 	"github.com/vovanwin/template/internal/pkg/storage/postgres"
+	"github.com/vovanwin/template/internal/pkg/temporal"
 	"github.com/vovanwin/template/pkg"
 
 	"go.uber.org/fx"
@@ -107,6 +110,35 @@ func ProvideServerModule(cfg *config.Config, flags *config.Flags, jwtService jwt
 	}
 
 	return server.NewModule(opts...)
+}
+
+func ProvideCentrifugoClient(cfg *config.Config, log *slog.Logger) *centrifugo.Client {
+	return centrifugo.NewClient(
+		cfg.Centrifugo.Addr,
+		cfg.Centrifugo.ApiKey,
+		cfg.Centrifugo.TokenSecret,
+		cfg.Centrifugo.TokenTtl,
+		log.With("component", "centrifugo"),
+	)
+}
+
+func ProvideEventBus(client *centrifugo.Client, log *slog.Logger) *events.Bus {
+	return events.NewBus(client, log.With("component", "events"))
+}
+
+func ProvideCentrifugoURL(cfg *config.Config) string {
+	return cfg.Centrifugo.Addr
+}
+
+func ProvideTemporalService(cfg *config.Config, log *slog.Logger) (*temporal.Service, error) {
+	return temporal.NewService(temporal.ServiceConfig{
+		Client: temporal.Config{
+			Host:      cfg.Temporal.Host,
+			Port:      cfg.Temporal.Port,
+			Namespace: cfg.Temporal.Namespace,
+		},
+		Worker: temporal.WorkerConfig{TaskQueue: cfg.Temporal.TaskQueue},
+	}, log.With("component", "temporal"))
 }
 
 func ProvidePgx(c *config.Config, log *slog.Logger) (*postgres.Postgres, error) {

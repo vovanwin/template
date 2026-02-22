@@ -1,77 +1,35 @@
 package events
 
 import (
-	"fmt"
-	"sync"
+	"context"
+	"log/slog"
+
+	"github.com/vovanwin/template/internal/pkg/centrifugo"
 )
 
 type Event struct {
-	UserID  string
-	Message string
-	Type    string
+	UserID  string `json:"-"`
+	Message string `json:"message"`
+	Type    string `json:"type"`
 }
 
 type Bus struct {
-	mu          sync.RWMutex
-	subscribers map[string]chan Event
+	client *centrifugo.Client
+	log    *slog.Logger
 }
 
-func NewBus() *Bus {
+func NewBus(client *centrifugo.Client, log *slog.Logger) *Bus {
 	return &Bus{
-		subscribers: make(map[string]chan Event),
-	}
-}
-
-func (b *Bus) Subscribe(userID string) chan Event {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	// Удаляем старую подписку если была
-	if old, ok := b.subscribers[userID]; ok {
-		close(old)
-	}
-
-	ch := make(chan Event, 10)
-	b.subscribers[userID] = ch
-	return ch
-}
-
-func (b *Bus) Unsubscribe(userID string) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	if ch, ok := b.subscribers[userID]; ok {
-		close(ch)
-		delete(b.subscribers, userID)
+		client: client,
+		log:    log,
 	}
 }
 
 func (b *Bus) Publish(e Event) error {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-
-	ch, ok := b.subscribers[e.UserID]
-	if !ok {
-		return fmt.Errorf("user %s not connected", e.UserID)
+	channel := centrifugo.PersonalChannel(e.UserID)
+	if err := b.client.Publish(context.Background(), channel, e); err != nil {
+		b.log.Warn("failed to publish event", slog.String("userID", e.UserID), slog.Any("err", err))
+		return err
 	}
-
-	select {
-	case ch <- e:
-		return nil
-	default:
-		return fmt.Errorf("buffer full for user %s", e.UserID)
-	}
-}
-
-func (b *Bus) PublishGlobal(msg string) {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-
-	e := Event{Message: msg, Type: "info"}
-	for _, ch := range b.subscribers {
-		select {
-		case ch <- e:
-		default:
-		}
-	}
+	return nil
 }

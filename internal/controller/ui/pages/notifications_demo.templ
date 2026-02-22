@@ -1,0 +1,76 @@
+package pages
+
+import "github.com/vovanwin/template/internal/controller/ui/layouts"
+
+templ NotificationsDemoPage(csrfToken string) {
+	@layouts.AuthedLayout("Уведомления — Демо", "/notifications-demo", NotificationsDemoContent(csrfToken), csrfToken)
+}
+
+templ NotificationsDemoContent(csrfToken string) {
+	<div class="space-y-6">
+		<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+			<h2 class="text-lg font-semibold text-gray-800 mb-2">Realtime-уведомления через Centrifugo</h2>
+			<p class="text-gray-500 text-sm mb-4">
+				Нажмите на кнопку — бэкенд отправит событие в Centrifugo, и оно придёт вам через SSE в реальном времени.
+				Уведомления появятся в правом нижнем углу.
+			</p>
+		</div>
+
+		<!-- Типы уведомлений -->
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+			@demoCard("success", "Успех", "Операция выполнена успешно!", "bg-green-500", "bg-green-50 border-green-200", csrfToken)
+			@demoCard("info", "Информация", "Новое обновление доступно.", "bg-blue-500", "bg-blue-50 border-blue-200", csrfToken)
+			@demoCard("warning", "Предупреждение", "Место на диске заканчивается.", "bg-yellow-500", "bg-yellow-50 border-yellow-200", csrfToken)
+			@demoCard("error", "Ошибка", "Не удалось подключиться к базе данных.", "bg-red-500", "bg-red-50 border-red-200", csrfToken)
+			@demoCard("reminder", "Напоминание", "Через 15 минут встреча с командой.", "bg-purple-500", "bg-purple-50 border-purple-200", csrfToken)
+			@demoCard("custom", "Кастомное", "Привет из Centrifugo! 🚀", "bg-indigo-500", "bg-indigo-50 border-indigo-200", csrfToken)
+		</div>
+
+		<!-- Быстрая серия -->
+		<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+			<h3 class="text-md font-semibold text-gray-800 mb-3">Серия уведомлений</h3>
+			<p class="text-gray-500 text-sm mb-4">Отправить несколько уведомлений подряд с задержкой.</p>
+			<button
+				hx-post="/api/v1/notifications-demo/burst"
+				hx-headers={ `{"X-CSRF-Token":"` + csrfToken + `"}` }
+				hx-swap="none"
+				class="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg font-medium hover:from-indigo-600 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
+			>
+				Отправить серию (5 шт.)
+			</button>
+		</div>
+
+		<!-- Архитектура -->
+		<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+			<h3 class="text-md font-semibold text-gray-800 mb-3">Как это работает</h3>
+			<div class="bg-gray-900 rounded-lg p-4 text-sm font-mono text-gray-300 overflow-x-auto">
+				<pre>Browser ──EventSource (uni_sse)──→ Centrifugo ←── HTTP API ── Go Backend
+                                        │
+                                   JWT авторизация
+                                   personal#&lt;userID&gt;</pre>
+			</div>
+			<div class="mt-4 space-y-2 text-sm text-gray-600">
+				<p><span class="font-medium text-gray-800">1.</span> Клиент получает JWT токен через <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">/api/v1/centrifugo/token</code></p>
+				<p><span class="font-medium text-gray-800">2.</span> Подключается к Centrifugo через <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">EventSource</code> (uni_sse)</p>
+				<p><span class="font-medium text-gray-800">3.</span> Автоматическая подписка на персональный канал <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">#userID</code></p>
+				<p><span class="font-medium text-gray-800">4.</span> Бэкенд публикует через <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">POST /api/publish</code> → Centrifugo доставляет клиенту</p>
+			</div>
+		</div>
+	</div>
+}
+
+templ demoCard(notifType, title, message, btnColor, cardColor, csrfToken string) {
+	<div class={ "rounded-xl shadow-sm p-5 border", cardColor }>
+		<h3 class="font-semibold text-gray-800 mb-2">{ title }</h3>
+		<p class="text-gray-600 text-sm mb-4">{ message }</p>
+		<button
+			hx-post="/api/v1/notifications-demo/send"
+			hx-vals={ `{"type":"` + notifType + `","message":"` + message + `"}` }
+			hx-headers={ `{"X-CSRF-Token":"` + csrfToken + `"}` }
+			hx-swap="none"
+			class={ "px-4 py-2 text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity", btnColor }
+		>
+			Отправить
+		</button>
+	</div>
+}

@@ -3,73 +3,203 @@ package layouts
 import "github.com/vovanwin/template/internal/controller/ui/components"
 
 // AuthedLayout — лейаут для страниц авторизованного пользователя.
-// title — заголовок страницы, activeURL — текущий путь (для подсветки меню),
-// content — компонент с основным содержимым, csrfToken — токен CSRF.
 templ AuthedLayout(title string, activeURL string, content templ.Component, csrfToken string) {
 	<!DOCTYPE html>
 	<html lang="ru">
 		<head>
 			<meta charset="UTF-8"/>
-			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 			<title>{ title } — Template App</title>
 			<!-- HTMX -->
 			<script src="https://unpkg.com/htmx.org@1.9.10"></script>
-			<script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
 			<script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+			<!-- Alpine.js -->
+			<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+			<!-- Telegram Web App -->
+			<script src="https://telegram.org/js/telegram-web-app.js"></script>
 			<!-- Tailwind CSS -->
 			<script src="https://cdn.tailwindcss.com"></script>
 			<meta name="csrf-token" content={ csrfToken }/>
+			<style>
+				:root {
+					--tg-theme-bg-color: #ffffff;
+					--tg-theme-text-color: #000000;
+					--tg-theme-hint-color: #999999;
+					--tg-theme-link-color: #2481cc;
+					--tg-theme-button-color: #2481cc;
+					--tg-theme-button-text-color: #ffffff;
+					--tg-theme-secondary-bg-color: #efeff3;
+				}
+				body.is-tg {
+					background-color: var(--tg-theme-bg-color);
+					color: var(--tg-theme-text-color);
+				}
+				.is-tg .bg-white { background-color: var(--tg-theme-bg-color) !important; }
+				.is-tg .bg-gray-100 { background-color: var(--tg-theme-secondary-bg-color) !important; }
+				.is-tg .text-gray-900 { color: var(--tg-theme-text-color) !important; }
+			</style>
 		</head>
-		<body class="bg-gray-100 font-sans">
-			<!-- hx-boost на обёртке: HTMX перехватывает все ссылки внутри -->
-			<div hx-boost="true" class="flex h-screen overflow-hidden">
-				<!-- Боковое меню -->
-				@components.SideMenu(components.DefaultMenuItems(), activeURL)
+		<body class="bg-gray-100 font-sans text-gray-900"
+		      hx-indicator="#global-progress"
+		      x-data="{ mobileMenuOpen: false, isTG: false }"
+			  :class="{ 'is-tg': isTG }"
+			  x-init="
+				if (window.Telegram && window.Telegram.WebApp) {
+					const tg = window.Telegram.WebApp;
+					tg.ready();
+					tg.expand();
+					isTG = true;
+					document.documentElement.style.setProperty('--tg-theme-bg-color', tg.backgroundColor);
+				}
+			  ">
+			
+			<!-- Индикатор загрузки -->
+			<div id="global-progress" class="htmx-indicator fixed top-0 left-0 right-0 z-50 h-0.5 bg-indigo-600" style="transition: opacity 200ms ease-in;"></div>
+
+			<div class="flex flex-col md:flex-row h-screen overflow-hidden"
+			     hx-boost="true"
+			     hx-target="#main-content"
+			     hx-swap="innerHTML">
+				
+				<!-- Боковое меню (Desktop) -->
+				<div class="hidden md:flex md:shrink-0">
+					@components.SideMenu(components.DefaultMenuItems(), activeURL)
+				</div>
+
 				<!-- Основная область -->
-				<div class="flex-1 flex flex-col min-h-screen overflow-auto">
-					<!-- Верхняя панель -->
-					<header class="bg-white shadow-sm px-6 py-4 flex items-center justify-between shrink-0">
-						<h1 class="text-lg font-semibold text-gray-800">{ title }</h1>
-						<div class="flex items-center gap-4">
-							<a href="/profile" class="text-sm text-gray-600 hover:text-indigo-600 transition-colors">
-								👤 Профиль
+				<div class="flex-1 flex flex-col min-h-0 overflow-hidden">
+					<!-- Хедер -->
+					<header class="bg-white shadow-sm px-4 md:px-6 py-3 flex items-center justify-between shrink-0">
+						<div class="flex items-center gap-3">
+							<button @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden p-2 -ml-2 text-gray-500">
+								<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+							</button>
+							<h1 class="text-base md:text-lg font-semibold text-gray-800 truncate">{ title }</h1>
+						</div>
+						<div class="flex items-center gap-2 md:gap-4">
+							<a href="/profile" class="p-2 text-gray-600 hover:text-indigo-600 transition-colors rounded-full hover:bg-gray-100" title="Профиль">
+								👤 <span class="hidden sm:inline ml-1 text-sm">Профиль</span>
 							</a>
-							<a href="/logout" class="text-sm text-red-500 hover:text-red-700 transition-colors">
-								Выйти
+							<a href="/logout" hx-boost="false" class="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-50" title="Выход">
+								🚪 <span class="hidden sm:inline ml-1 text-sm">Выход</span>
 							</a>
 						</div>
 					</header>
-					<!-- Контент -->
-					<main class="flex-1 p-6 overflow-auto">
+
+					<!-- Контент (ID для HTMX таргета) -->
+					<main class="flex-1 p-4 md:p-6 overflow-y-auto pb-20 md:pb-6" id="main-content">
 						@content
 					</main>
+
+					<!-- Мобильное нижнее меню -->
+					<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-16 shrink-0 z-40">
+						for _, item := range components.DefaultMenuItems() {
+							<a href={ templ.SafeURL(item.URL) } 
+							   class={ "flex flex-col items-center justify-center w-full h-full transition-colors", 
+							           templ.KV("text-indigo-600", item.URL == activeURL),
+							           templ.KV("text-gray-500", item.URL != activeURL) }>
+								<span class="text-xl">{ item.Icon }</span>
+								<span class="text-[10px] mt-1 font-medium">{ item.Title }</span>
+							</a>
+						}
+					</nav>
+				</div>
+
+				<!-- Мобильный Drawer (выезжающее меню) -->
+				<div x-show="mobileMenuOpen" 
+				     class="fixed inset-0 z-50 md:hidden" 
+				     style="display: none;">
+					<div class="fixed inset-0 bg-gray-600 bg-opacity-75" @click="mobileMenuOpen = false"></div>
+					<div class="relative flex-1 flex flex-col max-w-xs w-full bg-gray-900">
+						<div class="absolute top-0 right-0 -mr-12 pt-2">
+							<button @click="mobileMenuOpen = false" class="ml-1 flex items-center justify-center h-10 w-10 rounded-full text-white">
+								<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+							</button>
+						</div>
+						@components.SideMenu(components.DefaultMenuItems(), activeURL)
+					</div>
 				</div>
 			</div>
-			<!-- SSE-уведомления: hx-preserve — не пересоздаётся при навигации -->
-			<div id="notifications" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 max-w-sm">
-				<div
-					id="sse-container"
-					hx-preserve="true"
-					hx-ext="sse"
-					sse-connect="/api/v1/events"
-					sse-swap="message"
-				></div>
-			</div>
+
+			<!-- Контейнер для уведомлений -->
+			<div id="notifications" hx-preserve="true" class="fixed bottom-20 md:bottom-4 right-4 z-50 flex flex-col space-y-2 max-w-sm pointer-events-none"></div>
+
 			<script>
-				// CSRF во все HTMX-запросы
 				document.addEventListener('htmx:configRequest', (event) => {
 					const meta = document.querySelector('meta[name="csrf-token"]');
 					if (meta) event.detail.headers['X-CSRF-Token'] = meta.content;
 				});
 
-				// Глобальный обработчик ошибок
 				document.addEventListener('htmx:responseError', (event) => {
-					const msg = event.detail.xhr.responseText || 'Ошибка сервера';
-					const target = event.detail.target;
-					if (target) {
-						target.innerHTML = `<div class="text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">❌ ${msg}</div>`;
+					if (event.detail.xhr.status === 401) {
+						window.location.href = '/login';
 					}
 				});
+
+				// Centrifugo realtime notifications (uni_sse — нативный EventSource)
+				(function() {
+					if (window.__centrifugeConnected) return;
+					window.__centrifugeConnected = true;
+
+					fetch('/api/v1/centrifugo/token')
+						.then(function(r) { return r.json(); })
+						.then(function(data) {
+							var url = new URL(data.url + '/connection/uni_sse');
+							url.searchParams.append('cf_connect', JSON.stringify({
+								token: data.token
+							}));
+
+							var es = new EventSource(url);
+							es.onmessage = function(event) {
+								try {
+									var msg = JSON.parse(event.data);
+									console.log('Centrifugo SSE raw:', msg);
+
+									var pubData = null;
+									if (msg.push && msg.push.pub && msg.push.pub.data) {
+										pubData = msg.push.pub.data;
+									} else if (msg.pub && msg.pub.data) {
+										pubData = msg.pub.data;
+									} else if (msg.data) {
+										pubData = msg.data;
+									} else if (msg.message) {
+										pubData = msg;
+									}
+
+									console.log('Centrifugo pubData:', pubData);
+									if (!pubData || !pubData.message) return;
+
+									var container = document.getElementById('notifications');
+									console.log('Centrifugo container:', container);
+									if (!container) return;
+
+									var colors = {
+										success: {bg: '#22c55e', border: '#15803d'},
+										info:    {bg: '#3b82f6', border: '#1d4ed8'},
+										warning: {bg: '#eab308', border: '#a16207'},
+										error:   {bg: '#ef4444', border: '#b91c1c'},
+										reminder:{bg: '#a855f7', border: '#7e22ce'}
+									};
+									var ntype = pubData.type || 'info';
+									var c = colors[ntype] || colors.info;
+
+									var div = document.createElement('div');
+									div.style.cssText = 'color:white;padding:12px;border-radius:8px;box-shadow:0 10px 15px rgba(0,0,0,0.2);margin-bottom:12px;border-left:4px solid ' + c.border + ';background:' + c.bg + ';pointer-events:auto;';
+									div.textContent = pubData.message;
+									container.appendChild(div);
+									setTimeout(function() { div.remove(); }, 5000);
+								} catch(e) {
+									console.warn('Centrifugo SSE parse error:', e, event.data);
+								}
+							};
+							es.onerror = function() {
+								console.warn('Centrifugo SSE connection error');
+							};
+						})
+						.catch(function(err) {
+							console.warn('Centrifugo token fetch failed:', err);
+						});
+				})();
 			</script>
 		</body>
 	</html>

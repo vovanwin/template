@@ -30,6 +30,7 @@
         - [reminder.v1.Reminder.GetReminderStatus](#reminder-v1-reminder-getreminderstatus-query)
       - [Signals](#reminder-v1-reminder-signals)
         - [reminder.v1.Reminder.CancelReminder](#reminder-v1-reminder-cancelreminder-signal)
+        - [reminder.v1.Reminder.AcknowledgeReminder](#reminder-v1-reminder-acknowledgereminder-signal)
       - [Activities](#reminder-v1-reminder-activities)
         - [reminder.v1.Reminder.SendTelegramNotification](#reminder-v1-reminder-sendtelegramnotification-activity)
         - [reminder.v1.Reminder.UpdateReminderStatus](#reminder-v1-reminder-updatereminderstatus-activity)
@@ -519,6 +520,22 @@ go_name: RemindAt</pre></td>
 json_name: reminderId
 go_name: ReminderId</pre></td>
 </tr><tr>
+<td>repeat_interval_minutes</td>
+<td>int32</td>
+<td><pre>
+Интервал повторной отправки в минутах (5, 10, 15, 30, 60)<br>
+
+json_name: repeatIntervalMinutes
+go_name: RepeatIntervalMinutes</pre></td>
+</tr><tr>
+<td>require_confirmation</td>
+<td>bool</td>
+<td><pre>
+Требуется ли подтверждение получения<br>
+
+json_name: requireConfirmation
+go_name: RequireConfirmation</pre></td>
+</tr><tr>
 <td>telegram_chat_id</td>
 <td>int64</td>
 <td><pre>
@@ -592,6 +609,7 @@ go_name: WorkflowId</pre></td>
 
 <table>
 <tr><th>Signal</th><th>Start</th></tr>
+<tr><td><a href="#reminder-v1-reminder-acknowledgereminder-signal">reminder.v1.Reminder.AcknowledgeReminder</a></td><td>false</td></tr>
 <tr><td><a href="#reminder-v1-reminder-cancelreminder-signal">reminder.v1.Reminder.CancelReminder</a></td><td>false</td></tr>
 </table>  
 
@@ -634,6 +652,14 @@ go_name: Status</pre></td>
 
 <pre>
 CancelReminder сигнал для отмены напоминания
+</pre>
+
+---
+<a name="reminder-v1-reminder-acknowledgereminder-signal"></a>
+### reminder.v1.Reminder.AcknowledgeReminder
+
+<pre>
+AcknowledgeReminder сигнал подтверждения получения напоминания
 </pre>  
 
 <a name="reminder-v1-reminder-activities"></a>
@@ -671,6 +697,22 @@ go_name: ChatId</pre></td>
 
 json_name: description
 go_name: Description</pre></td>
+</tr><tr>
+<td>reminder_id</td>
+<td>string</td>
+<td><pre>
+ID напоминания (для callback data кнопки подтверждения)<br>
+
+json_name: reminderId
+go_name: ReminderId</pre></td>
+</tr><tr>
+<td>require_confirmation</td>
+<td>bool</td>
+<td><pre>
+Требуется ли подтверждение (для отображения кнопки)<br>
+
+json_name: requireConfirmation
+go_name: RequireConfirmation</pre></td>
 </tr><tr>
 <td>title</td>
 <td>string</td>
@@ -800,6 +842,22 @@ go_name: RemindAt</pre></td>
 json_name: reminderId
 go_name: ReminderId</pre></td>
 </tr><tr>
+<td>repeat_interval_minutes</td>
+<td>int32</td>
+<td><pre>
+Интервал повторной отправки в минутах (5, 10, 15, 30, 60)<br>
+
+json_name: repeatIntervalMinutes
+go_name: RepeatIntervalMinutes</pre></td>
+</tr><tr>
+<td>require_confirmation</td>
+<td>bool</td>
+<td><pre>
+Требуется ли подтверждение получения<br>
+
+json_name: requireConfirmation
+go_name: RequireConfirmation</pre></td>
+</tr><tr>
 <td>telegram_chat_id</td>
 <td>int64</td>
 <td><pre>
@@ -891,6 +949,22 @@ go_name: ChatId</pre></td>
 
 json_name: description
 go_name: Description</pre></td>
+</tr><tr>
+<td>reminder_id</td>
+<td>string</td>
+<td><pre>
+ID напоминания (для callback data кнопки подтверждения)<br>
+
+json_name: reminderId
+go_name: ReminderId</pre></td>
+</tr><tr>
+<td>require_confirmation</td>
+<td>bool</td>
+<td><pre>
+Требуется ли подтверждение (для отображения кнопки)<br>
+
+json_name: requireConfirmation
+go_name: RequireConfirmation</pre></td>
 </tr><tr>
 <td>title</td>
 <td>string</td>

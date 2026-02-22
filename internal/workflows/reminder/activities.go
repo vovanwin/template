@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-telegram/bot/models"
 	"github.com/google/uuid"
 	"github.com/vovanwin/template/internal/pkg/telegram"
 	"github.com/vovanwin/template/internal/repository"
@@ -26,6 +27,21 @@ func (a *Activities) SendTelegramNotification(ctx context.Context, req *reminder
 	if desc := req.GetDescription(); desc != "" {
 		text += fmt.Sprintf("\n\n%s", desc)
 	}
+
+	if req.GetRequireConfirmation() && req.GetReminderId() != "" {
+		markup := &models.InlineKeyboardMarkup{
+			InlineKeyboard: [][]models.InlineKeyboardButton{
+				{
+					{
+						Text:         "✅ Подтвердить",
+						CallbackData: fmt.Sprintf("ack_reminder:%s", req.GetReminderId()),
+					},
+				},
+			},
+		}
+		return a.bot.SendMessageWithMarkup(ctx, req.GetChatId(), text, markup)
+	}
+
 	return a.bot.SendMessage(ctx, req.GetChatId(), text)
 }
 
