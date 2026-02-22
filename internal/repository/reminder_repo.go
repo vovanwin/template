@@ -91,9 +91,28 @@ func (r *ReminderRepo) ListByUserID(ctx context.Context, userID uuid.UUID) ([]Re
 type PagedReminders struct {
 	Items      []Reminder
 	TotalPages int
+	TotalItems int
 }
 
-func (r *ReminderRepo) ListByUserIDPaged(ctx context.Context, userID uuid.UUID, page, pageSize int) (*PagedReminders, error) {
+// allowedSortFields — whitelist полей для сортировки.
+var allowedSortFields = map[string]string{
+	"remind_at":  "remind_at",
+	"created_at": "created_at",
+	"title":      "title",
+	"status":     "status",
+}
+
+func (r *ReminderRepo) ListByUserIDPaged(ctx context.Context, userID uuid.UUID, page, pageSize int, sortField, sortOrder string) (*PagedReminders, error) {
+	// Валидация сортировки
+	dbColumn, ok := allowedSortFields[sortField]
+	if !ok {
+		dbColumn = "created_at"
+	}
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "desc"
+	}
+	orderClause := dbColumn + " " + sortOrder
+
 	// Count total
 	countQuery, countArgs, err := r.pg.Builder.
 		Select("COUNT(*)").
@@ -120,7 +139,7 @@ func (r *ReminderRepo) ListByUserIDPaged(ctx context.Context, userID uuid.UUID, 
 		Select("id", "user_id", "title", "description", "remind_at", "COALESCE(workflow_id, '')", "status", "require_confirmation", "repeat_interval_minutes", "created_at", "updated_at").
 		From("reminders").
 		Where(squirrel.Eq{"user_id": userID}).
-		OrderBy("remind_at ASC").
+		OrderBy(orderClause).
 		Limit(uint64(pageSize)).
 		Offset(uint64(offset)).
 		ToSql()
@@ -147,7 +166,7 @@ func (r *ReminderRepo) ListByUserIDPaged(ctx context.Context, userID uuid.UUID, 
 		result = append(result, rem)
 	}
 
-	return &PagedReminders{Items: result, TotalPages: totalPages}, nil
+	return &PagedReminders{Items: result, TotalPages: totalPages, TotalItems: total}, nil
 }
 
 func (r *ReminderRepo) GetByID(ctx context.Context, id uuid.UUID) (*Reminder, error) {

@@ -1,6 +1,19 @@
 # Template
 
-Шаблон Go-сервиса: gRPC + HTTP gateway + Web UI (HTMX + Templ), PostgreSQL, OpenTelemetry (трейсы + метрики), Temporal workflows.
+Шаблон Go-сервиса: gRPC + HTTP gateway + Web UI (HTMX + Templ), PostgreSQL, Centrifugo (realtime), Telegram-бот, OpenTelemetry (трейсы + метрики), Temporal workflows.
+
+## Возможности
+
+- **gRPC + HTTP Gateway** — единый API через proto-определения, автогенерация REST-эндпоинтов через grpc-gateway
+- **Web UI** — серверный рендеринг на Templ + интерактивность через HTMX, Alpine.js для состояния на клиенте
+- **Realtime-уведомления** — Centrifugo (uni_sse) с JWT-авторизацией, персональные каналы, демо-страница
+- **Telegram-бот** — интеграция с Telegram Bot API, поддержка Mini App (WebApp)
+- **Напоминания** — CRUD + выполнение через Temporal Workflows с подтверждением и повторами
+- **Аутентификация** — JWT (access + refresh), Argon2ID хеширование паролей, CSRF-защита
+- **Feature Flags** — etcd-хранилище с UI на debug-порту, горячая перезагрузка
+- **Observability** — OpenTelemetry (трейсы + метрики), Prometheus, Grafana, Tempo, Loki
+- **Конфигурация** — `configgen` генерирует типизированные Go-структуры из TOML, мультиокружения
+- **Компонентный логгер** — slog с переопределением уровней по компонентам, отправка в Loki
 
 ## Требования
 
@@ -17,7 +30,7 @@ task install
 # 2. Создать .env файл для docker-compose
 cp .env_example .env
 
-# 3. Поднять PostgreSQL + Temporal
+# 3. Поднять PostgreSQL + Temporal + Centrifugo
 task deps
 
 # 4. Применить миграции
@@ -38,6 +51,39 @@ task run
 | Health check | `http://localhost:7003/healthz` |
 | Prometheus metrics | `http://localhost:7003/metrics` |
 | Feature Flags UI | `http://localhost:7003/flags` |
+| Centrifugo Admin | `http://localhost:8000` (password/admin_secret) |
+
+## Realtime-уведомления (Centrifugo)
+
+Архитектура:
+
+```
+Browser ──EventSource (uni_sse)──→ Centrifugo ←── HTTP API ── Go Backend
+                                       │
+                                  JWT авторизация
+                                  personal#<userID>
+```
+
+- Бэкенд генерирует JWT токен → клиент подключается к Centrifugo через нативный `EventSource`
+- Автоподписка на персональный канал `#<userID>`
+- Бэкенд публикует события через HTTP Server API (`POST /api/publish`)
+- Типы уведомлений: success, info, warning, error, reminder — с цветовой индикацией
+- Демо-страница: `/notifications-demo` — интерактивная демонстрация всех типов
+
+```bash
+# Запуск Centrifugo отдельно (если не в основном docker-compose)
+docker compose -f deployments/local/docker-compose.centrifugo.yml up -d
+```
+
+Конфигурация в `config/config_local.toml`:
+
+```toml
+[centrifugo]
+addr = "http://localhost:8000"
+api_key = "centrifugo-api-key"
+token_secret = "centrifugo-token-secret"
+token_ttl = "60m"
+```
 
 ## Observability (Prometheus + Grafana + Tempo)
 
@@ -80,13 +126,18 @@ endpoint = "localhost:4317"
 ├── api-workflow/           # Proto-файлы для Temporal Workflows
 ├── cmd/template/           # Точка входа: main.go, dependency.go
 ├── config/                 # TOML конфиги + сгенерированные Go-структуры
-├── deployments/local/      # Docker Compose для локального окружения
+├── deployments/local/      # Docker Compose + Centrifugo config
 ├── internal/
 │   ├── controller/         # gRPC и HTTP контроллеры
 │   │   ├── auth/           # Контроллеры аутентификации
-│   │   ├── ui/             # Контроллеры для Web UI (HTMX/Templ)
+│   │   ├── ui/             # Web UI (HTMX/Templ): pages, layouts, components
 │   │   └── ...
-│   ├── pkg/                # Вспомогательные пакеты
+│   ├── pkg/
+│   │   ├── centrifugo/     # HTTP-клиент Centrifugo Server API + JWT
+│   │   ├── events/         # Event bus (публикация через Centrifugo)
+│   │   ├── jwt/            # JWT-сервис (access/refresh токены)
+│   │   ├── telegram/       # Telegram-бот (модульная архитектура)
+│   │   └── ...
 │   ├── repository/         # Слой доступа к данным (PostgreSQL)
 │   ├── service/            # Бизнес-логика
 │   └── workflows/          # Temporal Workflows и Activities
@@ -158,7 +209,7 @@ UI для просмотра флагов доступен на debug-порту
 ### Инфраструктура
 | Команда | Описание |
 |---------|----------|
-| `task deps` | Запустить PostgreSQL + Temporal |
+| `task deps` | Запустить PostgreSQL + Temporal + Centrifugo |
 | `task deps:stop` | Остановить |
 | `task deps:logs` | Логи |
 | `task metrics` | Запустить Prometheus + Grafana + Tempo + OTEL Collector |
@@ -166,11 +217,17 @@ UI для просмотра флагов доступен на debug-порту
 
 ## Технологии
 
-- **Сервер**: [platform](https://github.com/vovanwin/platform) (gRPC + HTTP gateway + Swagger + Debug)
-- **Web UI**: [HTMX](https://htmx.org/) + [Templ](https://templ.guide/)
-- **DI**: uber/fx
-- **БД**: PostgreSQL (pgx/v5), миграции goose
-- **Proto**: buf, grpc-gateway
-- **Observability**: OpenTelemetry, Prometheus, Grafana, Tempo
-- **Workflows**: Temporal
-- **Auth**: JWT (golang-jwt), Argon2ID
+| Категория | Стек |
+|-----------|------|
+| Сервер | [platform](https://github.com/vovanwin/platform) (gRPC + HTTP gateway + Swagger + Debug) |
+| Web UI | [HTMX](https://htmx.org/) + [Templ](https://templ.guide/) + [Alpine.js](https://alpinejs.dev/) + Tailwind CSS |
+| Realtime | [Centrifugo](https://centrifugal.dev/) v5 (uni_sse, JWT, персональные каналы) |
+| Telegram | [go-telegram/bot](https://github.com/go-telegram/bot) + Mini App (WebApp) |
+| DI | [uber/fx](https://github.com/uber-go/fx) |
+| БД | PostgreSQL ([pgx/v5](https://github.com/jackc/pgx)), миграции [goose](https://github.com/pressly/goose) |
+| Proto | [buf](https://buf.build/), grpc-gateway, protoc-gen-go-temporal |
+| Observability | OpenTelemetry, Prometheus, Grafana, Tempo, Loki |
+| Workflows | [Temporal](https://temporal.io/) |
+| Auth | JWT ([golang-jwt](https://github.com/golang-jwt/jwt)), Argon2ID, CSRF |
+| Config | [configgen](https://github.com/vovanwin/configgen) (TOML → Go structs) |
+| Feature Flags | etcd + in-memory fallback, UI на debug-порту |

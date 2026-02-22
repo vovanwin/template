@@ -8,19 +8,29 @@ import (
 	"github.com/vovanwin/template/internal/repository"
 )
 
-templ RemindersPage(reminders []repository.Reminder, csrfToken string) {
-	@layouts.AuthedLayout("Напоминания", "/reminders", RemindersContentPaged(reminders, csrfToken, 1, 1), csrfToken)
+// TableParams содержит параметры пагинации и сортировки для таблицы.
+type TableParams struct {
+	CurrentPage int
+	TotalPages  int
+	TotalItems  int
+	PageSize    int
+	SortField   string
+	SortOrder   string
 }
 
-templ RemindersPagePaged(reminders []repository.Reminder, csrfToken string, currentPage, totalPages int) {
-	@layouts.AuthedLayout("Напоминания", "/reminders", RemindersContentPaged(reminders, csrfToken, currentPage, totalPages), csrfToken)
+templ RemindersPage(reminders []repository.Reminder, csrfToken string) {
+	@RemindersPagePaged(reminders, csrfToken, TableParams{CurrentPage: 1, TotalPages: 1, PageSize: 20, SortField: "created_at", SortOrder: "desc"})
+}
+
+templ RemindersPagePaged(reminders []repository.Reminder, csrfToken string, params TableParams) {
+	@layouts.AuthedLayout("Напоминания", "/reminders", RemindersContentPaged(reminders, csrfToken, params), csrfToken)
 }
 
 templ RemindersContent(reminders []repository.Reminder, csrfToken string) {
-	@RemindersContentPaged(reminders, csrfToken, 1, 1)
+	@RemindersContentPaged(reminders, csrfToken, TableParams{CurrentPage: 1, TotalPages: 1, PageSize: 20, SortField: "created_at", SortOrder: "desc"})
 }
 
-templ RemindersContentPaged(reminders []repository.Reminder, csrfToken string, currentPage int, totalPages int) {
+templ RemindersContentPaged(reminders []repository.Reminder, csrfToken string, params TableParams) {
 	<div class="max-w-4xl space-y-6">
 		<!-- Форма создания -->
 		<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200" x-data="{ title: '', remind_at: '', error: '' }">
@@ -107,19 +117,19 @@ templ RemindersContentPaged(reminders []repository.Reminder, csrfToken string, c
 		</div>
 		<!-- Список напоминаний (Таблица) -->
 		<div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-			<h2 class="text-lg font-semibold text-gray-800 mb-4">История напоминаний (Таблица)</h2>
+			<h2 class="text-lg font-semibold text-gray-800 mb-4">История напоминаний</h2>
 			<div id="reminders-table">
-				@RemindersTablePaged(reminders, currentPage, totalPages)
+				@RemindersTablePaged(reminders, params)
 			</div>
 		</div>
 	</div>
 }
 
 func RemindersTable(reminders []repository.Reminder) templ.Component {
-	return RemindersTablePaged(reminders, 1, 1)
+	return RemindersTablePaged(reminders, TableParams{CurrentPage: 1, TotalPages: 1, PageSize: 20, SortField: "created_at", SortOrder: "desc"})
 }
 
-func RemindersTablePaged(reminders []repository.Reminder, currentPage, totalPages int) templ.Component {
+func RemindersTablePaged(reminders []repository.Reminder, params TableParams) templ.Component {
 	rows := make([]map[string]any, len(reminders))
 	for i, rem := range reminders {
 		rows[i] = map[string]any{
@@ -127,22 +137,32 @@ func RemindersTablePaged(reminders []repository.Reminder, currentPage, totalPage
 			"title":       rem.Title,
 			"status":      statusLabel(rem.Status),
 			"remind_at":   timezone.FormatUser(rem.RemindAt, "02.01.2006 15:04"),
+			"created_at":  timezone.FormatUser(rem.CreatedAt, "02.01.2006 15:04"),
 			"description": rem.Description,
 		}
 	}
 
 	config := components.TableConfig{
 		Columns: []components.Column{
-			{Title: "Название", Key: "title"},
-			{Title: "Статус", Key: "status"},
-			{Title: "Время", Key: "remind_at"},
+			{Title: "Название", Key: "title", Sortable: true},
+			{Title: "Статус", Key: "status", Sortable: true},
+			{Title: "Время", Key: "remind_at", Sortable: true},
+			{Title: "Создано", Key: "created_at", Sortable: true},
 			{Title: "Описание", Key: "description"},
 		},
-		Rows:        rows,
+		Rows:    rows,
+		Actions: []components.Action{
+			{Label: "Удалить", Icon: "🗑", HxMethod: "hx-delete", URLPath: "/reminders/{id}", Confirm: "Удалить напоминание?"},
+		},
 		BaseURL:     "/reminders",
 		TableID:     "reminders-table",
-		TotalPages:  totalPages,
-		CurrentPage: currentPage,
+		TotalPages:  params.TotalPages,
+		TotalItems:  params.TotalItems,
+		CurrentPage: params.CurrentPage,
+		PageSize:    params.PageSize,
+		SortField:   params.SortField,
+		SortOrder:   params.SortOrder,
+		ShowNumbers: true,
 	}
 
 	return components.Table(config)

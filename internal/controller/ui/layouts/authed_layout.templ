@@ -136,6 +136,27 @@ templ AuthedLayout(title string, activeURL string, content templ.Component, csrf
 					}
 				});
 
+				// Подсветка активного пункта меню при HTMX-навигации
+				function updateMenuActive() {
+					var path = window.location.pathname;
+					// Desktop sidebar + mobile drawer
+					document.querySelectorAll('aside nav a, .fixed.inset-0 aside nav a').forEach(function(a) {
+						var href = a.getAttribute('href');
+						if (href === path) {
+							a.className = 'flex items-center gap-3 px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium';
+						} else {
+							a.className = 'flex items-center gap-3 px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors';
+						}
+					});
+					// Mobile bottom nav
+					document.querySelectorAll('nav.md\\:hidden a').forEach(function(a) {
+						var href = a.getAttribute('href');
+						a.classList.remove('text-indigo-600', 'text-gray-500');
+						a.classList.add(href === path ? 'text-indigo-600' : 'text-gray-500');
+					});
+				}
+				document.addEventListener('htmx:pushedIntoHistory', updateMenuActive);
+
 				// Centrifugo realtime notifications (uni_sse — нативный EventSource)
 				(function() {
 					if (window.__centrifugeConnected) return;

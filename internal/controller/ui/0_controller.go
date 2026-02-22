@@ -218,6 +218,35 @@ func (c *UIController) handleProfile(w http.ResponseWriter, r *http.Request, _ m
 	c.Render(w, r, pages.ProfilePage(profile, token), pages.ProfileContent(profile, token))
 }
 
+// parseIntParam парсит целочисленный GET-параметр с дефолтным значением.
+func parseIntParam(r *http.Request, name string, defaultVal int) int {
+	s := r.URL.Query().Get(name)
+	if s == "" {
+		return defaultVal
+	}
+	v, err := strconv.Atoi(s)
+	if err != nil || v < 1 {
+		return defaultVal
+	}
+	return v
+}
+
+// parseSortParams парсит и валидирует параметры сортировки.
+func parseSortParams(r *http.Request) (sortField, sortOrder string) {
+	allowedFields := map[string]bool{
+		"remind_at": true, "created_at": true, "title": true, "status": true,
+	}
+	sortField = r.URL.Query().Get("sort")
+	if !allowedFields[sortField] {
+		sortField = "created_at"
+	}
+	sortOrder = r.URL.Query().Get("order")
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "desc"
+	}
+	return
+}
+
 // handleReminders — страница напоминаний (GET /reminders).
 func (c *UIController) handleReminders(w http.ResponseWriter, r *http.Request, _ map[string]string) {
 	userIDStr, stop := c.requireAuth(w, r)
@@ -231,31 +260,42 @@ func (c *UIController) handleReminders(w http.ResponseWriter, r *http.Request, _
 		return
 	}
 
-	page := 1
-	if p := r.URL.Query().Get("page"); p != "" {
-		if v, err := strconv.Atoi(p); err == nil && v > 0 {
-			page = v
-		}
+	page := parseIntParam(r, "page", 1)
+	limit := parseIntParam(r, "limit", 20)
+	if limit < 5 {
+		limit = 5
 	}
+	if limit > 100 {
+		limit = 100
+	}
+	sortField, sortOrder := parseSortParams(r)
 
-	const pageSize = 20
-	paged, err := c.reminderService.ListRemindersPaged(r.Context(), userID, page, pageSize)
+	paged, err := c.reminderService.ListRemindersPaged(r.Context(), userID, page, limit, sortField, sortOrder)
 	if err != nil {
 		c.log.Error("list reminders", slog.Any("err", err))
 		http.Error(w, "Ошибка загрузки напоминаний", http.StatusInternalServerError)
 		return
 	}
 
+	tableParams := pages.TableParams{
+		CurrentPage: page,
+		TotalPages:  paged.TotalPages,
+		TotalItems:  paged.TotalItems,
+		PageSize:    limit,
+		SortField:   sortField,
+		SortOrder:   sortOrder,
+	}
+
 	// Если это HTMX-запрос пагинации (не boosted навигация), возвращаем только таблицу
 	if isHTMX(r) && r.Header.Get("HX-Boosted") != "true" {
-		templ.Handler(pages.RemindersTablePaged(paged.Items, page, paged.TotalPages)).ServeHTTP(w, r)
+		templ.Handler(pages.RemindersTablePaged(paged.Items, tableParams)).ServeHTTP(w, r)
 		return
 	}
 
 	token := csrf.Token(r)
 	c.Render(w, r,
-		pages.RemindersPagePaged(paged.Items, token, page, paged.TotalPages),
-		pages.RemindersContentPaged(paged.Items, token, page, paged.TotalPages),
+		pages.RemindersPagePaged(paged.Items, token, tableParams),
+		pages.RemindersContentPaged(paged.Items, token, tableParams),
 	)
 }
 
@@ -273,16 +313,17 @@ func (c *UIController) handleCreateReminder(w http.ResponseWriter, r *http.Reque
 	}
 
 	var req struct {
-		Title                 string `json:"title"`
-		Description           string `json:"description"`
-		RemindAt              string `json:"remind_at"`
-		RequireConfirmation   bool   `json:"require_confirmation"`
-		RepeatIntervalMinutes int    `json:"repeat_interval_minutes"`
+		Title                 string      `json:"title"`
+		Description           string      `json:"description"`
+		RemindAt              string      `json:"remind_at"`
+		RequireConfirmation   bool        `json:"require_confirmation"`
+		RepeatIntervalMinutes json.Number `json:"repeat_interval_minutes"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
 		return
 	}
+	repeatInterval, _ := req.RepeatIntervalMinutes.Int64()
 
 	// Парсим как локальное время пользователя → автоматически конвертируется в UTC при сохранении
 	remindAt, err := timezone.FromUser("2006-01-02T15:04", req.RemindAt)
@@ -298,21 +339,30 @@ func (c *UIController) handleCreateReminder(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	_, err = c.reminderService.CreateReminder(r.Context(), userID, req.Title, req.Description, remindAt, profile.TelegramChatID, req.RequireConfirmation, req.RepeatIntervalMinutes)
+	_, err = c.reminderService.CreateReminder(r.Context(), userID, req.Title, req.Description, remindAt, profile.TelegramChatID, req.RequireConfirmation, int(repeatInterval))
 	if err != nil {
 		c.log.Error("create reminder", slog.Any("err", err))
 		http.Error(w, "Ошибка создания напоминания", http.StatusInternalServerError)
 		return
 	}
 
-	// Возвращаем обновлённый список
-	reminders, err := c.reminderService.ListReminders(r.Context(), userID)
+	// Возвращаем обновлённый список (page=1, новый элемент сверху при created_at DESC)
+	sortField, sortOrder := parseSortParams(r)
+	paged, err := c.reminderService.ListRemindersPaged(r.Context(), userID, 1, 20, sortField, sortOrder)
 	if err != nil {
 		c.log.Error("list reminders", slog.Any("err", err))
 		http.Error(w, "Ошибка загрузки", http.StatusInternalServerError)
 		return
 	}
-	templ.Handler(pages.RemindersTable(reminders)).ServeHTTP(w, r)
+	tableParams := pages.TableParams{
+		CurrentPage: 1,
+		TotalPages:  paged.TotalPages,
+		TotalItems:  paged.TotalItems,
+		PageSize:    20,
+		SortField:   sortField,
+		SortOrder:   sortOrder,
+	}
+	templ.Handler(pages.RemindersTablePaged(paged.Items, tableParams)).ServeHTTP(w, r)
 }
 
 // handleDeleteReminder — удаление напоминания (DELETE /reminders/{id}).
@@ -340,14 +390,25 @@ func (c *UIController) handleDeleteReminder(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Возвращаем обновлённый список
-	reminders, err := c.reminderService.ListReminders(r.Context(), userID)
+	// Возвращаем обновлённый список, оставаясь на текущей странице
+	page := parseIntParam(r, "page", 1)
+	limit := parseIntParam(r, "limit", 20)
+	sortField, sortOrder := parseSortParams(r)
+	paged, err := c.reminderService.ListRemindersPaged(r.Context(), userID, page, limit, sortField, sortOrder)
 	if err != nil {
 		c.log.Error("list reminders", slog.Any("err", err))
 		http.Error(w, "Ошибка загрузки", http.StatusInternalServerError)
 		return
 	}
-	templ.Handler(pages.RemindersTable(reminders)).ServeHTTP(w, r)
+	tableParams := pages.TableParams{
+		CurrentPage: page,
+		TotalPages:  paged.TotalPages,
+		TotalItems:  paged.TotalItems,
+		PageSize:    limit,
+		SortField:   sortField,
+		SortOrder:   sortOrder,
+	}
+	templ.Handler(pages.RemindersTablePaged(paged.Items, tableParams)).ServeHTTP(w, r)
 }
 
 // handleSettings — страница настроек (GET /settings).
