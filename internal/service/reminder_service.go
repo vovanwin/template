@@ -73,7 +73,7 @@ func (s *ReminderService) ListReminders(ctx context.Context, userID uuid.UUID) (
 	return s.repo.ListByUserID(ctx, userID)
 }
 
-func (s *ReminderService) ListRemindersPaged(ctx context.Context, userID uuid.UUID, page, pageSize int, sortField, sortOrder string) (*repository.PagedReminders, error) {
+func (s *ReminderService) ListRemindersPaged(ctx context.Context, userID uuid.UUID, page, pageSize int, sortField, sortOrder string, filters []model.ActiveFilter) (*repository.PagedReminders, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -83,7 +83,7 @@ func (s *ReminderService) ListRemindersPaged(ctx context.Context, userID uuid.UU
 	if pageSize > 100 {
 		pageSize = 100
 	}
-	return s.repo.ListByUserIDPaged(ctx, userID, page, pageSize, sortField, sortOrder)
+	return s.repo.ListByUserIDPaged(ctx, userID, page, pageSize, sortField, sortOrder, filters)
 }
 
 func (s *ReminderService) CancelReminder(ctx context.Context, userID, reminderID uuid.UUID) error {

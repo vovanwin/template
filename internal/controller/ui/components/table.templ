@@ -2,8 +2,11 @@ package components
 
 import (
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/vovanwin/template/internal/model"
 )
 
 type Action struct {
@@ -12,6 +15,7 @@ type Action struct {
 	HxMethod string // "hx-delete", "hx-post", "hx-get"
 	URLPath  string // паттерн: "/reminders/{id}" — {id} заменится из row["id"]
 	Confirm  string // текст подтверждения, пустой = без подтверждения
+	Variant  string // "danger" — красный текст; "" — default
 }
 
 type Column struct {
@@ -21,18 +25,20 @@ type Column struct {
 }
 
 type TableConfig struct {
-	Columns     []Column
-	Rows        []map[string]any
-	Actions     []Action
-	TotalPages  int
-	TotalItems  int
-	CurrentPage int
-	PageSize    int
-	BaseURL     string
-	TableID     string
-	SortField   string
-	SortOrder   string
-	ShowNumbers bool
+	Columns       []Column
+	Rows          []map[string]any
+	Actions       []Action
+	TotalPages    int
+	TotalItems    int
+	CurrentPage   int
+	PageSize      int
+	BaseURL       string
+	TableID       string
+	SortField     string
+	SortOrder     string
+	ShowNumbers   bool
+	Filters       []model.FilterDef
+	ActiveFilters []model.ActiveFilter
 }
 
 // colCount возвращает общее число колонок (с учётом нумерации и actions).
@@ -47,6 +53,37 @@ func (c TableConfig) colCount() int {
 	return n
 }
 
+// filterParams возвращает строку query-параметров для активных фильтров.
+func (c TableConfig) filterParams() string {
+	var parts []string
+	for _, f := range c.ActiveFilters {
+		switch f.Type {
+		case model.FilterDateRange:
+			if f.Value != "" {
+				parts = append(parts, "f_"+f.Key+"_from="+url.QueryEscape(f.Value))
+			}
+			if f.ValueTo != "" {
+				parts = append(parts, "f_"+f.Key+"_to="+url.QueryEscape(f.ValueTo))
+			}
+		case model.FilterNumber:
+			if f.Value != "" {
+				parts = append(parts, "f_"+f.Key+"="+url.QueryEscape(f.Value))
+				if f.Operator != "" {
+					parts = append(parts, "f_"+f.Key+"_op="+url.QueryEscape(f.Operator))
+				}
+			}
+		default:
+			if f.Value != "" {
+				parts = append(parts, "f_"+f.Key+"="+url.QueryEscape(f.Value))
+			}
+		}
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return "&" + strings.Join(parts, "&")
+}
+
 // paginationParams возвращает строку query-параметров для пагинации (без page).
 func (c TableConfig) paginationParams() string {
 	var parts []string
@@ -59,10 +96,11 @@ func (c TableConfig) paginationParams() string {
 	if c.PageSize > 0 {
 		parts = append(parts, "limit="+strconv.Itoa(c.PageSize))
 	}
-	if len(parts) == 0 {
+	fp := c.filterParams()
+	if len(parts) == 0 && fp == "" {
 		return ""
 	}
-	return "&" + strings.Join(parts, "&")
+	return "&" + strings.Join(parts, "&") + fp
 }
 
 // fullURL строит полный URL страницы с параметрами.
@@ -76,23 +114,154 @@ func (c TableConfig) sortURL(field string) string {
 	if c.SortField == field && c.SortOrder == "asc" {
 		order = "desc"
 	}
-	url := c.BaseURL + "?sort=" + field + "&order=" + order + "&page=1"
+	u := c.BaseURL + "?sort=" + field + "&order=" + order + "&page=1"
 	if c.PageSize > 0 {
-		url += "&limit=" + strconv.Itoa(c.PageSize)
+		u += "&limit=" + strconv.Itoa(c.PageSize)
 	}
-	return url
+	u += c.filterParams()
+	return u
 }
 
 // pageSizeURL строит URL для смены размера страницы.
 func (c TableConfig) pageSizeURL(size int) string {
-	url := c.BaseURL + "?page=1&limit=" + strconv.Itoa(size)
+	u := c.BaseURL + "?page=1&limit=" + strconv.Itoa(size)
 	if c.SortField != "" {
-		url += "&sort=" + c.SortField
+		u += "&sort=" + c.SortField
 	}
 	if c.SortOrder != "" {
-		url += "&order=" + c.SortOrder
+		u += "&order=" + c.SortOrder
 	}
-	return url
+	u += c.filterParams()
+	return u
+}
+
+// resetFiltersURL возвращает URL без фильтров.
+func (c TableConfig) resetFiltersURL() string {
+	u := c.BaseURL + "?page=1"
+	if c.SortField != "" {
+		u += "&sort=" + c.SortField
+	}
+	if c.SortOrder != "" {
+		u += "&order=" + c.SortOrder
+	}
+	if c.PageSize > 0 {
+		u += "&limit=" + strconv.Itoa(c.PageSize)
+	}
+	return u
+}
+
+// removeFilterURL возвращает URL без указанного фильтра.
+func (c TableConfig) removeFilterURL(key string) string {
+	u := c.BaseURL + "?page=1"
+	if c.SortField != "" {
+		u += "&sort=" + c.SortField
+	}
+	if c.SortOrder != "" {
+		u += "&order=" + c.SortOrder
+	}
+	if c.PageSize > 0 {
+		u += "&limit=" + strconv.Itoa(c.PageSize)
+	}
+	for _, f := range c.ActiveFilters {
+		if f.Key == key {
+			continue
+		}
+		switch f.Type {
+		case model.FilterDateRange:
+			if f.Value != "" {
+				u += "&f_" + f.Key + "_from=" + url.QueryEscape(f.Value)
+			}
+			if f.ValueTo != "" {
+				u += "&f_" + f.Key + "_to=" + url.QueryEscape(f.ValueTo)
+			}
+		case model.FilterNumber:
+			if f.Value != "" {
+				u += "&f_" + f.Key + "=" + url.QueryEscape(f.Value)
+				if f.Operator != "" {
+					u += "&f_" + f.Key + "_op=" + url.QueryEscape(f.Operator)
+				}
+			}
+		default:
+			if f.Value != "" {
+				u += "&f_" + f.Key + "=" + url.QueryEscape(f.Value)
+			}
+		}
+	}
+	return u
+}
+
+// filterLabel возвращает человекочитаемую метку для активного фильтра.
+func (c TableConfig) filterLabel(af model.ActiveFilter) string {
+	// Ищем label из определения фильтра
+	label := af.Key
+	for _, fd := range c.Filters {
+		if fd.Key == af.Key {
+			label = fd.Label
+			// Для enum ищем label опции
+			if af.Type == model.FilterEnum {
+				for _, opt := range fd.Options {
+					if opt.Value == af.Value {
+						return label + ": " + opt.Label
+					}
+				}
+			}
+			break
+		}
+	}
+
+	switch af.Type {
+	case model.FilterDateRange:
+		result := label + ": "
+		if af.Value != "" && af.ValueTo != "" {
+			result += af.Value + " — " + af.ValueTo
+		} else if af.Value != "" {
+			result += "от " + af.Value
+		} else if af.ValueTo != "" {
+			result += "до " + af.ValueTo
+		}
+		return result
+	case model.FilterNumber:
+		op := "="
+		switch af.Operator {
+		case "gt":
+			op = ">"
+		case "lt":
+			op = "<"
+		}
+		return label + " " + op + " " + af.Value
+	default:
+		return label + ": " + af.Value
+	}
+}
+
+// activeFilterValue возвращает значение активного фильтра по ключу.
+func activeFilterValue(filters []model.ActiveFilter, key string) string {
+	for _, f := range filters {
+		if f.Key == key {
+			return f.Value
+		}
+	}
+	return ""
+}
+
+// activeFilterValueTo возвращает ValueTo активного фильтра по ключу.
+func activeFilterValueTo(filters []model.ActiveFilter, key string) string {
+	for _, f := range filters {
+		if f.Key == key {
+			return f.ValueTo
+		}
+	}
+	return ""
+}
+
+// activeFilterOperator возвращает Operator активного фильтра по ключу.
+func activeFilterOperator(filters []model.ActiveFilter, key string) string {
+	for _, f := range filters {
+		if f.Key == key {
+			return f.Operator
+		}
+	}
+	return ""
 }
 
 // sortIndicator возвращает стрелку для текущего поля сортировки.
@@ -125,11 +294,11 @@ func (c TableConfig) rangeEnd() int {
 
 // actionURL заменяет {id} в URLPath на реальное значение из row.
 func actionURL(action Action, row map[string]any) string {
-	url := action.URLPath
+	u := action.URLPath
 	if id, ok := row["id"]; ok {
-		url = strings.ReplaceAll(url, "{id}", fmt.Sprintf("%v", id))
+		u = strings.ReplaceAll(u, "{id}", fmt.Sprintf("%v", id))
 	}
-	return url
+	return u
 }
 
 // rowNumber вычисляет номер строки с учётом пагинации.
@@ -137,8 +306,214 @@ func rowNumber(currentPage, pageSize, index int) string {
 	return strconv.Itoa((currentPage-1)*pageSize + index + 1)
 }
 
+// buildFilterApplyURL строит JS-выражение для формирования URL с фильтрами.
+func (c TableConfig) buildFilterApplyURL() string {
+	base := c.BaseURL + "?page=1"
+	if c.SortField != "" {
+		base += "&sort=" + c.SortField
+	}
+	if c.SortOrder != "" {
+		base += "&order=" + c.SortOrder
+	}
+	if c.PageSize > 0 {
+		base += "&limit=" + strconv.Itoa(c.PageSize)
+	}
+	return base
+}
+
+templ filterBar(config TableConfig) {
+	<div
+		class="mb-4"
+		x-data={ filterBarInitData(config) }
+	>
+		<!-- Header: кнопка + chips -->
+		<div class="flex items-center justify-between mb-2">
+			<div class="flex items-center gap-2 flex-wrap">
+				<button
+					@click="filtersOpen = !filtersOpen"
+					class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+					</svg>
+					Фильтры
+					if len(config.ActiveFilters) > 0 {
+						<span class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-indigo-600 rounded-full">
+							{ strconv.Itoa(len(config.ActiveFilters)) }
+						</span>
+					}
+				</button>
+				<!-- Active filter chips -->
+				for _, af := range config.ActiveFilters {
+					<span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-indigo-700 bg-indigo-50 rounded-full border border-indigo-200">
+						{ config.filterLabel(af) }
+						<a
+							hx-get={ config.removeFilterURL(af.Key) }
+							hx-target={ "#" + config.TableID }
+							hx-swap="innerHTML"
+							hx-push-url={ config.removeFilterURL(af.Key) }
+							class="ml-0.5 text-indigo-400 hover:text-indigo-600 cursor-pointer"
+						>
+							<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+								<path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+							</svg>
+						</a>
+					</span>
+				}
+				if len(config.ActiveFilters) > 0 {
+					<a
+						hx-get={ config.resetFiltersURL() }
+						hx-target={ "#" + config.TableID }
+						hx-swap="innerHTML"
+						hx-push-url={ config.resetFiltersURL() }
+						class="text-xs text-gray-500 hover:text-gray-700 cursor-pointer"
+					>
+						Сбросить все
+					</a>
+				}
+			</div>
+		</div>
+		<!-- Filter panel -->
+		<div
+			x-show="filtersOpen"
+			x-collapse
+			class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-2"
+		>
+			<div class="flex flex-wrap items-end gap-3">
+				for _, fd := range config.Filters {
+					<div class="flex flex-col gap-1">
+						<label class="text-xs font-medium text-gray-600">{ fd.Label }</label>
+						if fd.Type == model.FilterEnum {
+							<select
+								x-model={ "filters." + fd.Key }
+								class="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white"
+							>
+								<option value="">Все</option>
+								for _, opt := range fd.Options {
+									<option value={ opt.Value }>{ opt.Label }</option>
+								}
+							</select>
+						}
+						if fd.Type == model.FilterString {
+							<input
+								type="text"
+								x-model={ "filters." + fd.Key }
+								placeholder={ fd.Placeholder }
+								class="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+							/>
+						}
+						if fd.Type == model.FilterDateRange {
+							<div class="flex items-center gap-1">
+								<input
+									type="date"
+									x-model={ "filters." + fd.Key + "_from" }
+									class="px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+								/>
+								<span class="text-gray-400 text-xs">—</span>
+								<input
+									type="date"
+									x-model={ "filters." + fd.Key + "_to" }
+									class="px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+								/>
+							</div>
+						}
+						if fd.Type == model.FilterNumber {
+							<div class="flex items-center gap-1">
+								<select
+									x-model={ "filters." + fd.Key + "_op" }
+									class="px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white"
+								>
+									<option value="eq">=</option>
+									<option value="gt">&gt;</option>
+									<option value="lt">&lt;</option>
+								</select>
+								<input
+									type="number"
+									x-model={ "filters." + fd.Key }
+									placeholder={ fd.Placeholder }
+									class="px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-24"
+								/>
+							</div>
+						}
+					</div>
+				}
+				<button
+					@click={ "applyFilters()" }
+					class="px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors"
+				>
+					Применить
+				</button>
+			</div>
+		</div>
+	</div>
+}
+
+// filterBarInitData generates the x-data JSON for Alpine.js filter bar state.
+func filterBarInitData(config TableConfig) string {
+	// Build initial filter values from active filters
+	var filterParts []string
+	for _, fd := range config.Filters {
+		switch fd.Type {
+		case model.FilterDateRange:
+			from := activeFilterValue(config.ActiveFilters, fd.Key)
+			to := activeFilterValueTo(config.ActiveFilters, fd.Key)
+			filterParts = append(filterParts, fmt.Sprintf("%s_from:'%s'", fd.Key, from))
+			filterParts = append(filterParts, fmt.Sprintf("%s_to:'%s'", fd.Key, to))
+		case model.FilterNumber:
+			val := activeFilterValue(config.ActiveFilters, fd.Key)
+			op := activeFilterOperator(config.ActiveFilters, fd.Key)
+			if op == "" {
+				op = "eq"
+			}
+			filterParts = append(filterParts, fmt.Sprintf("%s:'%s'", fd.Key, val))
+			filterParts = append(filterParts, fmt.Sprintf("%s_op:'%s'", fd.Key, op))
+		default:
+			val := activeFilterValue(config.ActiveFilters, fd.Key)
+			filterParts = append(filterParts, fmt.Sprintf("%s:'%s'", fd.Key, val))
+		}
+	}
+
+	baseURL := config.buildFilterApplyURL()
+	tableID := config.TableID
+	hasActive := len(config.ActiveFilters) > 0
+
+	// Build the JS for constructing filter URL
+	var urlParts []string
+	for _, fd := range config.Filters {
+		switch fd.Type {
+		case model.FilterDateRange:
+			urlParts = append(urlParts,
+				fmt.Sprintf("if(this.filters.%s_from) u+='&f_%s_from='+encodeURIComponent(this.filters.%s_from);", fd.Key, fd.Key, fd.Key),
+				fmt.Sprintf("if(this.filters.%s_to) u+='&f_%s_to='+encodeURIComponent(this.filters.%s_to);", fd.Key, fd.Key, fd.Key),
+			)
+		case model.FilterNumber:
+			urlParts = append(urlParts,
+				fmt.Sprintf("if(this.filters.%s) { u+='&f_%s='+encodeURIComponent(this.filters.%s); u+='&f_%s_op='+this.filters.%s_op; }", fd.Key, fd.Key, fd.Key, fd.Key, fd.Key),
+			)
+		default:
+			urlParts = append(urlParts,
+				fmt.Sprintf("if(this.filters.%s) u+='&f_%s='+encodeURIComponent(this.filters.%s);", fd.Key, fd.Key, fd.Key),
+			)
+		}
+	}
+
+	return fmt.Sprintf(`{
+		filtersOpen: %t,
+		filters: {%s},
+		applyFilters() {
+			let u = '%s';
+			%s
+			htmx.ajax('GET', u, {target:'#%s', swap:'innerHTML'});
+			history.pushState({}, '', u);
+		}
+	}`, hasActive, strings.Join(filterParts, ","), baseURL, strings.Join(urlParts, "\n"), tableID)
+}
+
 templ Table(config TableConfig) {
 	<div class="flex flex-col">
+		if len(config.Filters) > 0 {
+			@filterBar(config)
+		}
 		<div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
 			<div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
 				<div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg bg-white">
@@ -318,7 +693,11 @@ templ actionButton(action Action, row map[string]any, tableID string) {
 		}
 		hx-target={ "#" + tableID }
 		hx-swap="innerHTML"
-		class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 flex items-center gap-2 transition-colors"
+		class={
+			"w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors",
+			templ.KV("text-red-600 hover:bg-red-50 hover:text-red-700", action.Variant == "danger"),
+			templ.KV("text-gray-700 hover:bg-gray-100 hover:text-gray-900", action.Variant != "danger"),
+		}
 	>
 		if action.Icon != "" {
 			<span>{ action.Icon }</span>

@@ -8,6 +8,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/vovanwin/template/internal/model"
 	"github.com/vovanwin/template/internal/pkg/storage/postgres"
 )
 
@@ -102,7 +103,15 @@ var allowedSortFields = map[string]string{
 	"status":     "status",
 }
 
-func (r *ReminderRepo) ListByUserIDPaged(ctx context.Context, userID uuid.UUID, page, pageSize int, sortField, sortOrder string) (*PagedReminders, error) {
+// reminderFilterWhitelist — whitelist колонок для фильтрации.
+var reminderFilterWhitelist = FilterWhitelist{
+	"status":     "status",
+	"title":      "title",
+	"remind_at":  "remind_at",
+	"created_at": "created_at",
+}
+
+func (r *ReminderRepo) ListByUserIDPaged(ctx context.Context, userID uuid.UUID, page, pageSize int, sortField, sortOrder string, filters []model.ActiveFilter) (*PagedReminders, error) {
 	// Валидация сортировки
 	dbColumn, ok := allowedSortFields[sortField]
 	if !ok {
@@ -114,11 +123,13 @@ func (r *ReminderRepo) ListByUserIDPaged(ctx context.Context, userID uuid.UUID, 
 	orderClause := dbColumn + " " + sortOrder
 
 	// Count total
-	countQuery, countArgs, err := r.pg.Builder.
+	countBuilder := r.pg.Builder.
 		Select("COUNT(*)").
 		From("reminders").
-		Where(squirrel.Eq{"user_id": userID}).
-		ToSql()
+		Where(squirrel.Eq{"user_id": userID})
+	countBuilder = ApplyFilters(countBuilder, filters, reminderFilterWhitelist)
+
+	countQuery, countArgs, err := countBuilder.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("build count query: %w", err)
 	}
@@ -135,14 +146,16 @@ func (r *ReminderRepo) ListByUserIDPaged(ctx context.Context, userID uuid.UUID, 
 
 	offset := (page - 1) * pageSize
 
-	query, args, err := r.pg.Builder.
+	dataBuilder := r.pg.Builder.
 		Select("id", "user_id", "title", "description", "remind_at", "COALESCE(workflow_id, '')", "status", "require_confirmation", "repeat_interval_minutes", "created_at", "updated_at").
 		From("reminders").
 		Where(squirrel.Eq{"user_id": userID}).
 		OrderBy(orderClause).
 		Limit(uint64(pageSize)).
-		Offset(uint64(offset)).
-		ToSql()
+		Offset(uint64(offset))
+	dataBuilder = ApplyFilters(dataBuilder, filters, reminderFilterWhitelist)
+
+	query, args, err := dataBuilder.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("build query: %w", err)
 	}

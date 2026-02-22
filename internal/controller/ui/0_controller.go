@@ -14,6 +14,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/vovanwin/platform/server"
 	"github.com/vovanwin/template/internal/controller/ui/pages"
+	"github.com/vovanwin/template/internal/model"
 	"github.com/vovanwin/template/internal/pkg/centrifugo"
 	"github.com/vovanwin/template/internal/pkg/events"
 	"github.com/vovanwin/template/internal/pkg/jwt"
@@ -247,6 +248,38 @@ func parseSortParams(r *http.Request) (sortField, sortOrder string) {
 	return
 }
 
+// reminderFilters определяет доступные фильтры для таблицы напоминаний.
+var reminderFilters = []model.FilterDef{
+	{
+		Type:  model.FilterEnum,
+		Key:   "status",
+		Label: "Статус",
+		Options: []model.FilterOption{
+			{Value: "pending", Label: "Ожидает"},
+			{Value: "processing", Label: "В обработке"},
+			{Value: "sent", Label: "Отправлено"},
+			{Value: "cancelled", Label: "Отменено"},
+			{Value: "failed", Label: "Ошибка"},
+		},
+	},
+	{
+		Type:        model.FilterString,
+		Key:         "title",
+		Label:       "Название",
+		Placeholder: "Поиск по названию...",
+	},
+	{
+		Type:  model.FilterDateRange,
+		Key:   "remind_at",
+		Label: "Дата напоминания",
+	},
+	{
+		Type:  model.FilterDateRange,
+		Key:   "created_at",
+		Label: "Дата создания",
+	},
+}
+
 // handleReminders — страница напоминаний (GET /reminders).
 func (c *UIController) handleReminders(w http.ResponseWriter, r *http.Request, _ map[string]string) {
 	userIDStr, stop := c.requireAuth(w, r)
@@ -269,8 +302,9 @@ func (c *UIController) handleReminders(w http.ResponseWriter, r *http.Request, _
 		limit = 100
 	}
 	sortField, sortOrder := parseSortParams(r)
+	activeFilters := ParseFilters(r, reminderFilters)
 
-	paged, err := c.reminderService.ListRemindersPaged(r.Context(), userID, page, limit, sortField, sortOrder)
+	paged, err := c.reminderService.ListRemindersPaged(r.Context(), userID, page, limit, sortField, sortOrder, activeFilters)
 	if err != nil {
 		c.log.Error("list reminders", slog.Any("err", err))
 		http.Error(w, "Ошибка загрузки напоминаний", http.StatusInternalServerError)
@@ -278,12 +312,14 @@ func (c *UIController) handleReminders(w http.ResponseWriter, r *http.Request, _
 	}
 
 	tableParams := pages.TableParams{
-		CurrentPage: page,
-		TotalPages:  paged.TotalPages,
-		TotalItems:  paged.TotalItems,
-		PageSize:    limit,
-		SortField:   sortField,
-		SortOrder:   sortOrder,
+		CurrentPage:   page,
+		TotalPages:    paged.TotalPages,
+		TotalItems:    paged.TotalItems,
+		PageSize:      limit,
+		SortField:     sortField,
+		SortOrder:     sortOrder,
+		Filters:       reminderFilters,
+		ActiveFilters: activeFilters,
 	}
 
 	// Если это HTMX-запрос пагинации (не boosted навигация), возвращаем только таблицу
@@ -348,19 +384,22 @@ func (c *UIController) handleCreateReminder(w http.ResponseWriter, r *http.Reque
 
 	// Возвращаем обновлённый список (page=1, новый элемент сверху при created_at DESC)
 	sortField, sortOrder := parseSortParams(r)
-	paged, err := c.reminderService.ListRemindersPaged(r.Context(), userID, 1, 20, sortField, sortOrder)
+	activeFilters := ParseFilters(r, reminderFilters)
+	paged, err := c.reminderService.ListRemindersPaged(r.Context(), userID, 1, 20, sortField, sortOrder, activeFilters)
 	if err != nil {
 		c.log.Error("list reminders", slog.Any("err", err))
 		http.Error(w, "Ошибка загрузки", http.StatusInternalServerError)
 		return
 	}
 	tableParams := pages.TableParams{
-		CurrentPage: 1,
-		TotalPages:  paged.TotalPages,
-		TotalItems:  paged.TotalItems,
-		PageSize:    20,
-		SortField:   sortField,
-		SortOrder:   sortOrder,
+		CurrentPage:   1,
+		TotalPages:    paged.TotalPages,
+		TotalItems:    paged.TotalItems,
+		PageSize:      20,
+		SortField:     sortField,
+		SortOrder:     sortOrder,
+		Filters:       reminderFilters,
+		ActiveFilters: activeFilters,
 	}
 	templ.Handler(pages.RemindersTablePaged(paged.Items, tableParams)).ServeHTTP(w, r)
 }
@@ -394,19 +433,22 @@ func (c *UIController) handleDeleteReminder(w http.ResponseWriter, r *http.Reque
 	page := parseIntParam(r, "page", 1)
 	limit := parseIntParam(r, "limit", 20)
 	sortField, sortOrder := parseSortParams(r)
-	paged, err := c.reminderService.ListRemindersPaged(r.Context(), userID, page, limit, sortField, sortOrder)
+	activeFilters := ParseFilters(r, reminderFilters)
+	paged, err := c.reminderService.ListRemindersPaged(r.Context(), userID, page, limit, sortField, sortOrder, activeFilters)
 	if err != nil {
 		c.log.Error("list reminders", slog.Any("err", err))
 		http.Error(w, "Ошибка загрузки", http.StatusInternalServerError)
 		return
 	}
 	tableParams := pages.TableParams{
-		CurrentPage: page,
-		TotalPages:  paged.TotalPages,
-		TotalItems:  paged.TotalItems,
-		PageSize:    limit,
-		SortField:   sortField,
-		SortOrder:   sortOrder,
+		CurrentPage:   page,
+		TotalPages:    paged.TotalPages,
+		TotalItems:    paged.TotalItems,
+		PageSize:      limit,
+		SortField:     sortField,
+		SortOrder:     sortOrder,
+		Filters:       reminderFilters,
+		ActiveFilters: activeFilters,
 	}
 	templ.Handler(pages.RemindersTablePaged(paged.Items, tableParams)).ServeHTTP(w, r)
 }
